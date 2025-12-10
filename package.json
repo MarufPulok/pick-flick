@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@auth/mongodb-adapter": "^3.11.1",
     "@hookform/resolvers": "^5.2.2",
     "@tanstack/react-query": "^5.90.12",
     "@tanstack/react-query-devtools": "^5.91.1",
@@ -19,6 +20,7 @@
     "mongodb": "^7.0.0",
     "mongoose": "^9.0.1",
     "next": "16.0.8",
+    "next-auth": "^5.0.0-beta.30",
     "next-swagger-doc": "^0.4.1",
     "react": "19.2.1",
     "react-dom": "19.2.1",
