@@ -1,59 +1,36 @@
 /**
  * History Response DTO
- * Response structure for recommendation history
+ * Response structure for history queries
  */
 
 import { z } from 'zod';
-import { ContentTypeSchema, FeedbackTypeSchema } from '../common.dto';
+import { ContentTypeSchema } from '../common.dto';
 
 /**
- * Single history item schema
+ * Action types
+ */
+export const HistoryActionSchema = z.enum([
+  'WATCHED',
+  'SKIPPED',
+  'LIKED',
+  'DISLIKED',
+  'BLACKLISTED',
+]);
+
+/**
+ * Single history item
  */
 export const HistoryItemSchema = z.object({
-  /**
-   * History entry ID
-   */
   id: z.string(),
-  
-  /**
-   * TMDB ID
-   */
   tmdbId: z.number(),
-  
-  /**
-   * Content title
-   */
-  title: z.string(),
-  
-  /**
-   * Poster URL
-   */
-  posterUrl: z.string().nullable(),
-  
-  /**
-   * TMDB rating
-   */
-  rating: z.number().nullable(),
-  
-  /**
-   * Content type
-   */
   contentType: ContentTypeSchema,
-  
-  /**
-   * Genre names
-   */
-  genres: z.array(z.string()).optional(),
-  
-  /**
-   * User feedback (if any)
-   */
-  feedback: FeedbackTypeSchema.nullable(),
-  
-  /**
-   * When this was generated
-   */
-  generatedAt: z.string().datetime(),
+  action: HistoryActionSchema,
+  title: z.string(),
+  posterPath: z.string().optional(),
+  rating: z.number().optional(),
+  releaseDate: z.string().optional(),
+  source: z.enum(['FILTERED', 'SMART']),
+  createdAt: z.string().datetime(),
 });
 
 export type HistoryItem = z.infer<typeof HistoryItemSchema>;
@@ -61,31 +38,22 @@ export type HistoryItem = z.infer<typeof HistoryItemSchema>;
 /**
  * Paginated history response
  */
-export const HistoryResSchema = z.object({
-  /**
-   * List of history items
-   */
+export const HistoryListResSchema = z.object({
   items: z.array(HistoryItemSchema),
-  
-  /**
-   * Total count of items
-   */
   total: z.number(),
-  
-  /**
-   * Current page
-   */
-  page: z.number(),
-  
-  /**
-   * Items per page
-   */
-  limit: z.number(),
-  
-  /**
-   * Whether there are more items
-   */
   hasMore: z.boolean(),
 });
 
-export type HistoryResDto = z.infer<typeof HistoryResSchema>;
+export type HistoryListResDto = z.infer<typeof HistoryListResSchema>;
+
+/**
+ * User stats response
+ */
+export const UserStatsResSchema = z.object({
+  watchedCount: z.number(),
+  likedCount: z.number(),
+  dislikedCount: z.number(),
+  averageRating: z.number(),
+});
+
+export type UserStatsResDto = z.infer<typeof UserStatsResSchema>;

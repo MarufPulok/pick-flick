@@ -1,6 +1,6 @@
 /**
  * Recommendation History Model
- * Stores generated recommendations for users
+ * Tracks user actions on recommendations (watched, liked, disliked, blacklisted)
  */
 
 import { Schema, Types, model, models, type HydratedDocument, type InferSchemaType } from 'mongoose';
@@ -14,6 +14,7 @@ const recommendationHistorySchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: 'User',
       required: true,
+      index: true,
     },
     
     /**
@@ -42,17 +43,19 @@ const recommendationHistorySchema = new Schema(
     },
     
     /**
-     * Genre names
+     * User action type
      */
-    genres: {
-      type: [String],
-      default: [],
+    action: {
+      type: String,
+      enum: ['WATCHED', 'SKIPPED', 'LIKED', 'DISLIKED', 'BLACKLISTED'],
+      required: true,
+      index: true,
     },
     
     /**
-     * Original language code
+     * Poster image path (TMDB path, not full URL)
      */
-    language: {
+    posterPath: {
       type: String,
     },
     
@@ -66,9 +69,9 @@ const recommendationHistorySchema = new Schema(
     },
     
     /**
-     * Poster image path (TMDB path, not full URL)
+     * Release date
      */
-    posterPath: {
+    releaseDate: {
       type: String,
     },
     
@@ -77,36 +80,20 @@ const recommendationHistorySchema = new Schema(
      */
     source: {
       type: String,
-      enum: ['FILTERED', 'SMART', 'REROLL'],
-      required: true,
-    },
-    
-    /**
-     * User feedback
-     */
-    feedback: {
-      type: String,
-      enum: ['LIKE', 'UNLIKE', null],
-      default: null,
-    },
-    
-    /**
-     * When feedback was given
-     */
-    feedbackAt: {
-      type: Date,
+      enum: ['FILTERED', 'SMART'],
+      default: 'SMART',
     },
   },
   {
     timestamps: true,
-    collection: 'recommendation_histories',
+    collection: 'recommendation_history',
   }
 );
 
 // Indexes for efficient queries
 recommendationHistorySchema.index({ userId: 1, createdAt: -1 });
-recommendationHistorySchema.index({ userId: 1, tmdbId: 1 });
-recommendationHistorySchema.index({ userId: 1, feedback: 1 });
+recommendationHistorySchema.index({ userId: 1, tmdbId: 1, contentType: 1 });
+recommendationHistorySchema.index({ userId: 1, action: 1, createdAt: -1 });
 
 // Types
 export type RecommendationHistory = InferSchemaType<typeof recommendationHistorySchema> & {

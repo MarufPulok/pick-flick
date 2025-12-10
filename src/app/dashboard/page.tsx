@@ -6,12 +6,12 @@
  */
 
 import { ANIME_GENRES, CONTENT_TYPES, GENRES, LANGUAGES, RATING_TIERS } from '@/config/app.config';
-import { Calendar, Film, Loader2, Sliders, Sparkles, Star } from 'lucide-react';
+import { Calendar, Check, Film, Loader2, Sliders, Sparkles, Star, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 type Mode = 'SMART' | 'FILTERED';
 
@@ -22,12 +22,32 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [recommendation, setRecommendation] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<any>(null);
+  const [isRecordingAction, setIsRecordingAction] = useState(false);
 
   // Filtered mode state
   const [selectedContentType, setSelectedContentType] = useState<string>('MOVIE');
   const [selectedGenre, setSelectedGenre] = useState<string>('');
   const [selectedLanguage, setSelectedLanguage] = useState<string>('en');
   const [selectedRating, setSelectedRating] = useState<string>('ANY');
+
+  // Fetch stats on mount (must be before early returns)
+  useEffect(() => {
+    if (status === 'authenticated') {
+      const fetchStats = async () => {
+        try {
+          const response = await fetch('/api/stats');
+          if (response.ok) {
+            const data = await response.json();
+            setStats(data);
+          }
+        } catch (err) {
+          console.error('Failed to fetch stats:', err);
+        }
+      };
+      fetchStats();
+    }
+  }, [status]);
 
   if (status === 'loading') {
     return (
@@ -77,6 +97,58 @@ export default function DashboardPage() {
     }
   };
 
+  const recordAction = async (action: 'WATCHED' | 'LIKED' | 'DISLIKED' | 'BLACKLISTED') => {
+    if (!recommendation || isRecordingAction) return;
+    
+    setIsRecordingAction(true);
+    
+    try {
+      const response = await fetch('/api/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tmdbId: recommendation.tmdbId,
+          contentType: recommendation.contentType,
+          action,
+          title: recommendation.title,
+          posterPath: recommendation.posterPath,
+          rating: recommendation.rating,
+          releaseDate: recommendation.releaseDate,
+          source: mode,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to record action');
+      }
+
+      // Handle blacklist - generate new recommendation
+      if (action === 'BLACKLISTED') {
+        setRecommendation(null);
+        handleGenerate();
+      }
+      
+      // Refresh stats
+      fetchStats();
+    } catch (err) {
+      console.error('Failed to record action:', err);
+    } finally {
+      setIsRecordingAction(false);
+    }
+  };
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/stats');
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch stats:', err);
+    }
+  };
+
   const getYear = (dateString: string | null) => {
     if (!dateString) return '';
     return new Date(dateString).getFullYear();
@@ -98,6 +170,31 @@ export default function DashboardPage() {
             Ready for your perfect pick?
           </p>
         </div>
+
+        {/* Stats Cards */}
+        {stats && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div className="glass rounded-xl p-4">
+              <div className="text-2xl font-bold mb-1">{stats.watchedCount}</div>
+              <div className="text-sm text-muted-foreground">Watched</div>
+            </div>
+            <div className="glass rounded-xl p-4">
+              <div className="text-2xl font-bold mb-1">{stats.likedCount}</div>
+              <div className="text-sm text-muted-foreground">Liked</div>
+            </div>
+            <div className="glass rounded-xl p-4">
+              <div className="text-2xl font-bold mb-1">{stats.dislikedCount}</div>
+              <div className="text-sm text-muted-foreground">Disliked</div>
+            </div>
+            <div className="glass rounded-xl p-4">
+              <div className="flex items-center gap-1 mb-1">
+                <Star className="w-5 h-5 fill-yellow-500 text-yellow-500" />
+                <div className="text-2xl font-bold">{stats.averageRating.toFixed(1)}</div>
+              </div>
+              <div className="text-sm text-muted-foreground">Avg Rating</div>
+            </div>
+          </div>
+        )}
 
         {/* Generator */}
         {!recommendation && (
@@ -324,31 +421,74 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex gap-3 mt-6">
-                  <button
-                    onClick={handleGenerate}
-                    disabled={isLoading}
-                    className="flex-1 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Loading...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-5 h-5" />
-                        Get Another
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setRecommendation(null)}
-                    className="px-6 py-3 rounded-xl border border-border hover:bg-secondary transition-colors font-medium"
-                  >
-                    Back
-                  </button>
+                {/* Feedback & Actions */}
+                <div className="space-y-3 mt-6">
+                  {/* Primary Actions */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => recordAction('WATCHED')}
+                      disabled={isRecordingAction}
+                      className="px-6 py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                    >
+                      <Check className="w-5 h-5" />
+                      Watched
+                    </button>
+                    <button
+                      onClick={() => recordAction('BLACKLISTED')}
+                      disabled={isRecordingAction}
+                      className="px-6 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                    >
+                      <X className="w-5 h-5" />
+                      Not Interested
+                    </button>
+                  </div>
+
+                  {/* Like/Dislike */}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => recordAction('LIKED')}
+                      disabled={isRecordingAction}
+                      className="flex-1 px-4 py-2 rounded-lg border-2 border-green-500 hover:bg-green-500/10 text-green-600 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                    >
+                      <ThumbsUp className="w-4 h-4" />
+                      Like
+                    </button>
+                    <button
+                      onClick={() => recordAction('DISLIKED')}
+                      disabled={isRecordingAction}
+                      className="flex-1 px-4 py-2 rounded-lg border-2 border-red-500 hover:bg-red-500/10 text-red-600 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                    >
+                      <ThumbsDown className="w-4 h-4" />
+                      Dislike
+                    </button>
+                  </div>
+
+                  {/* Get Another / Back */}
+                  <div className="flex gap-3 pt-2 border-t border-border">
+                    <button
+                      onClick={handleGenerate}
+                      disabled={isLoading}
+                      className="flex-1 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-5 h-5" />
+                          Get Another
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setRecommendation(null)}
+                      className="px-6 py-3 rounded-xl border border-border hover:bg-secondary transition-colors font-medium"
+                    >
+                      Back
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

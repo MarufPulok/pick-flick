@@ -14,6 +14,7 @@ interface RecommendationRequest {
   genres: string[];
   languages: string[];
   minRating?: number;
+  blacklist?: Set<string>; // Set of "tmdbId:contentType" strings
 }
 
 export class RecommendationService {
@@ -21,10 +22,10 @@ export class RecommendationService {
    * Generate a single recommendation based on filters with cascading fallback
    */
   static async generateRecommendation(request: RecommendationRequest) {
-    const { contentType, genres, languages, minRating = 0 } = request;
+    const { contentType, genres, languages, minRating = 0, blacklist } = request;
 
     // Strategy 1: Try with all filters (most specific)
-    let result = await this.tryGenerateWithFilters(contentType, genres, languages, minRating);
+    let result = await this.tryGenerateWithFilters(contentType, genres, languages, minRating, blacklist);
     if (result) return result;
 
     // Strategy 2: Try with fewer genres (reduce to 1 random genre)
@@ -32,21 +33,21 @@ export class RecommendationService {
       const numericGenres = genres.filter((g) => !isNaN(Number(g)));
       if (numericGenres.length > 1) {
         const singleGenre = [numericGenres[Math.floor(Math.random() * numericGenres.length)]];
-        result = await this.tryGenerateWithFilters(contentType, singleGenre, languages, minRating);
+        result = await this.tryGenerateWithFilters(contentType, singleGenre, languages, minRating, blacklist);
         if (result) return result;
       }
     }
 
     // Strategy 3: Try without language filter
     if (languages.length > 0) {
-      result = await this.tryGenerateWithFilters(contentType, genres, [], minRating);
+      result = await this.tryGenerateWithFilters(contentType, genres, [], minRating, blacklist);
       if (result) return result;
     }
 
     // Strategy 4: Try with lower rating threshold (reduce by 1, minimum 5.0)
     if (minRating > 5) {
       const lowerRating = Math.max(5.0, minRating - 1);
-      result = await this.tryGenerateWithFilters(contentType, genres, languages, lowerRating);
+      result = await this.tryGenerateWithFilters(contentType, genres, languages, lowerRating, blacklist);
       if (result) return result;
     }
 
@@ -56,17 +57,17 @@ export class RecommendationService {
       if (numericGenres.length > 0) {
         const singleGenre = [numericGenres[Math.floor(Math.random() * numericGenres.length)]];
         const relaxedRating = Math.max(5.0, (minRating || 0) - 1);
-        result = await this.tryGenerateWithFilters(contentType, singleGenre, [], relaxedRating);
+        result = await this.tryGenerateWithFilters(contentType, singleGenre, [], relaxedRating, blacklist);
         if (result) return result;
       }
     }
 
     // Strategy 6: Try with just content type and minimal rating (5.0)
-    result = await this.tryGenerateWithFilters(contentType, [], [], 5.0);
+    result = await this.tryGenerateWithFilters(contentType, [], [], 5.0, blacklist);
     if (result) return result;
 
     // Strategy 7: Last resort - just popular content of the requested type (no filters)
-    result = await this.tryGenerateWithFilters(contentType, [], [], 0);
+    result = await this.tryGenerateWithFilters(contentType, [], [], 0, blacklist);
     if (result) return result;
 
     // If still no results, return null
@@ -82,7 +83,8 @@ export class RecommendationService {
     contentType: ContentType,
     genres: string[],
     languages: string[],
-    minRating: number
+    minRating: number,
+    blacklist?: Set<string>
   ) {
     // Build query params
     const queryParams: TMDBDiscoverParams = {
@@ -157,8 +159,22 @@ export class RecommendationService {
         return null;
       }
 
+      // Filter out blacklisted items
+      const results = blacklist && blacklist.size > 0
+        ? response.results.filter((item) => {
+            const key = `${item.id}:${contentType}`;
+            return !blacklist.has(key);
+          })
+        : response.results;
+        
+      if (results.length === 0) {
+        console.log("All results were blacklisted");
+        return null;
+      }
+      
+      console.log("Results after filtering:", results.length);
+
       // Get random item from results
-      const results = response.results;
       const randomIndex = Math.floor(
         Math.random() * Math.min(results.length, 20)
       );
@@ -193,6 +209,7 @@ export class RecommendationService {
     genres: string[];
     languages: string[];
     minRating?: number;
+    blacklist?: Set<string>;
   }) {
     // Pick random content type from user's preferences
     const randomContentType =
@@ -205,6 +222,7 @@ export class RecommendationService {
       genres: profile.genres,
       languages: profile.languages,
       minRating: profile.minRating || 6, // Use user preference or default to 6
+      blacklist: profile.blacklist,
     });
   }
 }

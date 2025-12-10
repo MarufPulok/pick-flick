@@ -4,10 +4,12 @@
  */
 
 import { getTMDBImageUrl } from '@/config/url.config';
-import { GenerateRecommendationReqSchema } from '@/dtos';
+import { GenerateRecommendationReqSchema } from '@/dtos/request/generate-recommendation.req.dto';
+import { RecommendationItemSchema } from '@/dtos/response/recommendation.res.dto';
 import { connectToDatabase } from '@/infrastructure/db';
 import { TasteProfileModel, UserModel } from '@/infrastructure/db/models';
 import { auth } from '@/lib/auth';
+import { HistoryService } from '@/services/history.service';
 import { RecommendationService } from '@/services/recommendation.service';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -31,6 +33,9 @@ export async function POST(req: NextRequest) {
     }
 
     let recommendation;
+    
+    // Load blacklist for user
+    const blacklist = await HistoryService.getBlacklist(user._id.toString());
 
     if (validated.mode === 'SMART') {
       // Load taste profile for smart mode
@@ -52,6 +57,7 @@ export async function POST(req: NextRequest) {
         genres: profile.genres,
         languages: profile.languages,
         minRating: profile.minRating,
+        blacklist,
       });
     } else {
       // Filtered mode - use request filters
@@ -60,6 +66,7 @@ export async function POST(req: NextRequest) {
         genres: validated.genres || [],
         languages: validated.language ? [validated.language] : ['en'],
         minRating: validated.minRating || 0,
+        blacklist,
       });
     }
 
