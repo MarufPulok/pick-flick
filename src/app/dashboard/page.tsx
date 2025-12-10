@@ -2,17 +2,32 @@
 
 /**
  * Dashboard Page  
- * Main app page after onboarding (placeholder for Phase 5)
+ * Main recommendation generator with Smart & Filtered modes
  */
 
-import { Sparkles } from 'lucide-react';
+import { ANIME_GENRES, CONTENT_TYPES, GENRES, LANGUAGES, RATING_TIERS } from '@/config/app.config';
+import { Calendar, Film, Loader2, Sliders, Sparkles, Star } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+
+type Mode = 'SMART' | 'FILTERED';
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const [mode, setMode] = useState<Mode>('SMART');
+  const [isLoading, setIsLoading] = useState(false);
+  const [recommendation, setRecommendation] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Filtered mode state
+  const [selectedContentType, setSelectedContentType] = useState<string>('MOVIE');
+  const [selectedGenre, setSelectedGenre] = useState<string>('');
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('en');
+  const [selectedRating, setSelectedRating] = useState<string>('ANY');
 
   if (status === 'loading') {
     return (
@@ -27,50 +42,294 @@ export default function DashboardPage() {
     return null;
   }
 
+  const handleGenerate = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const body = mode === 'SMART' 
+        ? { mode: 'SMART' }
+        : {
+            mode: 'FILTERED',
+            contentType: selectedContentType,
+            genres: selectedGenre ? [selectedGenre] : [],
+            language: selectedLanguage,
+            minRating: RATING_TIERS[selectedRating as keyof typeof RATING_TIERS].min,
+          };
+
+      const response = await fetch('/api/recommendation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to generate recommendation');
+      }
+
+      const data = await response.json();
+      setRecommendation(data);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getYear = (dateString: string | null) => {
+    if (!dateString) return '';
+    return new Date(dateString).getFullYear();
+  };
+
+  const availableGenres = selectedContentType === 'ANIME' 
+    ? Object.values(ANIME_GENRES)
+    : Object.values(GENRES);
+
   return (
-    <div className="min-h-screen bg-gradient-animated px-4 py-12">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
+    <div className="min-h-screen bg-gradient-animated px-4 py-12 pt-24">
+      <div className="max-w-4xl mx-auto">
+        {/* Title */}
         <div className="text-center mb-12">
-          <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
-              <Sparkles className="w-7 h-7 text-primary-foreground" />
-            </div>
-            <span className="text-3xl font-bold text-gradient">PickFlick</span>
-          </Link>
           <h1 className="text-4xl font-bold mb-2">
-            Welcome, {session?.user?.name || 'there'}!
+            Hey, {session?.user?.name?.split(' ')[0]}!
           </h1>
           <p className="text-muted-foreground">
-            Your perfect picks are just a click away
+            Ready for your perfect pick?
           </p>
         </div>
 
-        {/* Placeholder Content */}
-        <div className="glass rounded-2xl p-12 text-center">
-          <div className="w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-6">
-            <Sparkles className="w-10 h-10 text-primary" />
+        {/* Generator */}
+        {!recommendation && (
+          <div className="glass rounded-2xl p-8">
+            {/* Mode Toggle */}
+            <div className="flex gap-2 mb-8 p-1 bg-secondary rounded-lg max-w-md mx-auto">
+              <button
+                onClick={() => setMode('SMART')}
+                className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  mode === 'SMART' 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'hover:bg-secondary-foreground/10'
+                }`}
+              >
+                <Sparkles className="w-4 h-4 inline mr-2" />
+                Smart Mode
+              </button>
+              <button
+                onClick={() => setMode('FILTERED')}
+                className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  mode === 'FILTERED' 
+                    ? 'bg-primary text-primary-foreground' 
+                    : 'hover:bg-secondary-foreground/10'
+                }`}
+              >
+                <Sliders className="w-4 h-4 inline mr-2" />
+                Filtered Mode
+              </button>
+            </div>
+
+            {mode === 'SMART' ? (
+              /* Smart Mode */
+              <div className="text-center">
+                <div className="w-24 h-24 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-6 animate-pulse-glow">
+                  <Sparkles className="w-12 h-12 text-primary" />
+                </div>
+                <h2 className="text-2xl font-bold mb-4">Feeling Lucky?</h2>
+                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+                  Get one perfect recommendation based on your taste profile
+                </p>
+              </div>
+            ) : (
+              /* Filtered Mode */
+              <div className="max-w-md mx-auto space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Content Type</label>
+                  <select
+                    value={selectedContentType}
+                    onChange={(e) => setSelectedContentType(e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    {CONTENT_TYPES.map((type) => (
+                      <option key={type} value={type}>
+                        {type === 'MOVIE' && '🎬 Movies'}
+                        {type === 'SERIES' && '📺 TV Series'}
+                        {type === 'ANIME' && '⚡ Anime'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Genre (Optional)</label>
+                  <select
+                    value={selectedGenre}
+                    onChange={(e) => setSelectedGenre(e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="">Any Genre</option>
+                    {availableGenres.map((genre) => (
+                      <option key={genre.id} value={String(genre.id)}>
+                        {genre.icon} {genre.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Language</label>
+                  <select
+                    value={selectedLanguage}
+                    onChange={(e) => setSelectedLanguage(e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    {Object.values(LANGUAGES).map((lang) => (
+                      <option key={lang.code} value={lang.code}>
+                        {lang.flag} {lang.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Minimum Rating</label>
+                  <select
+                    value={selectedRating}
+                    onChange={(e) => setSelectedRating(e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    {Object.entries(RATING_TIERS).map(([key, tier]) => (
+                      <option key={key} value={key}>
+                        ⭐ {tier.label} - {tier.description}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <div className="mt-6 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-center">
+                <p className="text-destructive text-sm mb-3">{error}</p>
+                {error.includes('onboarding') && (
+                  <Link
+                    href="/onboarding"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+                  >
+                    Complete Onboarding
+                  </Link>
+                )}
+              </div>
+            )}
+
+            <div className="mt-8 text-center">
+              <button
+                onClick={handleGenerate}
+                disabled={isLoading}
+                className="px-8 py-4 rounded-xl bg-primary text-primary-foreground font-semibold text-lg glow hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Finding your pick...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5" />
+                    {mode === 'SMART' ? 'Get My Pick' : 'Generate'}
+                  </>
+                )}
+              </button>
+            </div>
           </div>
-          <h2 className="text-2xl font-bold mb-4">Dashboard Coming Soon</h2>
-          <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-            This is where you&apos;ll generate recommendations and view your history.
-            We&apos;re building something amazing for Phase 5!
-          </p>
-          <div className="flex gap-4 justify-center">
-            <Link
-              href="/onboarding"
-              className="px-6 py-3 rounded-xl border border-border hover:bg-secondary transition-colors"
-            >
-              Update Preferences
-            </Link>
-            <Link
-              href="/"
-              className="px-6 py-3 rounded-xl bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
-            >
-              Back to Home
-            </Link>
+        )}
+
+        {/* Recommendation Card */}
+        {recommendation && (
+          <div className="glass rounded-2xl overflow-hidden">
+            <div className="grid md:grid-cols-[300px_1fr] gap-6">
+              {/* Poster */}
+              <div className="relative aspect-[2/3] bg-muted">
+                {recommendation.posterUrl ? (
+                  <Image
+                    src={recommendation.posterUrl}
+                    alt={recommendation.title}
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Film className="w-16 h-16 text-muted-foreground/20" />
+                  </div>
+                )}
+              </div>
+
+              {/* Details */}
+              <div className="p-6 flex flex-col">
+                <div className="flex-1">
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <div>
+                      <h2 className="text-3xl font-bold mb-2">
+                        {recommendation.title}
+                      </h2>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        {recommendation.releaseDate && (
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            {getYear(recommendation.releaseDate)}
+                          </div>
+                        )}
+                        {recommendation.rating && (
+                          <div className="flex items-center gap-1">
+                            <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                            {recommendation.rating.toFixed(1)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-muted-foreground leading-relaxed mb-6">
+                    {recommendation.overview || 'No overview available.'}
+                  </p>
+
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
+                    {recommendation.contentType === 'MOVIE' && '🎬 Movie'}
+                    {recommendation.contentType === 'SERIES' && '📺 Series'}
+                    {recommendation.contentType === 'ANIME' && '⚡ Anime'}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={handleGenerate}
+                    disabled={isLoading}
+                    className="flex-1 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-5 h-5" />
+                        Get Another
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setRecommendation(null)}
+                    className="px-6 py-3 rounded-xl border border-border hover:bg-secondary transition-colors font-medium"
+                  >
+                    Back
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

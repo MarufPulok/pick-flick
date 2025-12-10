@@ -52,7 +52,7 @@ function LoginContent() {
   }
 
   const handleGoogleSignIn = () => {
-    signIn('google', { callbackURL: '/dashboard' });
+    signIn('google');
   };
 
   return (

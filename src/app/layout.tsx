@@ -1,3 +1,4 @@
+import { GlobalNav } from '@/components/layout/global-nav';
 import { QueryProvider, SessionProvider, ThemeProvider } from '@/providers';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
@@ -46,7 +47,10 @@ export default function RootLayout({
       >
         <SessionProvider>
           <ThemeProvider defaultTheme="dark">
-            <QueryProvider>{children}</QueryProvider>
+            <QueryProvider>
+              <GlobalNav />
+              {children}
+            </QueryProvider>
           </ThemeProvider>
         </SessionProvider>
       </body>

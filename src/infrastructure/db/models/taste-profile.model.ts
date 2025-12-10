@@ -62,6 +62,14 @@ const tasteProfileSchema = new Schema(
       type: Boolean,
       default: true,
     },
+    
+    /**
+     * Whether onboarding is complete
+     */
+    complete: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

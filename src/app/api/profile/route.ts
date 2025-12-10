@@ -83,6 +83,7 @@ export async function POST(req: NextRequest) {
         genres: validated.genres,
         languages: validated.languages,
         animeAutoLanguage: validated.animeAutoLanguage,
+        complete: true, // Mark onboarding as complete
       },
       { upsert: true, new: true }
     );

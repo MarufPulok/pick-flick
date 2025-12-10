@@ -60,11 +60,12 @@ export default function OnboardingPage() {
     }
   };
 
-  // Redirect if not authenticated
-  if (status === 'unauthenticated') {
-    router.push('/login');
-    return null;
-  }
+  // Redirect if not authenticated (using useEffect to avoid setState in render)
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    }
+  }, [status, router]);
 
   if (status === 'loading' || isLoading) {
     return (
@@ -72,6 +73,11 @@ export default function OnboardingPage() {
         <div className="w-12 h-12 rounded-xl bg-primary animate-pulse" />
       </div>
     );
+  }
+
+  // Don't render form if unauthenticated
+  if (status === 'unauthenticated') {
+    return null;
   }
 
   const toggleContentType = (type: ContentType) => {
@@ -162,16 +168,10 @@ export default function OnboardingPage() {
       : Object.values(GENRES);  // Only regular genres
 
   return (
-    <div className="min-h-screen bg-gradient-animated px-4 py-12">
+    <div className="min-h-screen bg-gradient-animated px-4 py-12 pt-24">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
-          <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
-              <Sparkles className="w-7 h-7 text-primary-foreground" />
-            </div>
-            <span className="text-3xl font-bold text-gradient">PickFlick</span>
-          </Link>
           <h1 className="text-4xl font-bold mb-2">
             {isEditMode ? 'Update Your Preferences' : "Let's Get Started"}
           </h1>
@@ -181,6 +181,7 @@ export default function OnboardingPage() {
               : "Tell us what you like, and we'll find your perfect picks"
             }
           </p>
+          
           
           {/* Progress */}
           <div className="flex gap-2 justify-center mt-6">

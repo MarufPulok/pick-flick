@@ -12,8 +12,9 @@ import { ContentTypeSchema, RecommendationModeSchema } from '../common.dto';
 export const GenerateRecommendationReqSchema = z.object({
   /**
    * Type of content to recommend
+   * Required for FILTERED mode, optional for SMART mode
    */
-  contentType: ContentTypeSchema,
+  contentType: ContentTypeSchema.optional(),
   
   /**
    * Preferred language code (ISO 639-1)

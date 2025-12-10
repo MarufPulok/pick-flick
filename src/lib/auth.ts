@@ -1,8 +1,5 @@
-/**
- * NextAuth Configuration
- * Authentication setup with Google OAuth and MongoDB
- */
-
+import { connectToDatabase } from '@/infrastructure/db';
+import { TasteProfileModel } from '@/infrastructure/db/models';
 import { MongoDBAdapter } from '@auth/mongodb-adapter';
 import { MongoClient } from 'mongodb';
 import NextAuth from 'next-auth';
@@ -35,6 +32,35 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.email = user.email;
       }
       return session;
+    },
+    
+    async redirect({ url, baseUrl }) {
+      // After sign in, check if user has completed onboarding
+      if (url.startsWith(baseUrl)) {
+        // Only intercept callbacks, not manual navigation
+        if (url.includes('/api/auth/callback')) {
+          try {
+            await connectToDatabase();
+            const session = await auth();
+            
+            if (session?.user?.id) {
+              const profile = await TasteProfileModel.findOne({ 
+                userId: session.user.id 
+              });
+              
+              // Redirect to onboarding if no profile or incomplete
+              if (!profile || !profile.complete) {
+                return `${baseUrl}/onboarding`;
+              }
+            }
+          } catch (error) {
+            console.error('Redirect check error:', error);
+          }
+        }
+        return url;
+      }
+      
+      return baseUrl;
     },
   },
   
