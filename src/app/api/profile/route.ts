@@ -38,6 +38,7 @@ export async function GET() {
         genres: profile.genres,
         languages: profile.languages,
         animeAutoLanguage: profile.animeAutoLanguage,
+        minRating: profile.minRating,
         onboardingComplete: true,
         createdAt: profile.createdAt.toISOString(),
         updatedAt: profile.updatedAt.toISOString(),
@@ -83,6 +84,7 @@ export async function POST(req: NextRequest) {
         genres: validated.genres,
         languages: validated.languages,
         animeAutoLanguage: validated.animeAutoLanguage,
+        minRating: validated.minRating,
         complete: true, // Mark onboarding as complete
       },
       { upsert: true, new: true }
@@ -97,6 +99,7 @@ export async function POST(req: NextRequest) {
         genres: savedProfile.genres,
         languages: savedProfile.languages,
         animeAutoLanguage: savedProfile.animeAutoLanguage,
+        minRating: savedProfile.minRating,
         onboardingComplete: true,
         createdAt: savedProfile.createdAt.toISOString(),
         updatedAt: savedProfile.updatedAt.toISOString(),

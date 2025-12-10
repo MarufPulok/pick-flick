@@ -34,6 +34,11 @@ export const OnboardingReqSchema = z.object({
    * If true, Japanese is auto-added for anime content
    */
   animeAutoLanguage: z.boolean().default(true),
+  
+  /**
+   * Minimum acceptable rating (0-10, optional)
+   */
+  minRating: z.number().min(0).max(10).optional(),
 });
 
 export type OnboardingReqDto = z.infer<typeof OnboardingReqSchema>;

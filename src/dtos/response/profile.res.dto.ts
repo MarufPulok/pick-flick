@@ -36,6 +36,11 @@ export const TasteProfileSchema = z.object({
   animeAutoLanguage: z.boolean(),
   
   /**
+   * Minimum acceptable rating (optional)
+   */
+  minRating: z.number().min(0).max(10).optional(),
+  
+  /**
    * Whether onboarding is complete
    */
   onboardingComplete: z.boolean(),

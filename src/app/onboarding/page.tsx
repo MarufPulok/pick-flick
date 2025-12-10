@@ -32,6 +32,7 @@ export default function OnboardingPage() {
   const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>(['en']);
+  const [minRating, setMinRating] = useState<number | undefined>(undefined);
 
   // Load existing profile on mount
   useEffect(() => {
@@ -50,6 +51,7 @@ export default function OnboardingPage() {
           setContentTypes(data.profile.contentTypes);
           setSelectedGenres(data.profile.genres);
           setSelectedLanguages(data.profile.languages);
+          setMinRating(data.profile.minRating);
           setIsEditMode(true);
         }
       }
@@ -133,7 +135,8 @@ export default function OnboardingPage() {
           contentTypes,
           genres: selectedGenres,
           languages: selectedLanguages,
-          animeAutoLanguage: contentTypes.includes('ANIME'),
+          animeAutoLanguage: true,
+          minRating,
         }),
       });
 
@@ -307,6 +310,36 @@ export default function OnboardingPage() {
                   </p>
                 </div>
               )}
+              
+              {/* Optional: Minimum Rating */}
+              <div className="pt-6 border-t border-border">
+                <h3 className="text-lg font-semibold mb-3">Minimum Rating (Optional)</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Only recommend content rated this & above
+                </p>
+                <div className="grid grid-cols-4 gap-3">
+                  {[
+                    { value: null, label: 'Any' },
+                    { value: 6, label: '6+' },
+                    { value: 7, label: '7+' },
+                    { value: 8, label: '8+' },
+                  ].map((option) => (
+                    <button
+                      key={option.label}
+                      type="button"
+                      onClick={() => setMinRating(option.value === null ? undefined : option.value)}
+                      className={`p-4 rounded-xl border-2 transition-all text-center ${
+                        (minRating === undefined && option.value === null) || minRating === option.value
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                    >
+                      <div className="text-2xl mb-1">⭐</div>
+                      <div className="font-semibold">{option.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>

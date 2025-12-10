@@ -70,6 +70,17 @@ const tasteProfileSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    
+    /**
+     * Minimum acceptable rating (0-10, optional)
+     * If set, only recommend content with rating >= this value
+     */
+    minRating: {
+      type: Number,
+      min: 0,
+      max: 10,
+      required: false,
+    },
   },
   {
     timestamps: true,

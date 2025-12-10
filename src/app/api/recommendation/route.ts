@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
         contentTypes: profile.contentTypes,
         genres: profile.genres,
         languages: profile.languages,
+        minRating: profile.minRating,
       });
     } else {
       // Filtered mode - use request filters

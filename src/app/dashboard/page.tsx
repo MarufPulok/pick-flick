@@ -267,36 +267,60 @@ export default function DashboardPage() {
               {/* Details */}
               <div className="p-6 flex flex-col">
                 <div className="flex-1">
-                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <div>
-                      <h2 className="text-3xl font-bold mb-2">
-                        {recommendation.title}
-                      </h2>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        {recommendation.releaseDate && (
-                          <div className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            {getYear(recommendation.releaseDate)}
-                          </div>
-                        )}
-                        {recommendation.rating && (
-                          <div className="flex items-center gap-1">
-                            <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                            {recommendation.rating.toFixed(1)}
-                          </div>
-                        )}
+                  {/* Title and Type Badge */}
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
+                        {recommendation.contentType === 'MOVIE' && '🎬 Movie'}
+                        {recommendation.contentType === 'SERIES' && '📺 Series'}
+                        {recommendation.contentType === 'ANIME' && '⚡ Anime'}
                       </div>
+                      {recommendation.originalLanguage && (
+                        <div className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-secondary text-xs font-medium">
+                          🌐 {recommendation.originalLanguage.toUpperCase()}
+                        </div>
+                      )}
                     </div>
+                    <h2 className="text-3xl font-bold leading-tight">
+                      {recommendation.title}
+                    </h2>
                   </div>
 
-                  <p className="text-muted-foreground leading-relaxed mb-6">
-                    {recommendation.overview || 'No overview available.'}
-                  </p>
+                  {/* Stats Row */}
+                  <div className="flex flex-wrap items-center gap-4 mb-4 pb-4 border-b border-border">
+                    {recommendation.releaseDate && (
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">
+                          {getYear(recommendation.releaseDate)}
+                        </span>
+                      </div>
+                    )}
+                    {recommendation.rating && (
+                      <div className="flex items-center gap-2">
+                        <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                        <span className="text-sm font-medium">
+                          {recommendation.rating.toFixed(1)}/10
+                        </span>
+                      </div>
+                    )}
+                    {recommendation.voteCount && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground text-xs">
+                          ({recommendation.voteCount.toLocaleString()} votes)
+                        </span>
+                      </div>
+                    )}
+                  </div>
 
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
-                    {recommendation.contentType === 'MOVIE' && '🎬 Movie'}
-                    {recommendation.contentType === 'SERIES' && '📺 Series'}
-                    {recommendation.contentType === 'ANIME' && '⚡ Anime'}
+                  {/* Overview */}
+                  <div className="mb-4">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                      Overview
+                    </h3>
+                    <p className="text-sm leading-relaxed">
+                      {recommendation.overview || 'No overview available.'}
+                    </p>
                   </div>
                 </div>
 
