@@ -14,11 +14,6 @@ export const serverEnv = {
   // TMDB API
   TMDB_API_KEY: process.env.TMDB_API_KEY!,
   TMDB_ACCESS_TOKEN: process.env.TMDB_ACCESS_TOKEN!,
-  
-  // Auth (Phase 3)
-  BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
-  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
 } as const;
 
 /**
