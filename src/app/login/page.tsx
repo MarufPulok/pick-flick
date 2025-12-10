@@ -6,17 +6,53 @@
  */
 
 import { Sparkles } from 'lucide-react';
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect } from 'react';
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-animated flex items-center justify-center">
+          <div className="w-12 h-12 rounded-xl bg-primary animate-pulse" />
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
+  );
+}
 
 function LoginContent() {
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const searchParams = useSearchParams();
   const error = searchParams.get('error');
 
+  // Redirect if already authenticated (using useEffect to avoid setState in render)
+  useEffect(() => {
+    if (status === 'authenticated') {
+      router.push('/dashboard');
+    }
+  }, [status, router]);
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gradient-animated flex items-center justify-center">
+        <div className="w-12 h-12 rounded-xl bg-primary animate-pulse" />
+      </div>
+    );
+  }
+
+  // Don't render login form if authenticated
+  if (status === 'authenticated') {
+    return null;
+  }
+
   const handleGoogleSignIn = () => {
-    signIn('google', { callbackUrl: '/dashboard' });
+    signIn('google', { callbackURL: '/dashboard' });
   };
 
   return (
@@ -80,19 +116,5 @@ function LoginContent() {
         </div>
       </div>
     </div>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-gradient-animated flex items-center justify-center">
-          <div className="w-12 h-12 rounded-xl bg-primary animate-pulse" />
-        </div>
-      }
-    >
-      <LoginContent />
-    </Suspense>
   );
 }
