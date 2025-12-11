@@ -63,35 +63,8 @@ export class RecommendationService {
       }
     }
 
-    // Ultimate fallback: Try different content types but STILL with language
-    const fallbackTypes: ContentType[] = ['MOVIE', 'SERIES', 'ANIME'];
-    for (const fallbackType of fallbackTypes) {
-      if (fallbackType !== contentType) {
-        console.log(`Trying fallback content type: ${fallbackType}`);
-        const fallbackStrategy = {
-          name: `Fallback ${fallbackType}`,
-          genres: [],
-          languages: sacredLanguages,
-          minRating: 5.0,
-          tryMultiplePages: true,
-        };
-        const result = await this.tryGenerateWithStrategy(
-          fallbackType,
-          fallbackStrategy,
-          blacklist
-        );
-        if (result) {
-          return {
-            ...result,
-            strategyName: fallbackStrategy.name,
-            strategyGenres: fallbackStrategy.genres,
-            strategyLanguages: fallbackStrategy.languages,
-          };
-        }
-      }
-    }
-
-    // This should never happen, but ensures type safety
+    // No fallback to other content types - let the caller (generateSmartRecommendation) 
+    // handle content type iteration based on user's actual preferences
     return null;
   }
 
@@ -408,7 +381,8 @@ export class RecommendationService {
 
   /**
    * Generate recommendation using user's taste profile
-   * Tries all content types (shuffled) until one succeeds - prevents anime bias
+   * Tries content types in the order provided (priority-based from diversity tracking)
+   * NOTE: Content types come pre-ordered based on recent history for diversity
    */
   static async generateSmartRecommendation(profile: {
     contentTypes: ContentType[];
@@ -417,15 +391,12 @@ export class RecommendationService {
     minRating?: number;
     blacklist?: Set<string>;
   }) {
-    // Shuffle content types to ensure fair distribution
-    const shuffledTypes = [...profile.contentTypes].sort(() => Math.random() - 0.5);
-    
-    console.log(`Smart mode - Trying content types in order: ${shuffledTypes.join(', ')}`);
+    // DON'T shuffle - content types are already prioritized by diversity tracking
+    // Types not recently recommended come first
+    const orderedTypes = profile.contentTypes;
 
     // Try each content type until one succeeds
-    for (const contentType of shuffledTypes) {
-      console.log(`Smart mode - Attempting: ${contentType}`);
-      
+    for (const contentType of orderedTypes) {
       const result = await this.generateRecommendation({
         contentType,
         genres: profile.genres,
@@ -435,15 +406,11 @@ export class RecommendationService {
       });
       
       if (result) {
-        console.log(`Smart mode - Success with: ${contentType}`);
         return result;
       }
-      
-      console.log(`Smart mode - No results for: ${contentType}, trying next...`);
     }
 
     // All content types failed
-    console.log('Smart mode - All content types failed');
     return null;
   }
 }

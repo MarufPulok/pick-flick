@@ -142,8 +142,8 @@ export function RecommendationCard({
                 <div className="mb-4 flex items-center gap-3 flex-wrap">
                   <span className="text-xs text-muted-foreground">Stream on:</span>
                   <div className="flex items-center gap-2">
-                    {recommendation.watchProviders.flatrate.map((provider) => (
-                      <Tooltip key={provider.providerId}>
+                    {recommendation.watchProviders.flatrate.map((provider, idx) => (
+                      <Tooltip key={`${provider.providerId}-${idx}`}>
                         <TooltipTrigger asChild>
                           <a
                             href={recommendation.watchProviders?.link}

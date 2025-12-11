@@ -63,6 +63,13 @@ export async function POST(req: NextRequest) {
         ? [...prioritizedTypes, ...profile.contentTypes.filter((type: string) => !prioritizedTypes.includes(type))]
         : profile.contentTypes;
 
+      // DEBUG: Log profile data
+      console.log('=== PROFILE DEBUG ===');
+      console.log('Content Types in Profile:', profile.contentTypes);
+      console.log('Languages in Profile:', profile.languages);
+      console.log('Ordered Content Types:', orderedContentTypes);
+      console.log('=====================');
+
       recommendation = await RecommendationService.generateSmartRecommendation({
         contentTypes: orderedContentTypes,
         genres: profile.genres,
