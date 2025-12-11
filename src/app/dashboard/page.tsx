@@ -139,7 +139,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-animated px-4 py-12 pt-24">
+    <div className="min-h-screen bg-gradient-animated px-4 sm:px-6 py-8 sm:py-12 pt-20 sm:pt-24">
       <div className="max-w-5xl mx-auto">
         {/* Welcome Header */}
         <WelcomeHeader userName={session?.user?.name || undefined} />
@@ -153,7 +153,7 @@ export default function DashboardPage() {
         )}
 
         {/* Main Content Grid */}
-        <div className="grid md:grid-cols-[1fr_320px] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
           {/* Left: Generator or Recommendation */}
           <div>
             {!recommendation ? (
@@ -179,13 +179,13 @@ export default function DashboardPage() {
           </div>
 
           {/* Right: Activity Feed */}
-          <div className="hidden md:block">
+          <div className="hidden lg:block">
             <ActivityFeed limit={6} />
           </div>
         </div>
 
         {/* Mobile Activity Feed */}
-        <div className="md:hidden mt-6">
+        <div className="lg:hidden mt-6">
           <ActivityFeed limit={4} />
         </div>
       </div>

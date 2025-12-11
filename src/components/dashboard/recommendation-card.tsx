@@ -45,9 +45,9 @@ export function RecommendationCard({
 
   return (
     <div className="glass rounded-2xl overflow-hidden">
-      <div className="grid md:grid-cols-[300px_1fr] gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] lg:grid-cols-[300px_1fr] gap-4 sm:gap-6">
         {/* Poster */}
-        <div className="relative aspect-[2/3] bg-muted">
+        <div className="relative aspect-[2/3] bg-muted w-full max-w-[300px] mx-auto md:mx-0">
           {recommendation.posterUrl ? (
             <Image
               src={recommendation.posterUrl}
@@ -64,12 +64,12 @@ export function RecommendationCard({
         </div>
 
         {/* Details */}
-        <div className="p-6 flex flex-col">
+        <div className="p-4 sm:p-6 flex flex-col">
           <div className="flex-1">
             {/* Title and Type Badge */}
             <div className="mb-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs sm:text-sm font-medium">
                   {recommendation.contentType === 'MOVIE' && '🎬 Movie'}
                   {recommendation.contentType === 'SERIES' && '📺 Series'}
                   {recommendation.contentType === 'ANIME' && '⚡ Anime'}
@@ -80,13 +80,13 @@ export function RecommendationCard({
                   </div>
                 )}
               </div>
-              <h2 className="text-3xl font-bold leading-tight">
+              <h2 className="text-2xl sm:text-3xl font-bold leading-tight">
                 {recommendation.title}
               </h2>
             </div>
 
             {/* Stats Row */}
-            <div className="flex flex-wrap items-center gap-4 mb-4 pb-4 border-b border-border">
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-4 pb-4 border-b border-border">
               {recommendation.releaseDate && (
                 <div className="flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-muted-foreground" />
@@ -130,18 +130,19 @@ export function RecommendationCard({
               <button
                 onClick={() => onRecordAction('WATCHED')}
                 disabled={isRecording}
-                className="px-6 py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                className="px-4 sm:px-6 py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 min-h-[44px] text-sm sm:text-base"
               >
-                <Check className="w-5 h-5" />
+                <Check className="w-4 h-4 sm:w-5 sm:h-5" />
                 Watched
               </button>
               <button
                 onClick={() => onRecordAction('BLACKLISTED')}
                 disabled={isRecording}
-                className="px-6 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                className="px-4 sm:px-6 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 min-h-[44px] text-sm sm:text-base"
               >
-                <X className="w-5 h-5" />
-                Not Interested
+                <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Not Interested</span>
+                <span className="sm:hidden">Skip</span>
               </button>
             </div>
 
@@ -150,27 +151,27 @@ export function RecommendationCard({
               <button
                 onClick={() => onRecordAction('LIKED')}
                 disabled={isRecording}
-                className="flex-1 px-4 py-2 rounded-lg border-2 border-green-500 hover:bg-green-500/10 text-green-600 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2.5 sm:py-3 rounded-lg border-2 border-green-500 hover:bg-green-500/10 text-green-600 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 min-h-[44px] text-sm sm:text-base"
               >
-                <ThumbsUp className="w-4 h-4" />
+                <ThumbsUp className="w-4 h-4 sm:w-5 sm:h-5" />
                 Like
               </button>
               <button
                 onClick={() => onRecordAction('DISLIKED')}
                 disabled={isRecording}
-                className="flex-1 px-4 py-2 rounded-lg border-2 border-red-500 hover:bg-red-500/10 text-red-600 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2.5 sm:py-3 rounded-lg border-2 border-red-500 hover:bg-red-500/10 text-red-600 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 min-h-[44px] text-sm sm:text-base"
               >
-                <ThumbsDown className="w-4 h-4" />
+                <ThumbsDown className="w-4 h-4 sm:w-5 sm:h-5" />
                 Dislike
               </button>
             </div>
 
             {/* Get Another / Back */}
-            <div className="flex gap-3 pt-2 border-t border-border">
+            <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-border">
               <button
                 onClick={onGetAnother}
                 disabled={isLoading}
-                className="flex-1 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                className="flex-1 px-5 sm:px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 min-h-[44px] text-sm sm:text-base"
               >
                 {isLoading ? (
                   <>
@@ -186,7 +187,7 @@ export function RecommendationCard({
               </button>
               <button
                 onClick={onBack}
-                className="px-6 py-3 rounded-xl border border-border hover:bg-secondary transition-colors font-medium"
+                className="px-5 sm:px-6 py-3 rounded-xl border border-border hover:bg-secondary transition-colors font-medium min-h-[44px] text-sm sm:text-base"
               >
                 Back
               </button>

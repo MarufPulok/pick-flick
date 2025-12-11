@@ -173,14 +173,14 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-animated px-4 py-12 pt-24">
+    <div className="min-h-screen bg-gradient-animated px-4 sm:px-6 py-8 sm:py-12 pt-20 sm:pt-24">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-2">
+        <div className="text-center mb-8 sm:mb-12">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2">
             {isEditMode ? 'Update Your Preferences' : "Let's Get Started"}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm sm:text-base text-muted-foreground px-4">
             {isEditMode
               ? 'Adjust your preferences to get better recommendations'
               : "Tell us what you like, and we'll find your perfect picks"}
@@ -189,7 +189,7 @@ export default function OnboardingPage() {
         </div>
 
         {/* Step Content */}
-        <div className="glass rounded-2xl p-8 mb-6">
+        <div className="glass rounded-2xl p-5 sm:p-6 lg:p-8 mb-6">
           {step === 1 && (
             <ContentTypeStep
               selected={contentTypes}

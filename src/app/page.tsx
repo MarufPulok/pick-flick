@@ -34,26 +34,26 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-animated">
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 glass">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-14 sm:h-16">
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-primary-foreground" />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary flex items-center justify-center">
+                <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
               </div>
-              <span className="text-xl font-bold text-gradient">PickFlick</span>
+              <span className="text-lg sm:text-xl font-bold text-gradient">PickFlick</span>
             </Link>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               {isAuthenticated ? (
                 <DropdownMenu>
-                  <DropdownMenuTrigger className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-secondary transition-colors outline-none">
-                    <Avatar className="h-8 w-8">
+                  <DropdownMenuTrigger className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 rounded-lg hover:bg-secondary transition-colors outline-none min-h-[44px]">
+                    <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
                       <AvatarImage src={session?.user?.image || undefined} alt={session?.user?.name || 'User'} />
-                      <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
+                      <AvatarFallback className="bg-primary text-primary-foreground text-xs sm:text-sm font-medium">
                         {getUserInitials()}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-sm font-medium hidden sm:inline">
+                    <span className="text-xs sm:text-sm font-medium hidden sm:inline">
                       {session?.user?.name?.split(' ')[0] || 'Account'}
                     </span>
                   </DropdownMenuTrigger>
@@ -93,13 +93,13 @@ export default function Home() {
                 <>
                   <Link
                     href="/login"
-                    className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    className="text-xs sm:text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-2 sm:px-0 min-h-[44px] flex items-center"
                   >
                     Sign In
                   </Link>
                   <Link
                     href="/onboarding"
-                    className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+                    className="px-4 sm:px-5 py-2 sm:py-2.5 rounded-lg bg-primary text-primary-foreground text-xs sm:text-sm font-medium hover:opacity-90 transition-opacity min-h-[44px] flex items-center"
                   >
                     Get Started
                   </Link>
@@ -111,18 +111,18 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+      <section className="relative pt-24 sm:pt-32 pb-16 sm:pb-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto text-center">
           {/* Floating badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-8 animate-float">
+          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full glass mb-6 sm:mb-8 animate-float">
             <Zap className="w-4 h-4 text-accent" />
-            <span className="text-sm font-medium">
+            <span className="text-xs sm:text-sm font-medium">
               Powered by intelligent recommendations
             </span>
           </div>
 
           {/* Main headline */}
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight mb-4 sm:mb-6">
             <span className="text-gradient">One Click.</span>
             <br />
             <span className="text-foreground">One Pick.</span>
@@ -131,7 +131,7 @@ export default function Home() {
           </h1>
 
           {/* Subheadline */}
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
+          <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-10 px-4">
             Stop wasting time scrolling through endless options. Tell us what
             you&apos;re in the mood for, and we&apos;ll give you{' '}
             <span className="text-foreground font-medium">
@@ -141,66 +141,66 @@ export default function Home() {
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 px-4">
             <Link
               href={isAuthenticated ? "/dashboard" : "/onboarding"}
-              className="w-full sm:w-auto px-8 py-4 rounded-xl bg-primary text-primary-foreground font-semibold text-lg glow hover:scale-105 transition-transform flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl bg-primary text-primary-foreground font-semibold text-base sm:text-lg glow hover:scale-105 transition-transform flex items-center justify-center gap-2 min-h-[44px]"
             >
               <Sparkles className="w-5 h-5" />
               {isAuthenticated ? 'Go to Dashboard' : 'Start Picking'}
             </Link>
             <Link
               href="#features"
-              className="w-full sm:w-auto px-8 py-4 rounded-xl border border-border text-foreground font-semibold text-lg hover:bg-secondary transition-colors flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl border border-border text-foreground font-semibold text-base sm:text-lg hover:bg-secondary transition-colors flex items-center justify-center gap-2 min-h-[44px]"
             >
               Learn More
             </Link>
           </div>
 
           {/* Social proof */}
-          <p className="mt-8 text-sm text-muted-foreground">
+          <p className="mt-6 sm:mt-8 text-xs sm:text-sm text-muted-foreground px-4">
             Free forever • No credit card required • Works with Movies, Series &amp;
             Anime
           </p>
         </div>
 
         {/* Decorative elements */}
-        <div className="absolute top-1/4 left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-1/4 right-10 w-96 h-96 bg-accent/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-1/4 left-4 sm:left-10 w-48 sm:w-72 h-48 sm:h-72 bg-primary/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-1/4 right-4 sm:right-10 w-64 sm:w-96 h-64 sm:h-96 bg-accent/20 rounded-full blur-3xl pointer-events-none" />
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8">
+      <section id="features" className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4">
               How It Works
             </h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
+            <p className="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto px-4">
               Three simple steps to end your decision paralysis forever
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
             {/* Feature 1 */}
-            <div className="p-6 rounded-2xl glass card-hover">
+            <div className="p-5 sm:p-6 rounded-2xl glass card-hover">
               <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center mb-4">
                 <Film className="w-6 h-6 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Set Your Mood</h3>
-              <p className="text-muted-foreground">
+              <h3 className="text-lg sm:text-xl font-semibold mb-2">Set Your Mood</h3>
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Tell us what you&apos;re craving — a thrilling Korean drama, a
                 cozy anime, or a mind-bending sci-fi movie.
               </p>
             </div>
 
             {/* Feature 2 */}
-            <div className="p-6 rounded-2xl glass card-hover">
+            <div className="p-5 sm:p-6 rounded-2xl glass card-hover">
               <div className="w-12 h-12 rounded-xl bg-accent/20 flex items-center justify-center mb-4">
                 <Zap className="w-6 h-6 text-accent" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Get One Pick</h3>
-              <p className="text-muted-foreground">
+              <h3 className="text-lg sm:text-xl font-semibold mb-2">Get One Pick</h3>
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Our algorithm analyzes your preferences and returns exactly{' '}
                 <span className="font-medium text-foreground">
                   one recommendation
@@ -210,12 +210,12 @@ export default function Home() {
             </div>
 
             {/* Feature 3 */}
-            <div className="p-6 rounded-2xl glass card-hover">
+            <div className="p-5 sm:p-6 rounded-2xl glass card-hover">
               <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center mb-4">
                 <Tv className="w-6 h-6 text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Start Watching</h3>
-              <p className="text-muted-foreground">
+              <h3 className="text-lg sm:text-xl font-semibold mb-2">Start Watching</h3>
+              <p className="text-sm sm:text-base text-muted-foreground">
                 See where it&apos;s streaming, save it to your history, and let
                 us know if you loved it for even better future picks.
               </p>
@@ -225,45 +225,45 @@ export default function Home() {
       </section>
 
       {/* Content Types Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 border-t border-border/50">
+      <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 border-t border-border/50">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4">
               All Your Content, One Place
             </h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
+            <p className="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto px-4">
               Whether you&apos;re into Hollywood blockbusters, K-dramas, or
               anime, we&apos;ve got you covered
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
             {/* Movies */}
-            <div className="relative group p-8 rounded-2xl border border-border hover:border-primary/50 transition-colors overflow-hidden">
+            <div className="relative group p-6 sm:p-8 rounded-2xl border border-border hover:border-primary/50 transition-colors overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <Film className="w-10 h-10 text-primary mb-4" />
-              <h3 className="text-2xl font-bold mb-2">Movies</h3>
-              <p className="text-muted-foreground">
+              <Film className="w-8 h-8 sm:w-10 sm:h-10 text-primary mb-4" />
+              <h3 className="text-xl sm:text-2xl font-bold mb-2">Movies</h3>
+              <p className="text-sm sm:text-base text-muted-foreground">
                 From indie gems to blockbusters, in every language you love.
               </p>
             </div>
 
             {/* Series */}
-            <div className="relative group p-8 rounded-2xl border border-border hover:border-accent/50 transition-colors overflow-hidden">
+            <div className="relative group p-6 sm:p-8 rounded-2xl border border-border hover:border-accent/50 transition-colors overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-accent/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <Tv className="w-10 h-10 text-accent mb-4" />
-              <h3 className="text-2xl font-bold mb-2">TV Series</h3>
-              <p className="text-muted-foreground">
+              <Tv className="w-8 h-8 sm:w-10 sm:h-10 text-accent mb-4" />
+              <h3 className="text-xl sm:text-2xl font-bold mb-2">TV Series</h3>
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Find your next binge-worthy show without the endless scrolling.
               </p>
             </div>
 
             {/* Anime */}
-            <div className="relative group p-8 rounded-2xl border border-border hover:border-primary/50 transition-colors overflow-hidden">
+            <div className="relative group p-6 sm:p-8 rounded-2xl border border-border hover:border-primary/50 transition-colors overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-              <Sparkles className="w-10 h-10 text-primary mb-4" />
-              <h3 className="text-2xl font-bold mb-2">Anime</h3>
-              <p className="text-muted-foreground">
+              <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 text-primary mb-4" />
+              <h3 className="text-xl sm:text-2xl font-bold mb-2">Anime</h3>
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Shōnen, Seinen, Isekai — whatever your style, we know the
                 perfect one.
               </p>
@@ -273,55 +273,55 @@ export default function Home() {
       </section>
 
       {/* Smart Features Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 border-t border-border/50">
+      <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 border-t border-border/50">
         <div className="max-w-6xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-center">
             <div>
-              <h2 className="text-3xl sm:text-4xl font-bold mb-6">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 sm:mb-6">
                 It Gets{' '}
                 <span className="text-gradient">Smarter</span> Over Time
               </h2>
-              <p className="text-lg text-muted-foreground mb-8">
+              <p className="text-base sm:text-lg text-muted-foreground mb-6 sm:mb-8">
                 The more you use PickFlick, the better it understands your
                 taste. Rate your picks and watch the magic happen.
               </p>
 
               <div className="space-y-4">
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-3 sm:gap-4">
                   <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
                     <ThumbsUp className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <h4 className="font-semibold mb-1">Smart Learning</h4>
-                    <p className="text-sm text-muted-foreground">
+                    <h4 className="font-semibold mb-1 text-sm sm:text-base">Smart Learning</h4>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       Like a pick? We&apos;ll find more like it. Didn&apos;t love it?
                       We&apos;ll never suggest it again.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-3 sm:gap-4">
                   <div className="w-10 h-10 rounded-lg bg-accent/20 flex items-center justify-center shrink-0">
                     <History className="w-5 h-5 text-accent" />
                   </div>
                   <div>
-                    <h4 className="font-semibold mb-1">History Dashboard</h4>
-                    <p className="text-sm text-muted-foreground">
+                    <h4 className="font-semibold mb-1 text-sm sm:text-base">History Dashboard</h4>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       Keep track of all your picks. See what you loved and
                       revisit old favorites.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-3 sm:gap-4">
                   <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
                     <Zap className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <h4 className="font-semibold mb-1">
+                    <h4 className="font-semibold mb-1 text-sm sm:text-base">
                       &quot;Feeling Lucky&quot; Mode
                     </h4>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       Can&apos;t decide on filters? Let us pick based on your taste
                       profile. Zero effort required.
                     </p>
@@ -331,13 +331,13 @@ export default function Home() {
             </div>
 
             <div className="relative">
-              <div className="aspect-square rounded-2xl glass p-8 flex items-center justify-center">
+              <div className="aspect-square rounded-2xl glass p-6 sm:p-8 flex items-center justify-center">
                 <div className="text-center">
-                  <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-primary/20 flex items-center justify-center animate-pulse-glow">
-                    <Sparkles className="w-12 h-12 text-primary" />
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 sm:mb-6 rounded-full bg-primary/20 flex items-center justify-center animate-pulse-glow">
+                    <Sparkles className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
                   </div>
-                  <p className="text-2xl font-bold mb-2">Your Perfect Pick</p>
-                  <p className="text-muted-foreground">
+                  <p className="text-xl sm:text-2xl font-bold mb-2">Your Perfect Pick</p>
+                  <p className="text-sm sm:text-base text-muted-foreground">
                     One recommendation, tailored just for you
                   </p>
                 </div>
@@ -350,18 +350,18 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 border-t border-border/50">
+      <section className="py-16 sm:py-20 px-4 sm:px-6 lg:px-8 border-t border-border/50">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4">
             Ready to End Decision Fatigue?
           </h2>
-          <p className="text-lg text-muted-foreground mb-8">
+          <p className="text-base sm:text-lg text-muted-foreground mb-6 sm:mb-8 px-4">
             Join thousands of viewers who&apos;ve stopped scrolling and started
             watching.
           </p>
           <Link
             href={isAuthenticated ? "/dashboard" : "/onboarding"}
-            className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-primary text-primary-foreground font-semibold text-lg glow hover:scale-105 transition-transform"
+            className="inline-flex items-center gap-2 px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl bg-primary text-primary-foreground font-semibold text-base sm:text-lg glow hover:scale-105 transition-transform min-h-[44px]"
           >
             <Sparkles className="w-5 h-5" />
             {isAuthenticated ? 'Go to Dashboard' : 'Get Your First Pick'}
@@ -370,7 +370,7 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="py-8 px-4 sm:px-6 lg:px-8 border-t border-border/50">
+      <footer className="py-6 sm:py-8 px-4 sm:px-6 lg:px-8 border-t border-border/50">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-md bg-primary flex items-center justify-center">
@@ -378,7 +378,7 @@ export default function Home() {
             </div>
             <span className="font-semibold">PickFlick</span>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
             © {new Date().getFullYear()} PickFlick. Made with ❤️ for
             entertainment lovers.
           </p>

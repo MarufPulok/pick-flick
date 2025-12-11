@@ -56,23 +56,23 @@ function LoginContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-animated flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-animated flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         {/* Logo */}
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
-              <Sparkles className="w-7 h-7 text-primary-foreground" />
+        <div className="text-center mb-6 sm:mb-8">
+          <Link href="/" className="inline-flex items-center gap-2 mb-3 sm:mb-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-primary flex items-center justify-center">
+              <Sparkles className="w-6 h-6 sm:w-7 sm:h-7 text-primary-foreground" />
             </div>
-            <span className="text-3xl font-bold text-gradient">PickFlick</span>
+            <span className="text-2xl sm:text-3xl font-bold text-gradient">PickFlick</span>
           </Link>
-          <p className="text-muted-foreground">Sign in to get your perfect pick</p>
+          <p className="text-sm sm:text-base text-muted-foreground">Sign in to get your perfect pick</p>
         </div>
 
         {/* Auth Card */}
-        <div className="glass rounded-2xl p-8 space-y-6">
+        <div className="glass rounded-2xl p-6 sm:p-8 space-y-6">
           {error && (
-            <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+            <div className="p-3 sm:p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
               Authentication failed. Please try again.
             </div>
           )}
@@ -80,7 +80,7 @@ function LoginContent() {
           {/* Google Sign In */}
           <button
             onClick={handleGoogleSignIn}
-            className="w-full flex items-center justify-center gap-3 px-6 py-3 rounded-xl border border-border hover:bg-secondary transition-colors"
+            className="w-full flex items-center justify-center gap-3 px-5 sm:px-6 py-3.5 sm:py-4 rounded-xl border border-border hover:bg-secondary transition-colors min-h-[44px] text-sm sm:text-base"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -103,7 +103,7 @@ function LoginContent() {
             Continue with Google
           </button>
 
-          <p className="text-center text-xs text-muted-foreground">
+          <p className="text-center text-xs sm:text-sm text-muted-foreground">
             By continuing, you agree to our{' '}
             <Link href="/terms" className="hover:underline">
               Terms
