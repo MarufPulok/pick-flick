@@ -7,13 +7,19 @@
 'use client';
 
 import {
+    Dialog,
+    DialogContent,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
     Tooltip,
     TooltipContent,
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { ArrowLeft, Calendar, Check, Film, Loader2, Sparkles, Star, ThumbsDown, ThumbsUp, X } from 'lucide-react';
+import { ArrowLeft, Calendar, Check, Film, Loader2, Play, Sparkles, Star, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import Image from 'next/image';
+import { useState } from 'react';
 
 export interface Recommendation {
   tmdbId: number;
@@ -25,6 +31,11 @@ export interface Recommendation {
   rating?: number;
   voteCount?: number;
   originalLanguage?: string;
+  trailerUrl?: string;
+  explanation?: {
+    title: string;
+    description: string;
+  };
 }
 
 interface RecommendationCardProps {
@@ -44,6 +55,8 @@ export function RecommendationCard({
   onGetAnother,
   onBack,
 }: RecommendationCardProps) {
+  const [showTrailer, setShowTrailer] = useState(false);
+
   const getYear = (dateString: string | undefined) => {
     if (!dateString) return '';
     return new Date(dateString).getFullYear();
@@ -128,6 +141,34 @@ export function RecommendationCard({
                   {recommendation.overview || 'No overview available.'}
                 </p>
               </div>
+
+              {/* Why This Pick? - Enhanced card display */}
+              {recommendation.explanation && (
+                <div className="mb-4 p-3 rounded-xl bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/10">
+                  <div className="flex items-start gap-2">
+                    <span className="text-base leading-none mt-0.5">{recommendation.explanation.title.split(' ')[0]}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">
+                        {recommendation.explanation.title.split(' ').slice(1).join(' ')}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                        {recommendation.explanation.description}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Trailer Button - Opens Modal */}
+              {recommendation.trailerUrl && (
+                <button
+                  onClick={() => setShowTrailer(true)}
+                  className="mb-4 group flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-red-600/90 to-red-700/90 text-white text-sm font-medium hover:from-red-600 hover:to-red-700 transition-all shadow-sm hover:shadow-md"
+                >
+                  <Play className="w-4 h-4 fill-white" />
+                  Watch Trailer
+                </button>
+              )}
             </div>
 
             {/* Feedback & Actions */}
@@ -232,6 +273,26 @@ export function RecommendationCard({
           </div>
         </div>
       </div>
+
+      {/* Trailer Modal */}
+      <Dialog open={showTrailer} onOpenChange={setShowTrailer}>
+        <DialogContent className="max-w-4xl w-[95vw] p-0 border-0 bg-black overflow-hidden">
+          <DialogTitle className="sr-only">
+            {recommendation.title} - Trailer
+          </DialogTitle>
+          <div className="aspect-video w-full">
+            {showTrailer && recommendation.trailerUrl && (
+              <iframe
+                src={`${recommendation.trailerUrl}?autoplay=1`}
+                title={`${recommendation.title} Trailer`}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </TooltipProvider>
   );
 }

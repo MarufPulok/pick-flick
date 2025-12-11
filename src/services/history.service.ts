@@ -168,4 +168,21 @@ export class HistoryService {
 
     return items;
   }
+
+  /**
+   * Get last N content types that were recommended to user
+   * Used for diversity tracking to avoid consecutive same-type recommendations
+   */
+  static async getRecentContentTypes(userId: string, limit: number = 3): Promise<string[]> {
+    const items = await RecommendationHistoryModel.find({
+      userId,
+      action: { $in: ['WATCHED', 'LIKED', 'DISLIKED', 'BLACKLISTED'] },
+    })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .select('contentType')
+      .lean();
+
+    return items.map(item => item.contentType);
+  }
 }

@@ -54,7 +54,13 @@ export class RecommendationService {
       
       if (result) {
         console.log(`Success with strategy: ${strategy.name}`);
-        return result;
+        // Include strategy info for "Why This Pick?" explanation
+        return {
+          ...result,
+          strategyName: strategy.name,
+          strategyGenres: strategy.genres,
+          strategyLanguages: strategy.languages,
+        };
       }
     }
 
@@ -63,18 +69,26 @@ export class RecommendationService {
     for (const fallbackType of fallbackTypes) {
       if (fallbackType !== contentType) {
         console.log(`Trying fallback content type: ${fallbackType}`);
+        const fallbackStrategy = {
+          name: `Fallback ${fallbackType}`,
+          genres: [],
+          languages: sacredLanguages,
+          minRating: 5.0,
+          tryMultiplePages: true,
+        };
         const result = await this.tryGenerateWithStrategy(
           fallbackType,
-          {
-            name: `Fallback ${fallbackType}`,
-            genres: [],
-            languages: sacredLanguages,
-            minRating: 5.0,
-            tryMultiplePages: true,
-          },
+          fallbackStrategy,
           blacklist
         );
-        if (result) return result;
+        if (result) {
+          return {
+            ...result,
+            strategyName: fallbackStrategy.name,
+            strategyGenres: fallbackStrategy.genres,
+            strategyLanguages: fallbackStrategy.languages,
+          };
+        }
       }
     }
 

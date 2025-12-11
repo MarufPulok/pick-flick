@@ -3,10 +3,12 @@
  * POST - Generate a single recommendation
  */
 
+import { buildExplanation } from "@/config/genre-names";
 import { getTMDBImageUrl } from "@/config/url.config";
 import { GenerateRecommendationReqSchema } from "@/dtos/request/generate-recommendation.req.dto";
 import { connectToDatabase } from "@/infrastructure/db";
 import { TasteProfileModel, UserModel } from "@/infrastructure/db/models";
+import { tmdbClient } from "@/infrastructure/external/tmdb.client";
 import { auth } from "@/lib/auth";
 import { HistoryService } from "@/services/history.service";
 import { RecommendationService } from "@/services/recommendation.service";
@@ -51,8 +53,25 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      // Get recent content types for diversity tracking
+      const recentContentTypes = await HistoryService.getRecentContentTypes(
+        user._id.toString(),
+        3
+      );
+      
+      // Prioritize content types not recently recommended
+      const prioritizedTypes = profile.contentTypes.filter(
+        (type: string) => !recentContentTypes.includes(type)
+      );
+      const orderedContentTypes = prioritizedTypes.length > 0
+        ? [...prioritizedTypes, ...profile.contentTypes.filter((type: string) => !prioritizedTypes.includes(type))]
+        : profile.contentTypes;
+
+      console.log("Smart mode - Recent content types:", recentContentTypes);
+      console.log("Smart mode - Ordered content types:", orderedContentTypes);
+
       recommendation = await RecommendationService.generateSmartRecommendation({
-        contentTypes: profile.contentTypes,
+        contentTypes: orderedContentTypes,
         genres: profile.genres,
         languages: profile.languages,
         minRating: profile.minRating,
@@ -76,6 +95,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Fetch trailer for the recommendation
+    let trailerUrl: string | null = null;
+    try {
+      const videos = recommendation.contentType === 'MOVIE' 
+        ? await tmdbClient.getMovieVideos(recommendation.tmdbId)
+        : await tmdbClient.getTVVideos(recommendation.tmdbId);
+      trailerUrl = tmdbClient.getTrailerUrl(videos);
+    } catch (error) {
+      console.error("Failed to fetch trailer:", error);
+      // Continue without trailer - it's not critical
+    }
+
+    // Build "Why This Pick?" explanation
+    const explanation = recommendation.strategyName 
+      ? buildExplanation({
+          strategyName: recommendation.strategyName,
+          genres: recommendation.strategyGenres || [],
+          languages: recommendation.strategyLanguages || [],
+          contentType: recommendation.contentType,
+        })
+      : null;
+
     // Format response with full image URLs
     const response = {
       tmdbId: recommendation.tmdbId,
@@ -94,6 +135,8 @@ export async function POST(req: NextRequest) {
       voteCount: recommendation.voteCount,
       genreIds: recommendation.genreIds,
       originalLanguage: recommendation.originalLanguage,
+      trailerUrl,
+      explanation,
     };
 
     return NextResponse.json(response);

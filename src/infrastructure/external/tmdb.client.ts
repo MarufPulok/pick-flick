@@ -76,6 +76,27 @@ export interface TMDBTVDetails extends TMDBTVShow {
 }
 
 /**
+ * TMDB Video Types (for trailers)
+ */
+export interface TMDBVideo {
+  id: string;
+  key: string;           // YouTube/Vimeo key
+  name: string;
+  site: 'YouTube' | 'Vimeo';
+  type: 'Trailer' | 'Teaser' | 'Clip' | 'Featurette' | 'Behind the Scenes' | 'Bloopers' | 'Opening Credits';
+  official: boolean;
+  published_at: string;
+  iso_639_1: string;
+  iso_3166_1: string;
+  size: number;
+}
+
+export interface TMDBVideosResponse {
+  id: number;
+  results: TMDBVideo[];
+}
+
+/**
  * TMDB Discovery Parameters
  */
 export interface TMDBDiscoverParams {
@@ -316,6 +337,53 @@ class TMDBClient {
   getBackdropUrl(path: string | null, size: 'SMALL' | 'MEDIUM' | 'LARGE' | 'ORIGINAL' = 'LARGE'): string | null {
     if (!path) return null;
     return `${EXTERNAL_APIS.TMDB.IMAGE_BASE_URL}/${EXTERNAL_APIS.TMDB.BACKDROP_SIZES[size]}${path}`;
+  }
+
+  /**
+   * Get videos (trailers, teasers) for a movie
+   */
+  async getMovieVideos(movieId: number): Promise<TMDBVideo[]> {
+    return this.rateLimiter.throttle(async () => {
+      const response = await this.client.get<TMDBVideosResponse>(`/movie/${movieId}/videos`, {
+        params: { language: 'en-US' },
+      });
+      return response.data.results;
+    });
+  }
+
+  /**
+   * Get videos (trailers, teasers) for a TV show
+   */
+  async getTVVideos(tvId: number): Promise<TMDBVideo[]> {
+    return this.rateLimiter.throttle(async () => {
+      const response = await this.client.get<TMDBVideosResponse>(`/tv/${tvId}/videos`, {
+        params: { language: 'en-US' },
+      });
+      return response.data.results;
+    });
+  }
+
+  /**
+   * Get the best trailer URL for content
+   * Priority: Official YouTube Trailer > Official YouTube Teaser > Any YouTube Trailer
+   */
+  getTrailerUrl(videos: TMDBVideo[]): string | null {
+    const youtubeVideos = videos.filter(v => v.site === 'YouTube');
+    
+    // Priority order
+    const officialTrailer = youtubeVideos.find(v => v.type === 'Trailer' && v.official);
+    if (officialTrailer) return `https://www.youtube.com/embed/${officialTrailer.key}`;
+    
+    const officialTeaser = youtubeVideos.find(v => v.type === 'Teaser' && v.official);
+    if (officialTeaser) return `https://www.youtube.com/embed/${officialTeaser.key}`;
+    
+    const anyTrailer = youtubeVideos.find(v => v.type === 'Trailer');
+    if (anyTrailer) return `https://www.youtube.com/embed/${anyTrailer.key}`;
+    
+    const anyTeaser = youtubeVideos.find(v => v.type === 'Teaser');
+    if (anyTeaser) return `https://www.youtube.com/embed/${anyTeaser.key}`;
+    
+    return null;
   }
 }
 
