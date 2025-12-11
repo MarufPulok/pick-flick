@@ -206,6 +206,15 @@
     border: 1px solid oklch(1 0 0 / 10%);
   }
   
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
   /* Glow Effects */
   .glow {
     box-shadow: 0 0 20px oklch(0.7 0.22 290 / 30%),

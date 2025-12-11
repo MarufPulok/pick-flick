@@ -5,8 +5,8 @@
 
 import { ContentType } from "@/config/app.config";
 import {
-    tmdbClient,
-    type TMDBDiscoverParams,
+  tmdbClient,
+  type TMDBDiscoverParams,
 } from "@/infrastructure/external/tmdb.client";
 
 interface RecommendationRequest {
@@ -22,32 +22,64 @@ export class RecommendationService {
    * Generate a single recommendation based on filters with cascading fallback
    */
   static async generateRecommendation(request: RecommendationRequest) {
-    const { contentType, genres, languages, minRating = 0, blacklist } = request;
+    const {
+      contentType,
+      genres,
+      languages,
+      minRating = 0,
+      blacklist,
+    } = request;
 
     // Strategy 1: Try with all filters (most specific)
-    let result = await this.tryGenerateWithFilters(contentType, genres, languages, minRating, blacklist);
+    let result = await this.tryGenerateWithFilters(
+      contentType,
+      genres,
+      languages,
+      minRating,
+      blacklist
+    );
     if (result) return result;
 
     // Strategy 2: Try with fewer genres (reduce to 1 random genre)
     if (genres.length > 1) {
       const numericGenres = genres.filter((g) => !isNaN(Number(g)));
       if (numericGenres.length > 1) {
-        const singleGenre = [numericGenres[Math.floor(Math.random() * numericGenres.length)]];
-        result = await this.tryGenerateWithFilters(contentType, singleGenre, languages, minRating, blacklist);
+        const singleGenre = [
+          numericGenres[Math.floor(Math.random() * numericGenres.length)],
+        ];
+        result = await this.tryGenerateWithFilters(
+          contentType,
+          singleGenre,
+          languages,
+          minRating,
+          blacklist
+        );
         if (result) return result;
       }
     }
 
     // Strategy 3: Try without language filter
     if (languages.length > 0) {
-      result = await this.tryGenerateWithFilters(contentType, genres, [], minRating, blacklist);
+      result = await this.tryGenerateWithFilters(
+        contentType,
+        genres,
+        [],
+        minRating,
+        blacklist
+      );
       if (result) return result;
     }
 
     // Strategy 4: Try with lower rating threshold (reduce by 1, minimum 5.0)
     if (minRating > 5) {
       const lowerRating = Math.max(5.0, minRating - 1);
-      result = await this.tryGenerateWithFilters(contentType, genres, languages, lowerRating, blacklist);
+      result = await this.tryGenerateWithFilters(
+        contentType,
+        genres,
+        languages,
+        lowerRating,
+        blacklist
+      );
       if (result) return result;
     }
 
@@ -55,19 +87,39 @@ export class RecommendationService {
     if (genres.length > 0) {
       const numericGenres = genres.filter((g) => !isNaN(Number(g)));
       if (numericGenres.length > 0) {
-        const singleGenre = [numericGenres[Math.floor(Math.random() * numericGenres.length)]];
+        const singleGenre = [
+          numericGenres[Math.floor(Math.random() * numericGenres.length)],
+        ];
         const relaxedRating = Math.max(5.0, (minRating || 0) - 1);
-        result = await this.tryGenerateWithFilters(contentType, singleGenre, [], relaxedRating, blacklist);
+        result = await this.tryGenerateWithFilters(
+          contentType,
+          singleGenre,
+          [],
+          relaxedRating,
+          blacklist
+        );
         if (result) return result;
       }
     }
 
     // Strategy 6: Try with just content type and minimal rating (5.0)
-    result = await this.tryGenerateWithFilters(contentType, [], [], 5.0, blacklist);
+    result = await this.tryGenerateWithFilters(
+      contentType,
+      [],
+      [],
+      5.0,
+      blacklist
+    );
     if (result) return result;
 
     // Strategy 7: Last resort - just popular content of the requested type (no filters)
-    result = await this.tryGenerateWithFilters(contentType, [], [], 0, blacklist);
+    result = await this.tryGenerateWithFilters(
+      contentType,
+      [],
+      [],
+      0,
+      blacklist
+    );
     if (result) return result;
 
     // If still no results, return null
@@ -93,10 +145,10 @@ export class RecommendationService {
     };
 
     // Special handling for ANIME - must have Japanese language and Animation genre
-    if (contentType === 'ANIME') {
-      queryParams.with_original_language = 'ja';
-      queryParams.with_genres = '16'; // Animation genre ID
-      
+    if (contentType === "ANIME") {
+      queryParams.with_original_language = "ja";
+      queryParams.with_genres = "16"; // Animation genre ID
+
       // For anime, ignore the provided language filter (always Japanese)
       // But still use provided genres if available (combine with animation)
       if (genres.length > 0) {
@@ -160,18 +212,19 @@ export class RecommendationService {
       }
 
       // Filter out blacklisted items
-      const results = blacklist && blacklist.size > 0
-        ? response.results.filter((item) => {
-            const key = `${item.id}:${contentType}`;
-            return !blacklist.has(key);
-          })
-        : response.results;
-        
+      const results =
+        blacklist && blacklist.size > 0
+          ? response.results.filter((item) => {
+              const key = `${item.id}:${contentType}`;
+              return !blacklist.has(key);
+            })
+          : response.results;
+
       if (results.length === 0) {
         console.log("All results were blacklisted");
         return null;
       }
-      
+
       console.log("Results after filtering:", results.length);
 
       // Get random item from results

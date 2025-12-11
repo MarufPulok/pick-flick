@@ -13,14 +13,15 @@
 'use client';
 
 import {
-  ActivityFeed,
   GeneratorForm,
+  HistoryCard,
   QuickMoods,
   Recommendation,
   RecommendationCard,
   StatsCards,
   WelcomeHeader,
 } from '@/components/dashboard';
+import { GlobalNav } from '@/components/layout/global-nav';
 import { RATING_TIERS } from '@/config/app.config';
 import { useHistoryActions } from '@/hooks/use-history-actions';
 import { useStats } from '@/hooks/use-stats';
@@ -126,7 +127,7 @@ export default function DashboardPage() {
   // Auth loading state
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gradient-animated flex items-center justify-center">
+      <div className="fixed inset-0 bg-gradient-animated flex items-center justify-center">
         <div className="w-12 h-12 rounded-xl bg-primary animate-pulse" />
       </div>
     );
@@ -139,56 +140,57 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-animated px-4 py-12 pt-24">
-      <div className="max-w-5xl mx-auto">
-        {/* Welcome Header */}
-        <WelcomeHeader userName={session?.user?.name || undefined} />
+    <>
+      <GlobalNav />
+      <div className="fixed inset-0 pt-16 overflow-hidden">
+        <div className="h-full max-w-5xl mx-auto px-4 py-4">
+          {/* Grid layout: main content left, sidebar right on lg+ */}
+          <div className="h-full grid lg:grid-cols-[1fr_280px] gap-4">
+            {/* Main content */}
+            <div className="flex flex-col min-h-0 overflow-hidden">
+              {/* Welcome Header */}
+              <WelcomeHeader userName={session?.user?.name || undefined} />
 
-        {/* Stats */}
-        <StatsCards stats={stats} />
+              {/* Stats */}
+              <StatsCards stats={stats} />
 
-        {/* Quick Moods - only show when not viewing recommendation */}
-        {!recommendation && (
-          <QuickMoods onSelectMood={handleMoodSelect} />
-        )}
+              {/* Quick Moods - only show when not viewing recommendation */}
+              {!recommendation && (
+                <QuickMoods onSelectMood={handleMoodSelect} />
+              )}
 
-        {/* Main Content Grid */}
-        <div className="grid md:grid-cols-[1fr_320px] gap-6">
-          {/* Left: Generator or Recommendation */}
-          <div>
-            {!recommendation ? (
-              <GeneratorForm
-                mode={mode}
-                onModeChange={setMode}
-                filters={filters}
-                onFilterChange={setFilters}
-                isLoading={isLoading}
-                error={error}
-                onGenerate={() => handleGenerate()}
-              />
-            ) : (
-              <RecommendationCard
-                recommendation={recommendation}
-                isLoading={isLoading}
-                isRecording={isRecording}
-                onRecordAction={handleRecordAction}
-                onGetAnother={() => handleGenerate()}
-                onBack={() => setRecommendation(null)}
-              />
-            )}
+              {/* Generator or Recommendation */}
+              <div className="flex-1 min-h-0">
+                {!recommendation ? (
+                  <GeneratorForm
+                    mode={mode}
+                    onModeChange={setMode}
+                    filters={filters}
+                    onFilterChange={setFilters}
+                    isLoading={isLoading}
+                    error={error}
+                    onGenerate={() => handleGenerate()}
+                  />
+                ) : (
+                  <RecommendationCard
+                    recommendation={recommendation}
+                    isLoading={isLoading}
+                    isRecording={isRecording}
+                    onRecordAction={handleRecordAction}
+                    onGetAnother={() => handleGenerate()}
+                    onBack={() => setRecommendation(null)}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Right Sidebar - History */}
+            <div className="hidden lg:block h-full overflow-hidden">
+              <HistoryCard />
+            </div>
           </div>
-
-          {/* Right: Activity Feed */}
-          <div className="hidden md:block">
-            <ActivityFeed limit={6} />
-          </div>
-        </div>
-
-        {/* Mobile Activity Feed */}
-        <div className="md:hidden mt-6">
-          <ActivityFeed limit={4} />
         </div>
       </div>
-    </div>
+    </>
   );
 }

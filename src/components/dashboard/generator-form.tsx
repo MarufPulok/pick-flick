@@ -1,7 +1,6 @@
 /**
  * GeneratorForm Component
- * Handles mode selection and filter inputs for recommendations
- * Single Responsibility: Only handles generator UI and filter state
+ * Compact recommendation generator
  */
 
 'use client';
@@ -43,145 +42,123 @@ export function GeneratorForm({
     : Object.values(GENRES);
 
   return (
-    <div className="glass rounded-2xl p-8">
+    <div className="glass rounded-xl p-4">
       {/* Mode Toggle */}
-      <div className="flex gap-2 mb-8 p-1 bg-secondary rounded-lg max-w-md mx-auto">
+      <div className="flex gap-1 mb-4 p-1 bg-secondary rounded-lg">
         <button
           onClick={() => onModeChange('SMART')}
-          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+          className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
             mode === 'SMART' 
               ? 'bg-primary text-primary-foreground' 
               : 'hover:bg-secondary-foreground/10'
           }`}
         >
-          <Sparkles className="w-4 h-4 inline mr-2" />
-          Smart Mode
+          <Sparkles className="w-4 h-4 inline mr-1" />
+          Smart
         </button>
         <button
           onClick={() => onModeChange('FILTERED')}
-          className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+          className={`flex-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
             mode === 'FILTERED' 
               ? 'bg-primary text-primary-foreground' 
               : 'hover:bg-secondary-foreground/10'
           }`}
         >
-          <Sliders className="w-4 h-4 inline mr-2" />
-          Filtered Mode
+          <Sliders className="w-4 h-4 inline mr-1" />
+          Filter
         </button>
       </div>
 
       {mode === 'SMART' ? (
-        /* Smart Mode */
-        <div className="text-center">
-          <div className="w-24 h-24 rounded-2xl bg-primary/20 flex items-center justify-center mx-auto mb-6 animate-pulse-glow">
-            <Sparkles className="w-12 h-12 text-primary" />
+        <div className="text-center py-4">
+          <div className="w-16 h-16 rounded-xl bg-primary/20 flex items-center justify-center mx-auto mb-3">
+            <Sparkles className="w-8 h-8 text-primary" />
           </div>
-          <h2 className="text-2xl font-bold mb-4">Feeling Lucky?</h2>
-          <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-            Get one perfect recommendation based on your taste profile
+          <h2 className="text-lg font-bold mb-1">Feeling Lucky?</h2>
+          <p className="text-muted-foreground text-sm mb-4">
+            Get one perfect pick based on your taste
           </p>
         </div>
       ) : (
-        /* Filtered Mode */
-        <div className="max-w-md mx-auto space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Content Type</label>
-            <select
-              value={filters.contentType}
-              onChange={(e) => onFilterChange({ ...filters, contentType: e.target.value })}
-              className="w-full px-4 py-2 rounded-lg bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              {CONTENT_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {type === 'MOVIE' && '🎬 Movies'}
-                  {type === 'SERIES' && '📺 TV Series'}
-                  {type === 'ANIME' && '⚡ Anime'}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Genre (Optional)</label>
-            <select
-              value={filters.genre}
-              onChange={(e) => onFilterChange({ ...filters, genre: e.target.value })}
-              className="w-full px-4 py-2 rounded-lg bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="">Any Genre</option>
-              {availableGenres.map((genre) => (
-                <option key={genre.id} value={String(genre.id)}>
-                  {genre.icon} {genre.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Language</label>
-            <select
-              value={filters.language}
-              onChange={(e) => onFilterChange({ ...filters, language: e.target.value })}
-              className="w-full px-4 py-2 rounded-lg bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              {Object.values(LANGUAGES).map((lang) => (
-                <option key={lang.code} value={lang.code}>
-                  {lang.flag} {lang.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Minimum Rating</label>
-            <select
-              value={filters.rating}
-              onChange={(e) => onFilterChange({ ...filters, rating: e.target.value })}
-              className="w-full px-4 py-2 rounded-lg bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              {Object.entries(RATING_TIERS).map(([key, tier]) => (
-                <option key={key} value={key}>
-                  ⭐ {tier.label} - {tier.description}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <select
+            value={filters.contentType}
+            onChange={(e) => onFilterChange({ ...filters, contentType: e.target.value })}
+            className="px-3 py-2 rounded-lg bg-secondary border border-border text-sm"
+          >
+            {CONTENT_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {type === 'MOVIE' && '🎬 Movie'}
+                {type === 'SERIES' && '📺 Series'}
+                {type === 'ANIME' && '⚡ Anime'}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filters.genre}
+            onChange={(e) => onFilterChange({ ...filters, genre: e.target.value })}
+            className="px-3 py-2 rounded-lg bg-secondary border border-border text-sm"
+          >
+            <option value="">Any Genre</option>
+            {availableGenres.map((genre) => (
+              <option key={genre.id} value={String(genre.id)}>
+                {genre.icon} {genre.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filters.language}
+            onChange={(e) => onFilterChange({ ...filters, language: e.target.value })}
+            className="px-3 py-2 rounded-lg bg-secondary border border-border text-sm"
+          >
+            {Object.values(LANGUAGES).map((lang) => (
+              <option key={lang.code} value={lang.code}>
+                {lang.flag} {lang.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={filters.rating}
+            onChange={(e) => onFilterChange({ ...filters, rating: e.target.value })}
+            className="px-3 py-2 rounded-lg bg-secondary border border-border text-sm"
+          >
+            {Object.entries(RATING_TIERS).map(([key, tier]) => (
+              <option key={key} value={key}>
+                ⭐ {tier.label}
+              </option>
+            ))}
+          </select>
         </div>
       )}
 
       {error && (
-        <div className="mt-6 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-center">
-          <p className="text-destructive text-sm mb-3">{error}</p>
+        <div className="mb-3 p-2 rounded-lg bg-destructive/10 border border-destructive/20 text-center">
+          <p className="text-destructive text-xs mb-2">{error}</p>
           {error.includes('onboarding') && (
-            <Link
-              href="/onboarding"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
-            >
+            <Link href="/onboarding" className="text-xs text-primary hover:underline">
               Complete Onboarding
             </Link>
           )}
         </div>
       )}
 
-      <div className="mt-8 text-center">
-        <button
-          onClick={onGenerate}
-          disabled={isLoading}
-          className="px-8 py-4 rounded-xl bg-primary text-primary-foreground font-semibold text-lg glow hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              Finding your pick...
-            </>
-          ) : (
-            <>
-              <Sparkles className="w-5 h-5" />
-              {mode === 'SMART' ? 'Get My Pick' : 'Generate'}
-            </>
-          )}
-        </button>
-      </div>
+      <button
+        onClick={onGenerate}
+        disabled={isLoading}
+        className="w-full px-6 py-3 rounded-xl bg-primary text-primary-foreground font-semibold glow hover:scale-[1.02] transition-transform disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="w-5 h-5 animate-spin" />
+            Finding...
+          </>
+        ) : (
+          <>
+            <Sparkles className="w-5 h-5" />
+            {mode === 'SMART' ? 'Get My Pick' : 'Generate'}
+          </>
+        )}
+      </button>
     </div>
   );
 }

@@ -1,7 +1,6 @@
-import { GlobalNav } from '@/components/layout/global-nav';
 import { ToastProvider } from '@/components/providers/toast-provider';
 import { QueryProvider, SessionProvider, ThemeProvider } from '@/providers';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 
@@ -36,6 +35,13 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -44,13 +50,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background`}
       >
         <ToastProvider />
         <SessionProvider>
           <ThemeProvider defaultTheme="dark">
             <QueryProvider>
-              <GlobalNav />
               {children}
             </QueryProvider>
           </ThemeProvider>

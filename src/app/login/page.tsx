@@ -5,6 +5,7 @@
  * Authentication with Google OAuth
  */
 
+import { GlobalNav } from '@/components/layout/global-nav';
 import { Sparkles } from 'lucide-react';
 import { signIn, useSession } from 'next-auth/react';
 import Link from 'next/link';
@@ -15,7 +16,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gradient-animated flex items-center justify-center">
+        <div className="h-full bg-gradient-animated flex items-center justify-center">
           <div className="w-12 h-12 rounded-xl bg-primary animate-pulse" />
         </div>
       }
@@ -40,7 +41,7 @@ function LoginContent() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gradient-animated flex items-center justify-center">
+      <div className="fixed inset-0 bg-gradient-animated flex items-center justify-center">
         <div className="w-12 h-12 rounded-xl bg-primary animate-pulse" />
       </div>
     );
@@ -56,8 +57,10 @@ function LoginContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-animated flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
+    <>
+      <GlobalNav />
+      <div className="fixed inset-0 pt-16 bg-gradient-animated flex items-center justify-center px-4">
+        <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-4">
@@ -114,7 +117,8 @@ function LoginContent() {
             </Link>
           </p>
         </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

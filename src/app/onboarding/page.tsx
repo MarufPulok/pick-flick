@@ -12,6 +12,7 @@
 
 'use client';
 
+import { GlobalNav } from '@/components/layout/global-nav';
 import {
   ContentTypeStep,
   GenreStep,
@@ -162,7 +163,7 @@ export default function OnboardingPage() {
   // Loading state
   if (status === 'loading' || isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-animated flex items-center justify-center">
+      <div className="fixed inset-0 bg-gradient-animated flex items-center justify-center">
         <div className="w-12 h-12 rounded-xl bg-primary animate-pulse" />
       </div>
     );
@@ -173,14 +174,16 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-animated px-4 py-12 pt-24">
-      <div className="max-w-4xl mx-auto">
+    <>
+      <GlobalNav />
+      <div className="fixed inset-0 pt-16 bg-gradient-animated overflow-y-auto scrollbar-hide">
+        <div className="max-w-3xl mx-auto px-4 py-6">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-2">
+        <div className="text-center mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">
             {isEditMode ? 'Update Your Preferences' : "Let's Get Started"}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm sm:text-base">
             {isEditMode
               ? 'Adjust your preferences to get better recommendations'
               : "Tell us what you like, and we'll find your perfect picks"}
@@ -189,7 +192,7 @@ export default function OnboardingPage() {
         </div>
 
         {/* Step Content */}
-        <div className="glass rounded-2xl p-8 mb-6">
+        <div className="glass rounded-2xl p-4 sm:p-6 mb-4">
           {step === 1 && (
             <ContentTypeStep
               selected={contentTypes}
@@ -227,7 +230,8 @@ export default function OnboardingPage() {
           onNext={handleNext}
           onSubmit={handleSubmit}
         />
+        </div>
       </div>
-    </div>
+    </>
   );
 }

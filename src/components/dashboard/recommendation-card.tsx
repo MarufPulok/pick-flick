@@ -1,13 +1,19 @@
 /**
  * RecommendationCard Component
- * Displays a single recommendation with feedback actions
- * Single Responsibility: Only handles recommendation display and user feedback
+ * Polished recommendation card with genre chips and additional info
  */
 
 'use client';
 
-import { Calendar, Check, Film, Loader2, Sparkles, Star, ThumbsDown, ThumbsUp, X } from 'lucide-react';
+import { GENRES } from '@/config/app.config';
+import { ArrowLeft, Check, Clock, Loader2, RefreshCw, Star, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import Image from 'next/image';
+
+// Create a lookup map for genre ID to name
+const GENRE_MAP: Record<number, { name: string; icon: string }> = {};
+Object.values(GENRES).forEach((genre) => {
+  GENRE_MAP[genre.id] = { name: genre.name, icon: genre.icon };
+});
 
 export interface Recommendation {
   tmdbId: number;
@@ -19,6 +25,8 @@ export interface Recommendation {
   rating?: number;
   voteCount?: number;
   originalLanguage?: string;
+  genreIds?: number[];
+  runtime?: number; // in minutes
 }
 
 interface RecommendationCardProps {
@@ -30,6 +38,44 @@ interface RecommendationCardProps {
   onBack: () => void;
 }
 
+interface ActionButtonProps {
+  onClick: () => void;
+  disabled: boolean;
+  icon: React.ReactNode;
+  label: string;
+  variant: 'green' | 'red' | 'outline-green' | 'outline-red';
+}
+
+function ActionButton({ onClick, disabled, icon, label, variant }: ActionButtonProps) {
+  const baseClass = "relative group p-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed";
+  const variants = {
+    'green': 'bg-green-600 hover:bg-green-700 text-white',
+    'red': 'bg-red-600 hover:bg-red-700 text-white',
+    'outline-green': 'border-2 border-green-500 hover:bg-green-500/10 text-green-500',
+    'outline-red': 'border-2 border-red-500 hover:bg-red-500/10 text-red-500',
+  };
+
+  return (
+    <button onClick={onClick} disabled={disabled} className={`${baseClass} ${variants[variant]}`}>
+      {icon}
+      <span className="absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-popover border border-border rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+        {label}
+      </span>
+    </button>
+  );
+}
+
+function GenreChip({ genreId }: { genreId: number }) {
+  const genre = GENRE_MAP[genreId];
+  if (!genre) return null;
+  
+  return (
+    <span className="px-2 py-0.5 rounded-full bg-secondary/80 text-xs font-medium text-muted-foreground">
+      {genre.icon} {genre.name}
+    </span>
+  );
+}
+
 export function RecommendationCard({
   recommendation,
   isLoading,
@@ -38,161 +84,161 @@ export function RecommendationCard({
   onGetAnother,
   onBack,
 }: RecommendationCardProps) {
-  const getYear = (dateString: string | undefined) => {
-    if (!dateString) return '';
-    return new Date(dateString).getFullYear();
-  };
+  const year = recommendation.releaseDate 
+    ? new Date(recommendation.releaseDate).getFullYear() 
+    : null;
+
+  const typeEmoji = {
+    'MOVIE': '🎬',
+    'SERIES': '📺',
+    'ANIME': '⚡',
+  }[recommendation.contentType];
+
+  const typeLabel = recommendation.contentType === 'ANIME' 
+    ? 'Anime' 
+    : recommendation.contentType === 'SERIES' 
+    ? 'Series' 
+    : 'Movie';
+
+  // Get first 4 genres
+  const displayGenres = (recommendation.genreIds || []).slice(0, 4);
 
   return (
-    <div className="glass rounded-2xl overflow-hidden">
-      <div className="grid md:grid-cols-[300px_1fr] gap-6">
-        {/* Poster */}
-        <div className="relative aspect-[2/3] bg-muted">
-          {recommendation.posterUrl ? (
-            <Image
-              src={recommendation.posterUrl}
-              alt={recommendation.title}
-              fill
-              className="object-cover"
-              unoptimized
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Film className="w-16 h-16 text-muted-foreground/20" />
-            </div>
+    <div className="glass rounded-xl h-full flex flex-col overflow-hidden">
+      {/* Header Bar */}
+      <div className="flex items-center justify-between p-3 border-b border-border/50">
+        <button
+          onClick={onBack}
+          className="p-2 -m-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        
+        <div className="flex items-center gap-2">
+          <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
+            {typeEmoji} {typeLabel}
+          </span>
+          {recommendation.originalLanguage && (
+            <span className="px-2 py-1 rounded-md bg-secondary text-xs font-medium uppercase">
+              {recommendation.originalLanguage}
+            </span>
           )}
+        </div>
+        
+        <button
+          onClick={onGetAnother}
+          disabled={isLoading}
+          className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-medium text-sm flex items-center gap-2 hover:opacity-90 disabled:opacity-50"
+        >
+          {isLoading ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <RefreshCw className="w-4 h-4" />
+          )}
+          <span className="hidden sm:inline">Next</span>
+        </button>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex gap-4 p-4 min-h-0 overflow-hidden">
+        {/* Poster with proper 2:3 aspect ratio */}
+        <div className="shrink-0">
+          <div className="relative w-28 sm:w-36 aspect-[2/3] rounded-lg overflow-hidden bg-secondary shadow-lg">
+            {recommendation.posterUrl ? (
+              <Image
+                src={recommendation.posterUrl}
+                alt={recommendation.title}
+                fill
+                className="object-cover"
+                unoptimized
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-5xl">
+                {typeEmoji}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Details */}
-        <div className="p-6 flex flex-col">
-          <div className="flex-1">
-            {/* Title and Type Badge */}
-            <div className="mb-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
-                  {recommendation.contentType === 'MOVIE' && '🎬 Movie'}
-                  {recommendation.contentType === 'SERIES' && '📺 Series'}
-                  {recommendation.contentType === 'ANIME' && '⚡ Anime'}
-                </div>
-                {recommendation.originalLanguage && (
-                  <div className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-secondary text-xs font-medium">
-                    🌐 {recommendation.originalLanguage.toUpperCase()}
-                  </div>
-                )}
-              </div>
-              <h2 className="text-3xl font-bold leading-tight">
-                {recommendation.title}
-              </h2>
-            </div>
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+          {/* Title */}
+          <h2 className="text-lg sm:text-xl font-bold leading-tight mb-2 line-clamp-2">
+            {recommendation.title}
+          </h2>
 
-            {/* Stats Row */}
-            <div className="flex flex-wrap items-center gap-4 mb-4 pb-4 border-b border-border">
-              {recommendation.releaseDate && (
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">
-                    {getYear(recommendation.releaseDate)}
-                  </span>
-                </div>
-              )}
-              {recommendation.rating && (
-                <div className="flex items-center gap-2">
-                  <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                  <span className="text-sm font-medium">
-                    {recommendation.rating.toFixed(1)}/10
-                  </span>
-                </div>
-              )}
-              {recommendation.voteCount && (
-                <div className="flex items-center gap-2">
-                  <span className="text-muted-foreground text-xs">
-                    ({recommendation.voteCount.toLocaleString()} votes)
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Overview */}
-            <div className="mb-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                Overview
-              </h3>
-              <p className="text-sm leading-relaxed">
-                {recommendation.overview || 'No overview available.'}
-              </p>
-            </div>
+          {/* Meta info row */}
+          <div className="flex items-center gap-3 text-sm mb-2 flex-wrap">
+            {year && (
+              <span className="text-muted-foreground">{year}</span>
+            )}
+            {recommendation.rating && (
+              <span className="flex items-center gap-1 text-amber-500 font-semibold">
+                <Star className="w-4 h-4 fill-amber-500" />
+                {recommendation.rating.toFixed(1)}
+              </span>
+            )}
+            {recommendation.voteCount && recommendation.voteCount > 1000 && (
+              <span className="text-xs text-muted-foreground">
+                {(recommendation.voteCount / 1000).toFixed(1)}k votes
+              </span>
+            )}
+            {recommendation.runtime && (
+              <span className="flex items-center gap-1 text-muted-foreground text-xs">
+                <Clock className="w-3 h-3" />
+                {recommendation.runtime}m
+              </span>
+            )}
           </div>
 
-          {/* Feedback & Actions */}
-          <div className="space-y-3 mt-6">
-            {/* Primary Actions */}
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                onClick={() => onRecordAction('WATCHED')}
-                disabled={isRecording}
-                className="px-6 py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
-              >
-                <Check className="w-5 h-5" />
-                Watched
-              </button>
-              <button
-                onClick={() => onRecordAction('BLACKLISTED')}
-                disabled={isRecording}
-                className="px-6 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
-              >
-                <X className="w-5 h-5" />
-                Not Interested
-              </button>
+          {/* Genre Chips */}
+          {displayGenres.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {displayGenres.map((genreId) => (
+                <GenreChip key={genreId} genreId={genreId} />
+              ))}
             </div>
+          )}
 
-            {/* Like/Dislike */}
-            <div className="flex gap-3">
-              <button
-                onClick={() => onRecordAction('LIKED')}
-                disabled={isRecording}
-                className="flex-1 px-4 py-2 rounded-lg border-2 border-green-500 hover:bg-green-500/10 text-green-600 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
-              >
-                <ThumbsUp className="w-4 h-4" />
-                Like
-              </button>
-              <button
-                onClick={() => onRecordAction('DISLIKED')}
-                disabled={isRecording}
-                className="flex-1 px-4 py-2 rounded-lg border-2 border-red-500 hover:bg-red-500/10 text-red-600 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
-              >
-                <ThumbsDown className="w-4 h-4" />
-                Dislike
-              </button>
-            </div>
-
-            {/* Get Another / Back */}
-            <div className="flex gap-3 pt-2 border-t border-border">
-              <button
-                onClick={onGetAnother}
-                disabled={isLoading}
-                className="flex-1 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-5 h-5" />
-                    Get Another
-                  </>
-                )}
-              </button>
-              <button
-                onClick={onBack}
-                className="px-6 py-3 rounded-xl border border-border hover:bg-secondary transition-colors font-medium"
-              >
-                Back
-              </button>
-            </div>
+          {/* Overview */}
+          <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {recommendation.overview || 'No overview available.'}
+            </p>
           </div>
         </div>
+      </div>
+
+      {/* Action Bar */}
+      <div className="flex items-center justify-center gap-3 p-3 border-t border-border/50 bg-secondary/30">
+        <ActionButton
+          onClick={() => onRecordAction('WATCHED')}
+          disabled={isRecording}
+          icon={<Check className="w-5 h-5" />}
+          label="Watched"
+          variant="green"
+        />
+        <ActionButton
+          onClick={() => onRecordAction('LIKED')}
+          disabled={isRecording}
+          icon={<ThumbsUp className="w-5 h-5" />}
+          label="Like"
+          variant="outline-green"
+        />
+        <ActionButton
+          onClick={() => onRecordAction('DISLIKED')}
+          disabled={isRecording}
+          icon={<ThumbsDown className="w-5 h-5" />}
+          label="Dislike"
+          variant="outline-red"
+        />
+        <ActionButton
+          onClick={() => onRecordAction('BLACKLISTED')}
+          disabled={isRecording}
+          icon={<X className="w-5 h-5" />}
+          label="Skip"
+          variant="red"
+        />
       </div>
     </div>
   );
