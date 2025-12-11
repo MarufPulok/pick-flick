@@ -1,115 +1,364 @@
 /**
  * Recommendation Service
  * Core logic for generating content recommendations with cascading fallback
+ * Language preference is ALWAYS preserved (sacred)
  */
 
-import { ContentType } from "@/config/app.config";
+import { ContentType } from '@/config/app.config';
 import {
-    tmdbClient,
-    type TMDBDiscoverParams,
-} from "@/infrastructure/external/tmdb.client";
+  tmdbClient,
+  type TMDBDiscoverParams,
+} from '@/infrastructure/external/tmdb.client';
 
 interface RecommendationRequest {
   contentType: ContentType;
   genres: string[];
   languages: string[];
   minRating?: number;
-  blacklist?: Set<string>; // Set of "tmdbId:contentType" strings
+  blacklist?: Set<string>;
+}
+
+interface QueryStrategy {
+  name: string;
+  genres: string[];
+  languages: string[];
+  minRating: number;
+  sortBy?: string;
+  voteCountGte?: number;
+  tryMultiplePages?: boolean;
 }
 
 export class RecommendationService {
   /**
    * Generate a single recommendation based on filters with cascading fallback
+   * Language is ALWAYS preserved (sacred)
    */
   static async generateRecommendation(request: RecommendationRequest) {
     const { contentType, genres, languages, minRating = 0, blacklist } = request;
 
-    // Strategy 1: Try with all filters (most specific)
-    let result = await this.tryGenerateWithFilters(contentType, genres, languages, minRating, blacklist);
-    if (result) return result;
+    // Ensure we have at least one language (fallback to 'en' if empty)
+    const sacredLanguages = languages.length > 0 ? languages : ['en'];
 
-    // Strategy 2: Try with fewer genres (reduce to 1 random genre)
-    if (genres.length > 1) {
-      const numericGenres = genres.filter((g) => !isNaN(Number(g)));
-      if (numericGenres.length > 1) {
-        const singleGenre = [numericGenres[Math.floor(Math.random() * numericGenres.length)]];
-        result = await this.tryGenerateWithFilters(contentType, singleGenre, languages, minRating, blacklist);
+    // Build strategy list - language is ALWAYS included
+    const strategies = this.buildStrategies(genres, sacredLanguages, minRating);
+
+    // Try each strategy in order
+    for (const strategy of strategies) {
+      console.log(`Trying strategy: ${strategy.name}`);
+      
+      const result = await this.tryGenerateWithStrategy(
+        contentType,
+        strategy,
+        blacklist
+      );
+      
+      if (result) {
+        console.log(`Success with strategy: ${strategy.name}`);
+        return result;
+      }
+    }
+
+    // Ultimate fallback: Try different content types but STILL with language
+    const fallbackTypes: ContentType[] = ['MOVIE', 'SERIES', 'ANIME'];
+    for (const fallbackType of fallbackTypes) {
+      if (fallbackType !== contentType) {
+        console.log(`Trying fallback content type: ${fallbackType}`);
+        const result = await this.tryGenerateWithStrategy(
+          fallbackType,
+          {
+            name: `Fallback ${fallbackType}`,
+            genres: [],
+            languages: sacredLanguages,
+            minRating: 5.0,
+            tryMultiplePages: true,
+          },
+          blacklist
+        );
         if (result) return result;
       }
     }
 
-    // Strategy 3: Try without language filter
-    if (languages.length > 0) {
-      result = await this.tryGenerateWithFilters(contentType, genres, [], minRating, blacklist);
-      if (result) return result;
-    }
-
-    // Strategy 4: Try with lower rating threshold (reduce by 1, minimum 5.0)
-    if (minRating > 5) {
-      const lowerRating = Math.max(5.0, minRating - 1);
-      result = await this.tryGenerateWithFilters(contentType, genres, languages, lowerRating, blacklist);
-      if (result) return result;
-    }
-
-    // Strategy 5: Try with single genre + no language + lower rating
-    if (genres.length > 0) {
-      const numericGenres = genres.filter((g) => !isNaN(Number(g)));
-      if (numericGenres.length > 0) {
-        const singleGenre = [numericGenres[Math.floor(Math.random() * numericGenres.length)]];
-        const relaxedRating = Math.max(5.0, (minRating || 0) - 1);
-        result = await this.tryGenerateWithFilters(contentType, singleGenre, [], relaxedRating, blacklist);
-        if (result) return result;
-      }
-    }
-
-    // Strategy 6: Try with just content type and minimal rating (5.0)
-    result = await this.tryGenerateWithFilters(contentType, [], [], 5.0, blacklist);
-    if (result) return result;
-
-    // Strategy 7: Last resort - just popular content of the requested type (no filters)
-    result = await this.tryGenerateWithFilters(contentType, [], [], 0, blacklist);
-    if (result) return result;
-
-    // If still no results, return null
-    // This should be extremely rare as Strategy 7 queries just by content type with no filters
+    // This should never happen, but ensures type safety
     return null;
   }
 
   /**
-   * Try to generate recommendation with specific filters
-   * Returns null if no results found
+   * Build ordered list of query strategies
+   * Language is ALWAYS preserved in every strategy
    */
-  private static async tryGenerateWithFilters(
+  private static buildStrategies(
+    genres: string[],
+    languages: string[],
+    minRating: number
+  ): QueryStrategy[] {
+    const numericGenres = genres.filter((g) => !isNaN(Number(g)));
+    const strategies: QueryStrategy[] = [];
+
+    // Strategy 1: All filters (most specific) - try multiple pages
+    if (numericGenres.length > 0) {
+      strategies.push({
+        name: 'All filters (multiple pages)',
+        genres: numericGenres,
+        languages,
+        minRating,
+        tryMultiplePages: true,
+      });
+    }
+
+    // Strategy 2: All genres, language, but lower rating (step down by 0.5)
+    if (numericGenres.length > 0 && minRating > 5.5) {
+      strategies.push({
+        name: 'All genres, lower rating (-0.5)',
+        genres: numericGenres,
+        languages,
+        minRating: Math.max(5.5, minRating - 0.5),
+        tryMultiplePages: true,
+      });
+    }
+
+    // Strategy 3: Try 2 random genres (if user has 3+)
+    if (numericGenres.length >= 3) {
+      const shuffled = [...numericGenres].sort(() => Math.random() - 0.5);
+      strategies.push({
+        name: '2 random genres',
+        genres: shuffled.slice(0, 2),
+        languages,
+        minRating,
+        tryMultiplePages: true,
+      });
+    }
+
+    // Strategy 4: Try 2 random genres with lower rating
+    if (numericGenres.length >= 3 && minRating > 5) {
+      const shuffled = [...numericGenres].sort(() => Math.random() - 0.5);
+      strategies.push({
+        name: '2 random genres, lower rating',
+        genres: shuffled.slice(0, 2),
+        languages,
+        minRating: Math.max(5.0, minRating - 1),
+        tryMultiplePages: true,
+      });
+    }
+
+    // Strategy 5: Single random genre (try each one)
+    if (numericGenres.length > 0) {
+      // Try each genre individually
+      for (const genre of numericGenres) {
+        strategies.push({
+          name: `Single genre: ${genre}`,
+          genres: [genre],
+          languages,
+          minRating,
+          tryMultiplePages: true,
+        });
+      }
+    }
+
+    // Strategy 6: Single genre with lower rating
+    if (numericGenres.length > 0 && minRating > 5) {
+      for (const genre of numericGenres) {
+        strategies.push({
+          name: `Single genre ${genre}, lower rating`,
+          genres: [genre],
+          languages,
+          minRating: Math.max(5.0, minRating - 1),
+          tryMultiplePages: true,
+        });
+      }
+    }
+
+    // Strategy 7: No genres, but keep language and rating
+    if (minRating > 0) {
+      strategies.push({
+        name: 'No genres, keep language and rating',
+        genres: [],
+        languages,
+        minRating,
+        tryMultiplePages: true,
+      });
+    }
+
+    // Strategy 8: No genres, language, lower rating
+    if (minRating > 5) {
+      strategies.push({
+        name: 'No genres, language, lower rating',
+        genres: [],
+        languages,
+        minRating: Math.max(5.0, minRating - 1),
+        tryMultiplePages: true,
+      });
+    }
+
+    // Strategy 9: No genres, language, minimal rating (5.0)
+    strategies.push({
+      name: 'No genres, language, rating 5.0',
+      genres: [],
+      languages,
+      minRating: 5.0,
+      tryMultiplePages: true,
+    });
+
+    // Strategy 10: No genres, language, no rating filter
+    strategies.push({
+      name: 'No genres, language only',
+      genres: [],
+      languages,
+      minRating: 0,
+      tryMultiplePages: true,
+    });
+
+    // Strategy 11: Try different sorting methods (if we have genres)
+    if (numericGenres.length > 0) {
+      strategies.push({
+        name: 'All genres, vote_average sort',
+        genres: numericGenres,
+        languages,
+        minRating: Math.max(5.0, minRating - 1),
+        sortBy: 'vote_average.desc',
+        voteCountGte: 100,
+        tryMultiplePages: true,
+      });
+    }
+
+    // Strategy 12: Try with lower vote count requirement
+    if (numericGenres.length > 0) {
+      strategies.push({
+        name: 'All genres, lower vote count threshold',
+        genres: numericGenres,
+        languages,
+        minRating: Math.max(5.0, minRating - 1),
+        voteCountGte: 50, // Lower than default 100
+        tryMultiplePages: true,
+      });
+    }
+
+    // Strategy 13: Try alternative language from user's list (if multiple)
+    if (languages.length > 1) {
+      for (let i = 1; i < languages.length; i++) {
+        strategies.push({
+          name: `Alternative language: ${languages[i]}`,
+          genres: numericGenres,
+          languages: [languages[i]],
+          minRating: Math.max(5.0, minRating - 1),
+          tryMultiplePages: true,
+        });
+      }
+    }
+
+    return strategies;
+  }
+
+  /**
+   * Try to generate recommendation with a specific strategy
+   */
+  private static async tryGenerateWithStrategy(
+    contentType: ContentType,
+    strategy: QueryStrategy,
+    blacklist?: Set<string>
+  ) {
+    const { genres, languages, minRating, sortBy, voteCountGte, tryMultiplePages } = strategy;
+
+    // Determine how many pages to try
+    const pagesToTry = tryMultiplePages ? [1, 2, 3, 4, 5] : [Math.floor(Math.random() * 5) + 1];
+
+    for (const page of pagesToTry) {
+      const queryParams = this.buildQueryParams(
+        contentType,
+        genres,
+        languages,
+        minRating,
+        sortBy,
+        voteCountGte,
+        page
+      );
+
+      console.log(`TMDB Query - Page ${page}:`, JSON.stringify(queryParams, null, 2));
+
+      try {
+        const response =
+          contentType === 'SERIES' || contentType === 'ANIME'
+            ? await tmdbClient.discoverTV(queryParams)
+            : await tmdbClient.discoverMovies(queryParams);
+
+        console.log(
+          `TMDB Response (Page ${page}) - Total: ${response.total_results}, Results: ${response.results?.length || 0}`
+        );
+
+        if (!response.results || response.results.length === 0) {
+          continue; // Try next page
+        }
+
+        // Filter out blacklisted items
+        const results =
+          blacklist && blacklist.size > 0
+            ? response.results.filter((item) => {
+                const key = `${item.id}:${contentType}`;
+                return !blacklist.has(key);
+              })
+            : response.results;
+
+        if (results.length === 0) {
+          console.log(`All results on page ${page} were blacklisted`);
+          continue; // Try next page
+        }
+
+        // Get random item from results
+        const randomIndex = Math.floor(Math.random() * Math.min(results.length, 20));
+        const item = results[randomIndex];
+
+        // Map to our format
+        return {
+          tmdbId: item.id,
+          contentType,
+          title: 'title' in item ? item.title : item.name,
+          overview: item.overview,
+          posterPath: item.poster_path,
+          backdropPath: item.backdrop_path,
+          releaseDate: 'release_date' in item ? item.release_date : item.first_air_date,
+          rating: item.vote_average,
+          voteCount: item.vote_count,
+          genreIds: item.genre_ids,
+          originalLanguage: item.original_language,
+        };
+      } catch (error) {
+        console.error(`Error querying TMDB (Page ${page}):`, error);
+        continue; // Try next page
+      }
+    }
+
+    return null; // All pages failed
+  }
+
+  /**
+   * Build TMDB query parameters
+   */
+  private static buildQueryParams(
     contentType: ContentType,
     genres: string[],
     languages: string[],
     minRating: number,
-    blacklist?: Set<string>
-  ) {
-    // Build query params
+    sortBy?: string,
+    voteCountGte?: number,
+    page: number = 1
+  ): TMDBDiscoverParams {
     const queryParams: TMDBDiscoverParams = {
-      sort_by: "popularity.desc",
-      page: Math.floor(Math.random() * 5) + 1, // Random page 1-5
+      sort_by: sortBy || 'popularity.desc',
+      page,
     };
 
     // Special handling for ANIME - must have Japanese language and Animation genre
     if (contentType === 'ANIME') {
       queryParams.with_original_language = 'ja';
       queryParams.with_genres = '16'; // Animation genre ID
-      
-      // For anime, ignore the provided language filter (always Japanese)
-      // But still use provided genres if available (combine with animation)
+
+      // Combine with provided genres if available
       if (genres.length > 0) {
-        const numericGenres = genres.filter((g) => !isNaN(Number(g)));
+        const numericGenres = genres.filter((g) => !isNaN(Number(g)) && g !== '16');
         if (numericGenres.length > 0) {
-          const selectedCount = Math.min(
-            numericGenres.length,
-            Math.random() > 0.5 ? 2 : 1
-          );
+          const selectedCount = Math.min(numericGenres.length, Math.random() > 0.5 ? 2 : 1);
           const shuffled = numericGenres.sort(() => Math.random() - 0.5);
           const selected = shuffled.slice(0, selectedCount);
-          // Combine with animation genre ID
-          queryParams.with_genres = `16,${selected.join(",")}`;
+          queryParams.with_genres = `16,${selected.join(',')}`;
         }
       }
     } else {
@@ -118,17 +367,14 @@ export class RecommendationService {
       if (genres.length > 0) {
         const numericGenres = genres.filter((g) => !isNaN(Number(g)));
         if (numericGenres.length > 0) {
-          const selectedCount = Math.min(
-            numericGenres.length,
-            Math.random() > 0.5 ? 2 : 1
-          );
+          const selectedCount = Math.min(numericGenres.length, Math.random() > 0.5 ? 2 : 1);
           const shuffled = numericGenres.sort(() => Math.random() - 0.5);
           const selected = shuffled.slice(0, selectedCount);
-          queryParams.with_genres = selected.join(",");
+          queryParams.with_genres = selected.join(',');
         }
       }
 
-      // Add language
+      // ALWAYS add language (sacred)
       if (languages.length > 0) {
         queryParams.with_original_language = languages[0];
       }
@@ -136,73 +382,20 @@ export class RecommendationService {
 
     // Add minimum rating
     if (minRating > 0) {
-      queryParams["vote_average.gte"] = minRating;
+      queryParams['vote_average.gte'] = minRating;
     }
 
-    console.log("TMDB Query - Content Type:", contentType);
-    console.log("TMDB Query - Params:", JSON.stringify(queryParams, null, 2));
-
-    try {
-      // Query TMDB using appropriate method
-      const response =
-        contentType === "SERIES" || contentType === "ANIME"
-          ? await tmdbClient.discoverTV(queryParams)
-          : await tmdbClient.discoverMovies(queryParams);
-
-      console.log("TMDB Response - Total results:", response.total_results);
-      console.log(
-        "TMDB Response - Results count:",
-        response.results?.length || 0
-      );
-
-      if (!response.results || response.results.length === 0) {
-        return null;
-      }
-
-      // Filter out blacklisted items
-      const results = blacklist && blacklist.size > 0
-        ? response.results.filter((item) => {
-            const key = `${item.id}:${contentType}`;
-            return !blacklist.has(key);
-          })
-        : response.results;
-        
-      if (results.length === 0) {
-        console.log("All results were blacklisted");
-        return null;
-      }
-      
-      console.log("Results after filtering:", results.length);
-
-      // Get random item from results
-      const randomIndex = Math.floor(
-        Math.random() * Math.min(results.length, 20)
-      );
-      const item = results[randomIndex];
-
-      // Map to our format
-      return {
-        tmdbId: item.id,
-        contentType,
-        title: "title" in item ? item.title : item.name,
-        overview: item.overview,
-        posterPath: item.poster_path,
-        backdropPath: item.backdrop_path,
-        releaseDate:
-          "release_date" in item ? item.release_date : item.first_air_date,
-        rating: item.vote_average,
-        voteCount: item.vote_count,
-        genreIds: item.genre_ids,
-        originalLanguage: item.original_language,
-      };
-    } catch (error) {
-      console.error("Error querying TMDB:", error);
-      return null;
+    // Add vote count threshold (if specified, otherwise use TMDB client default)
+    if (voteCountGte !== undefined) {
+      queryParams['vote_count.gte'] = voteCountGte;
     }
+
+    return queryParams;
   }
 
   /**
    * Generate recommendation using user's taste profile
+   * Tries all content types (shuffled) until one succeeds - prevents anime bias
    */
   static async generateSmartRecommendation(profile: {
     contentTypes: ContentType[];
@@ -211,18 +404,33 @@ export class RecommendationService {
     minRating?: number;
     blacklist?: Set<string>;
   }) {
-    // Pick random content type from user's preferences
-    const randomContentType =
-      profile.contentTypes[
-        Math.floor(Math.random() * profile.contentTypes.length)
-      ];
+    // Shuffle content types to ensure fair distribution
+    const shuffledTypes = [...profile.contentTypes].sort(() => Math.random() - 0.5);
+    
+    console.log(`Smart mode - Trying content types in order: ${shuffledTypes.join(', ')}`);
 
-    return this.generateRecommendation({
-      contentType: randomContentType,
-      genres: profile.genres,
-      languages: profile.languages,
-      minRating: profile.minRating || 6, // Use user preference or default to 6
-      blacklist: profile.blacklist,
-    });
+    // Try each content type until one succeeds
+    for (const contentType of shuffledTypes) {
+      console.log(`Smart mode - Attempting: ${contentType}`);
+      
+      const result = await this.generateRecommendation({
+        contentType,
+        genres: profile.genres,
+        languages: profile.languages,
+        minRating: profile.minRating || 6,
+        blacklist: profile.blacklist,
+      });
+      
+      if (result) {
+        console.log(`Smart mode - Success with: ${contentType}`);
+        return result;
+      }
+      
+      console.log(`Smart mode - No results for: ${contentType}, trying next...`);
+    }
+
+    // All content types failed
+    console.log('Smart mode - All content types failed');
+    return null;
   }
 }
