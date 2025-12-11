@@ -93,6 +93,20 @@ export async function POST(req: NextRequest) {
       ...validated,
     });
 
+    // Update preference weights on likes/dislikes (async, don't block response)
+    if (validated.action === 'LIKED' || validated.action === 'DISLIKED') {
+      const { PreferenceWeightsService } = await import('@/services/preference-weights.service');
+      PreferenceWeightsService.updateWeights({
+        userId: user._id.toString(),
+        action: validated.action,
+        genreIds: validated.genreIds || [],
+        contentType: validated.contentType,
+        language: validated.originalLanguage || 'en',
+      }).catch(err => {
+        console.error('Failed to update preference weights:', err);
+      });
+    }
+
     return NextResponse.json({
       success: true,
       id: history._id.toString(),

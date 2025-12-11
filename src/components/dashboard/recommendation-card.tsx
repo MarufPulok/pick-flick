@@ -31,10 +31,15 @@ export interface Recommendation {
   rating?: number;
   voteCount?: number;
   originalLanguage?: string;
+  genreIds?: number[];
   trailerUrl?: string;
   explanation?: {
     title: string;
     description: string;
+  };
+  watchProviders?: {
+    flatrate?: Array<{ name: string; logoUrl: string; providerId: number }>;
+    link?: string;
   };
 }
 
@@ -131,6 +136,36 @@ export function RecommendationCard({
                   </div>
                 )}
               </div>
+
+              {/* Streaming Availability */}
+              {recommendation.watchProviders?.flatrate && recommendation.watchProviders.flatrate.length > 0 && (
+                <div className="mb-4 flex items-center gap-3 flex-wrap">
+                  <span className="text-xs text-muted-foreground">Stream on:</span>
+                  <div className="flex items-center gap-2">
+                    {recommendation.watchProviders.flatrate.map((provider) => (
+                      <Tooltip key={provider.providerId}>
+                        <TooltipTrigger asChild>
+                          <a
+                            href={recommendation.watchProviders?.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block w-9 h-9 rounded-lg overflow-hidden bg-black/20 hover:scale-110 transition-transform ring-1 ring-white/10 hover:ring-primary/50"
+                          >
+                            <img
+                              src={provider.logoUrl}
+                              alt={provider.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </a>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Watch on {provider.name}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Overview */}
               <div className="mb-4">

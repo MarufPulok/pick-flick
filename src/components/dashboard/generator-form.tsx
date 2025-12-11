@@ -90,7 +90,18 @@ export function GeneratorForm({
             <label className="block text-sm font-medium mb-2">Content Type</label>
             <select
               value={filters.contentType}
-              onChange={(e) => onFilterChange({ ...filters, contentType: e.target.value })}
+              onChange={(e) => {
+                const newType = e.target.value;
+                // Auto-select Japanese for Anime
+                const newLanguage = newType === 'ANIME' ? 'ja' : filters.language;
+                onFilterChange({ 
+                  ...filters, 
+                  contentType: newType,
+                  language: newLanguage,
+                  // Reset genre when switching content types
+                  genre: '',
+                });
+              }}
               className="w-full px-4 py-3 rounded-lg bg-secondary border border-border focus:outline-none focus:ring-2 focus:ring-primary text-base min-h-[44px]"
             >
               {CONTENT_TYPES.map((type) => (

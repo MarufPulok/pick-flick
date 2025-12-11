@@ -54,6 +54,15 @@ export const UserStatsResSchema = z.object({
   likedCount: z.number(),
   dislikedCount: z.number(),
   averageRating: z.number(),
+  // Enhanced stats
+  contentTypeDistribution: z.object({
+    MOVIE: z.number(),
+    SERIES: z.number(),
+    ANIME: z.number(),
+  }).optional(),
+  likeRatio: z.number().optional(), // Percentage 0-100
+  currentStreak: z.number().optional(),
+  lastActiveDate: z.string().nullable().optional(),
 });
 
 export type UserStatsResDto = z.infer<typeof UserStatsResSchema>;

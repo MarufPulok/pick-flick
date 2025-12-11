@@ -117,6 +117,39 @@ export async function POST(req: NextRequest) {
         })
       : null;
 
+    // Fetch watch providers (streaming availability)
+    let watchProviders: {
+      flatrate?: Array<{ name: string; logoUrl: string; providerId: number }>;
+      link?: string;
+    } | null = null;
+    try {
+      const providers = recommendation.contentType === 'MOVIE'
+        ? await tmdbClient.getMovieWatchProviders(recommendation.tmdbId)
+        : await tmdbClient.getTVWatchProviders(recommendation.tmdbId);
+      
+      if (providers) {
+        const allProviders = [
+          ...(providers.flatrate || []),
+          ...(providers.free || []),
+          ...(providers.ads || []),
+        ];
+        
+        if (allProviders.length > 0) {
+          watchProviders = {
+            flatrate: allProviders.slice(0, 5).map(p => ({
+              name: p.provider_name,
+              logoUrl: tmdbClient.getProviderLogoUrl(p.logo_path),
+              providerId: p.provider_id,
+            })),
+            link: providers.link,
+          };
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch watch providers:", error);
+      // Continue without providers - it's not critical
+    }
+
     // Format response with full image URLs
     const response = {
       tmdbId: recommendation.tmdbId,
@@ -137,6 +170,7 @@ export async function POST(req: NextRequest) {
       originalLanguage: recommendation.originalLanguage,
       trailerUrl,
       explanation,
+      watchProviders,
     };
 
     return NextResponse.json(response);

@@ -185,4 +185,133 @@ export class HistoryService {
 
     return items.map(item => item.contentType);
   }
+
+  /**
+   * Get detailed user statistics including distributions
+   */
+  static async getDetailedStats(userId: string) {
+    const [basic, contentTypeDistribution, likeRatio, streakInfo] = await Promise.all([
+      this.getUserStats(userId),
+      this.getContentTypeDistribution(userId),
+      this.getLikeRatio(userId),
+      this.getActivityStreak(userId),
+    ]);
+
+    return {
+      ...basic,
+      contentTypeDistribution,
+      likeRatio,
+      ...streakInfo,
+    };
+  }
+
+  /**
+   * Get content type distribution (how many movies vs series vs anime liked)
+   */
+  static async getContentTypeDistribution(userId: string): Promise<{
+    MOVIE: number;
+    SERIES: number;
+    ANIME: number;
+  }> {
+    const result = await RecommendationHistoryModel.aggregate([
+      { $match: { userId, action: { $in: ['WATCHED', 'LIKED'] } } },
+      { $group: { _id: '$contentType', count: { $sum: 1 } } },
+    ]);
+
+    const distribution: { MOVIE: number; SERIES: number; ANIME: number } = {
+      MOVIE: 0,
+      SERIES: 0,
+      ANIME: 0,
+    };
+
+    for (const item of result) {
+      if (item._id in distribution) {
+        distribution[item._id as keyof typeof distribution] = item.count;
+      }
+    }
+
+    return distribution;
+  }
+
+  /**
+   * Get like ratio (likes / (likes + dislikes))
+   */
+  static async getLikeRatio(userId: string): Promise<number> {
+    const [likedCount, dislikedCount] = await Promise.all([
+      RecommendationHistoryModel.countDocuments({ userId, action: 'LIKED' }),
+      RecommendationHistoryModel.countDocuments({ userId, action: 'DISLIKED' }),
+    ]);
+
+    const total = likedCount + dislikedCount;
+    if (total === 0) return 0;
+
+    return Math.round((likedCount / total) * 100);
+  }
+
+  /**
+   * Get activity streak info
+   */
+  static async getActivityStreak(userId: string): Promise<{
+    currentStreak: number;
+    lastActiveDate: string | null;
+  }> {
+    const recentActivity = await RecommendationHistoryModel.find({
+      userId,
+      action: { $in: ['WATCHED', 'LIKED'] },
+    })
+      .sort({ createdAt: -1 })
+      .limit(30)
+      .select('createdAt')
+      .lean();
+
+    if (recentActivity.length === 0) {
+      return { currentStreak: 0, lastActiveDate: null };
+    }
+
+    let streak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const activeDays = new Set<string>();
+    for (const item of recentActivity) {
+      const date = new Date(item.createdAt);
+      date.setHours(0, 0, 0, 0);
+      activeDays.add(date.toISOString().split('T')[0]);
+    }
+
+    // Count consecutive days from today backwards
+    for (let i = 0; i < 30; i++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(checkDate.getDate() - i);
+      const dateStr = checkDate.toISOString().split('T')[0];
+      
+      if (activeDays.has(dateStr)) {
+        streak++;
+      } else if (i > 0) {
+        // Allow skipping today if not yet active
+        break;
+      }
+    }
+
+    return {
+      currentStreak: streak,
+      lastActiveDate: recentActivity[0]?.createdAt?.toISOString() || null,
+    };
+  }
+
+  /**
+   * Get recommendation success rate (watched items that were liked)
+   */
+  static async getSuccessRate(userId: string): Promise<number> {
+    const [watchedCount, likedCount] = await Promise.all([
+      RecommendationHistoryModel.countDocuments({ userId, action: 'WATCHED' }),
+      RecommendationHistoryModel.countDocuments({ userId, action: 'LIKED' }),
+    ]);
+
+    // Success = liked / (watched + liked) since a liked item counts as successful
+    const total = watchedCount + likedCount;
+    if (total === 0) return 0;
+
+    return Math.round((likedCount / total) * 100);
+  }
 }

@@ -97,6 +97,30 @@ export interface TMDBVideosResponse {
 }
 
 /**
+ * TMDB Watch Provider Types (for streaming availability)
+ */
+export interface TMDBWatchProvider {
+  logo_path: string;
+  provider_id: number;
+  provider_name: string;
+  display_priority: number;
+}
+
+export interface TMDBWatchProviderCountryResult {
+  link: string;  // TMDB link to watch page
+  flatrate?: TMDBWatchProvider[];  // Subscription services (Netflix, etc.)
+  rent?: TMDBWatchProvider[];      // Rent options
+  buy?: TMDBWatchProvider[];       // Buy options
+  free?: TMDBWatchProvider[];      // Free with ads
+  ads?: TMDBWatchProvider[];       // Free with ads (alternate key)
+}
+
+export interface TMDBWatchProvidersResponse {
+  id: number;
+  results: Record<string, TMDBWatchProviderCountryResult>;
+}
+
+/**
  * TMDB Discovery Parameters
  */
 export interface TMDBDiscoverParams {
@@ -384,6 +408,37 @@ class TMDBClient {
     if (anyTeaser) return `https://www.youtube.com/embed/${anyTeaser.key}`;
     
     return null;
+  }
+
+  /**
+   * Get watch providers for a movie
+   * @param movieId TMDB movie ID
+   * @param country ISO 3166-1 country code (default: US)
+   */
+  async getMovieWatchProviders(movieId: number, country: string = 'US'): Promise<TMDBWatchProviderCountryResult | null> {
+    return this.rateLimiter.throttle(async () => {
+      const response = await this.client.get<TMDBWatchProvidersResponse>(`/movie/${movieId}/watch/providers`);
+      return response.data.results[country] || null;
+    });
+  }
+
+  /**
+   * Get watch providers for a TV show
+   * @param tvId TMDB TV show ID
+   * @param country ISO 3166-1 country code (default: US)
+   */
+  async getTVWatchProviders(tvId: number, country: string = 'US'): Promise<TMDBWatchProviderCountryResult | null> {
+    return this.rateLimiter.throttle(async () => {
+      const response = await this.client.get<TMDBWatchProvidersResponse>(`/tv/${tvId}/watch/providers`);
+      return response.data.results[country] || null;
+    });
+  }
+
+  /**
+   * Get provider logo URL
+   */
+  getProviderLogoUrl(logoPath: string): string {
+    return `${EXTERNAL_APIS.TMDB.IMAGE_BASE_URL}/w92${logoPath}`;
   }
 }
 

@@ -114,6 +114,9 @@ export default function DashboardPage() {
       rating: recommendation.rating,
       releaseDate: recommendation.releaseDate,
       source: mode,
+      // For preference weight learning
+      genreIds: recommendation.genreIds,
+      originalLanguage: recommendation.originalLanguage,
     });
 
     // Blacklist: generate new recommendation

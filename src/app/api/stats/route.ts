@@ -26,8 +26,8 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Get stats
-    const stats = await HistoryService.getUserStats(user._id.toString());
+    // Get detailed stats (includes basic + enhanced stats)
+    const stats = await HistoryService.getDetailedStats(user._id.toString());
 
     const response = UserStatsResSchema.parse(stats);
 

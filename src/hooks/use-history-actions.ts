@@ -17,6 +17,9 @@ interface RecordActionParams {
   rating?: number;
   releaseDate?: string;
   source?: 'FILTERED' | 'SMART';
+  // For preference weight learning
+  genreIds?: number[];
+  originalLanguage?: string;
 }
 
 export function useHistoryActions() {

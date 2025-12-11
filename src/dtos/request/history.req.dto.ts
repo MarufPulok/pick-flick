@@ -62,6 +62,16 @@ export const RecordActionReqSchema = z.object({
    * Recommendation source
    */
   source: z.enum(['FILTERED', 'SMART']).default('SMART'),
+  
+  /**
+   * Genre IDs (for preference learning)
+   */
+  genreIds: z.array(z.number()).optional(),
+  
+  /**
+   * Original language (for preference learning)
+   */
+  originalLanguage: z.string().optional(),
 });
 
 export type RecordActionReqDto = z.infer<typeof RecordActionReqSchema>;
