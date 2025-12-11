@@ -338,3 +338,19 @@
 .animate-dice-roll {
   animation: dice-roll 0.6s ease-in-out;
 }
+
+/* ================================
+   Toast Mobile Styles
+   ================================ */
+@media (max-width: 640px) {
+  [data-sonner-toaster] {
+    left: 1rem !important;
+    right: 1rem !important;
+    bottom: 1rem !important;
+    width: auto !important;
+  }
+
+  [data-sonner-toast] {
+    width: 100% !important;
+  }
+}
