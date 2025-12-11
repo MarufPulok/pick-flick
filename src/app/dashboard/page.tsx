@@ -6,24 +6,27 @@
  */
 
 import { ANIME_GENRES, CONTENT_TYPES, GENRES, LANGUAGES, RATING_TIERS } from '@/config/app.config';
+import { useHistoryActions } from '@/hooks/use-history-actions';
+import { useStats } from '@/hooks/use-stats';
 import { Calendar, Check, Film, Loader2, Sliders, Sparkles, Star, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 type Mode = 'SMART' | 'FILTERED';
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { stats } = useStats();
+  const { recordAction, isRecording } = useHistoryActions();
+  
   const [mode, setMode] = useState<Mode>('SMART');
   const [isLoading, setIsLoading] = useState(false);
   const [recommendation, setRecommendation] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState<any>(null);
-  const [isRecordingAction, setIsRecordingAction] = useState(false);
 
   // Filtered mode state
   const [selectedContentType, setSelectedContentType] = useState<string>('MOVIE');
@@ -31,23 +34,7 @@ export default function DashboardPage() {
   const [selectedLanguage, setSelectedLanguage] = useState<string>('en');
   const [selectedRating, setSelectedRating] = useState<string>('ANY');
 
-  // Fetch stats on mount (must be before early returns)
-  useEffect(() => {
-    if (status === 'authenticated') {
-      const fetchStats = async () => {
-        try {
-          const response = await fetch('/api/stats');
-          if (response.ok) {
-            const data = await response.json();
-            setStats(data);
-          }
-        } catch (err) {
-          console.error('Failed to fetch stats:', err);
-        }
-      };
-      fetchStats();
-    }
-  }, [status]);
+  // Stats are now handled by useStats hook
 
   if (status === 'loading') {
     return (
@@ -97,55 +84,24 @@ export default function DashboardPage() {
     }
   };
 
-  const recordAction = async (action: 'WATCHED' | 'LIKED' | 'DISLIKED' | 'BLACKLISTED') => {
-    if (!recommendation || isRecordingAction) return;
-    
-    setIsRecordingAction(true);
-    
-    try {
-      const response = await fetch('/api/history', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tmdbId: recommendation.tmdbId,
-          contentType: recommendation.contentType,
-          action,
-          title: recommendation.title,
-          posterPath: recommendation.posterPath,
-          rating: recommendation.rating,
-          releaseDate: recommendation.releaseDate,
-          source: mode,
-        }),
-      });
+  const handleRecordAction = (action: 'WATCHED' | 'LIKED' | 'DISLIKED' | 'BLACKLISTED') => {
+    if (!recommendation || isRecording) return;
 
-      if (!response.ok) {
-        throw new Error('Failed to record action');
-      }
+    recordAction({
+      tmdbId: recommendation.tmdbId,
+      contentType: recommendation.contentType,
+      action,
+      title: recommendation.title,
+      posterPath: recommendation.posterPath,
+      rating: recommendation.rating,
+      releaseDate: recommendation.releaseDate,
+      source: mode,
+    });
 
-      // Handle blacklist - generate new recommendation
-      if (action === 'BLACKLISTED') {
-        setRecommendation(null);
-        handleGenerate();
-      }
-      
-      // Refresh stats
-      fetchStats();
-    } catch (err) {
-      console.error('Failed to record action:', err);
-    } finally {
-      setIsRecordingAction(false);
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      const response = await fetch('/api/stats');
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data);
-      }
-    } catch (err) {
-      console.error('Failed to fetch stats:', err);
+    // Handle blacklist - generate new recommendation
+    if (action === 'BLACKLISTED') {
+      setRecommendation(null);
+      handleGenerate();
     }
   };
 
@@ -426,16 +382,16 @@ export default function DashboardPage() {
                   {/* Primary Actions */}
                   <div className="grid grid-cols-2 gap-3">
                     <button
-                      onClick={() => recordAction('WATCHED')}
-                      disabled={isRecordingAction}
+                      onClick={() => handleRecordAction('WATCHED')}
+                      disabled={isRecording}
                       className="px-6 py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
                     >
                       <Check className="w-5 h-5" />
                       Watched
                     </button>
                     <button
-                      onClick={() => recordAction('BLACKLISTED')}
-                      disabled={isRecordingAction}
+                      onClick={() => handleRecordAction('BLACKLISTED')}
+                      disabled={isRecording}
                       className="px-6 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
                     >
                       <X className="w-5 h-5" />
@@ -446,16 +402,16 @@ export default function DashboardPage() {
                   {/* Like/Dislike */}
                   <div className="flex gap-3">
                     <button
-                      onClick={() => recordAction('LIKED')}
-                      disabled={isRecordingAction}
+                      onClick={() => handleRecordAction('LIKED')}
+                      disabled={isRecording}
                       className="flex-1 px-4 py-2 rounded-lg border-2 border-green-500 hover:bg-green-500/10 text-green-600 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
                     >
                       <ThumbsUp className="w-4 h-4" />
                       Like
                     </button>
                     <button
-                      onClick={() => recordAction('DISLIKED')}
-                      disabled={isRecordingAction}
+                      onClick={() => handleRecordAction('DISLIKED')}
+                      disabled={isRecording}
                       className="flex-1 px-4 py-2 rounded-lg border-2 border-red-500 hover:bg-red-500/10 text-red-600 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
                     >
                       <ThumbsDown className="w-4 h-4" />
