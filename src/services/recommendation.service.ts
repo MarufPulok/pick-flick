@@ -44,7 +44,6 @@ export class RecommendationService {
 
     // Try each strategy in order
     for (const strategy of strategies) {
-      console.log(`Trying strategy: ${strategy.name}`);
       
       const result = await this.tryGenerateWithStrategy(
         contentType,

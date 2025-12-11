@@ -42,10 +42,6 @@ export async function POST(req: NextRequest) {
       // Load taste profile for smart mode
       const profile = await TasteProfileModel.findOne({ userId: user._id });
 
-      console.log("Smart mode - User ID:", user._id);
-      console.log("Smart mode - Profile found:", !!profile);
-      console.log("Smart mode - Profile complete:", profile?.complete);
-
       if (!profile || !profile.complete) {
         return NextResponse.json(
           { error: "Please complete onboarding first" },
@@ -66,9 +62,6 @@ export async function POST(req: NextRequest) {
       const orderedContentTypes = prioritizedTypes.length > 0
         ? [...prioritizedTypes, ...profile.contentTypes.filter((type: string) => !prioritizedTypes.includes(type))]
         : profile.contentTypes;
-
-      console.log("Smart mode - Recent content types:", recentContentTypes);
-      console.log("Smart mode - Ordered content types:", orderedContentTypes);
 
       recommendation = await RecommendationService.generateSmartRecommendation({
         contentTypes: orderedContentTypes,

@@ -5,6 +5,13 @@
 
 import { serverEnv } from '@/config/env.config';
 import { EXTERNAL_APIS } from '@/config/url.config';
+import {
+    CACHE_TTL,
+    createCacheKey,
+    discoverCache,
+    providersCache,
+    videosCache,
+} from '@/lib/cache';
 import axios, { type AxiosError, type AxiosInstance } from 'axios';
 
 /**
@@ -219,39 +226,51 @@ class TMDBClient {
   }
 
   /**
-   * Discover movies with filters
+   * Discover movies with filters (cached)
    */
   async discoverMovies(params: TMDBDiscoverParams = {}): Promise<TMDBSearchResponse<TMDBMovie>> {
-    return this.rateLimiter.throttle(async () => {
-      const response = await this.client.get<TMDBSearchResponse<TMDBMovie>>('/discover/movie', {
-        params: {
-          include_adult: false,
-          language: 'en-US',
-          sort_by: 'popularity.desc',
-          'vote_count.gte': 100,
-          ...params,
-        },
-      });
-      return response.data;
-    });
+    const cacheKey = createCacheKey('discover:movie', params);
+    
+    return discoverCache.getOrSet(
+      cacheKey,
+      () => this.rateLimiter.throttle(async () => {
+        const response = await this.client.get<TMDBSearchResponse<TMDBMovie>>('/discover/movie', {
+          params: {
+            include_adult: false,
+            language: 'en-US',
+            sort_by: 'popularity.desc',
+            'vote_count.gte': 100,
+            ...params,
+          },
+        });
+        return response.data;
+      }),
+      CACHE_TTL.DISCOVER
+    ) as Promise<TMDBSearchResponse<TMDBMovie>>;
   }
 
   /**
-   * Discover TV shows with filters
+   * Discover TV shows with filters (cached)
    */
   async discoverTV(params: TMDBDiscoverParams = {}): Promise<TMDBSearchResponse<TMDBTVShow>> {
-    return this.rateLimiter.throttle(async () => {
-      const response = await this.client.get<TMDBSearchResponse<TMDBTVShow>>('/discover/tv', {
-        params: {
-          include_adult: false,
-          language: 'en-US',
-          sort_by: 'popularity.desc',
-          'vote_count.gte': 100,
-          ...params,
-        },
-      });
-      return response.data;
-    });
+    const cacheKey = createCacheKey('discover:tv', params);
+    
+    return discoverCache.getOrSet(
+      cacheKey,
+      () => this.rateLimiter.throttle(async () => {
+        const response = await this.client.get<TMDBSearchResponse<TMDBTVShow>>('/discover/tv', {
+          params: {
+            include_adult: false,
+            language: 'en-US',
+            sort_by: 'popularity.desc',
+            'vote_count.gte': 100,
+            ...params,
+          },
+        });
+        return response.data;
+      }),
+      CACHE_TTL.DISCOVER
+    ) as Promise<TMDBSearchResponse<TMDBTVShow>>;
   }
 
   /**
@@ -364,27 +383,39 @@ class TMDBClient {
   }
 
   /**
-   * Get videos (trailers, teasers) for a movie
+   * Get videos (trailers, teasers) for a movie (cached)
    */
   async getMovieVideos(movieId: number): Promise<TMDBVideo[]> {
-    return this.rateLimiter.throttle(async () => {
-      const response = await this.client.get<TMDBVideosResponse>(`/movie/${movieId}/videos`, {
-        params: { language: 'en-US' },
-      });
-      return response.data.results;
-    });
+    const cacheKey = `videos:movie:${movieId}`;
+    
+    return videosCache.getOrSet(
+      cacheKey,
+      () => this.rateLimiter.throttle(async () => {
+        const response = await this.client.get<TMDBVideosResponse>(`/movie/${movieId}/videos`, {
+          params: { language: 'en-US' },
+        });
+        return response.data.results;
+      }),
+      CACHE_TTL.VIDEOS
+    ) as Promise<TMDBVideo[]>;
   }
 
   /**
-   * Get videos (trailers, teasers) for a TV show
+   * Get videos (trailers, teasers) for a TV show (cached)
    */
   async getTVVideos(tvId: number): Promise<TMDBVideo[]> {
-    return this.rateLimiter.throttle(async () => {
-      const response = await this.client.get<TMDBVideosResponse>(`/tv/${tvId}/videos`, {
-        params: { language: 'en-US' },
-      });
-      return response.data.results;
-    });
+    const cacheKey = `videos:tv:${tvId}`;
+    
+    return videosCache.getOrSet(
+      cacheKey,
+      () => this.rateLimiter.throttle(async () => {
+        const response = await this.client.get<TMDBVideosResponse>(`/tv/${tvId}/videos`, {
+          params: { language: 'en-US' },
+        });
+        return response.data.results;
+      }),
+      CACHE_TTL.VIDEOS
+    ) as Promise<TMDBVideo[]>;
   }
 
   /**
@@ -411,27 +442,39 @@ class TMDBClient {
   }
 
   /**
-   * Get watch providers for a movie
+   * Get watch providers for a movie (cached)
    * @param movieId TMDB movie ID
    * @param country ISO 3166-1 country code (default: US)
    */
   async getMovieWatchProviders(movieId: number, country: string = 'US'): Promise<TMDBWatchProviderCountryResult | null> {
-    return this.rateLimiter.throttle(async () => {
-      const response = await this.client.get<TMDBWatchProvidersResponse>(`/movie/${movieId}/watch/providers`);
-      return response.data.results[country] || null;
-    });
+    const cacheKey = `providers:movie:${movieId}:${country}`;
+    
+    return providersCache.getOrSet(
+      cacheKey,
+      () => this.rateLimiter.throttle(async () => {
+        const response = await this.client.get<TMDBWatchProvidersResponse>(`/movie/${movieId}/watch/providers`);
+        return response.data.results[country] || null;
+      }),
+      CACHE_TTL.PROVIDERS
+    ) as Promise<TMDBWatchProviderCountryResult | null>;
   }
 
   /**
-   * Get watch providers for a TV show
+   * Get watch providers for a TV show (cached)
    * @param tvId TMDB TV show ID
    * @param country ISO 3166-1 country code (default: US)
    */
   async getTVWatchProviders(tvId: number, country: string = 'US'): Promise<TMDBWatchProviderCountryResult | null> {
-    return this.rateLimiter.throttle(async () => {
-      const response = await this.client.get<TMDBWatchProvidersResponse>(`/tv/${tvId}/watch/providers`);
-      return response.data.results[country] || null;
-    });
+    const cacheKey = `providers:tv:${tvId}:${country}`;
+    
+    return providersCache.getOrSet(
+      cacheKey,
+      () => this.rateLimiter.throttle(async () => {
+        const response = await this.client.get<TMDBWatchProvidersResponse>(`/tv/${tvId}/watch/providers`);
+        return response.data.results[country] || null;
+      }),
+      CACHE_TTL.PROVIDERS
+    ) as Promise<TMDBWatchProviderCountryResult | null>;
   }
 
   /**
