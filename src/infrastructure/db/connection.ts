@@ -4,7 +4,10 @@
  */
 
 import { serverEnv } from '@/config/env.config';
+import { loggers } from '@/lib/logger';
 import mongoose from 'mongoose';
+
+const log = loggers.db;
 
 declare global {
   // eslint-disable-next-line no-var
@@ -49,7 +52,7 @@ export async function connectToDatabase(): Promise<typeof mongoose> {
     };
 
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      console.log('✅ Connected to MongoDB');
+      log.info('Connected to MongoDB');
       return mongoose;
     });
   }
@@ -73,7 +76,7 @@ export async function disconnectFromDatabase(): Promise<void> {
     await mongoose.disconnect();
     cached.conn = null;
     cached.promise = null;
-    console.log('🔌 Disconnected from MongoDB');
+    log.info('Disconnected from MongoDB');
   }
 }
 

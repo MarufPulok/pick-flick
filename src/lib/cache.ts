@@ -170,7 +170,7 @@ export class TTLCache<T> {
     
     this.stats.size = this.cache.size;
     
-    if (cleaned > 0) {
+    if (cleaned > 0 && process.env.NODE_ENV === 'development') {
       console.log(`[Cache] Cleaned up ${cleaned} expired entries. Size: ${this.cache.size}`);
     }
   }

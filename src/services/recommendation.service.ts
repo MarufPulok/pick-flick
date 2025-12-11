@@ -9,6 +9,9 @@ import {
   tmdbClient,
   type TMDBDiscoverParams,
 } from '@/infrastructure/external/tmdb.client';
+import { loggers } from '@/lib/logger';
+
+const log = loggers.recommendation;
 
 interface RecommendationRequest {
   contentType: ContentType;
@@ -52,7 +55,7 @@ export class RecommendationService {
       );
       
       if (result) {
-        console.log(`Success with strategy: ${strategy.name}`);
+        log.debug(`Success with strategy: ${strategy.name}`);
         // Include strategy info for "Why This Pick?" explanation
         return {
           ...result,
@@ -258,7 +261,7 @@ export class RecommendationService {
         page
       );
 
-      console.log(`TMDB Query - Page ${page}:`, JSON.stringify(queryParams, null, 2));
+      log.debug('TMDB Query', { page, params: queryParams });
 
       try {
         const response =
@@ -266,9 +269,7 @@ export class RecommendationService {
             ? await tmdbClient.discoverTV(queryParams)
             : await tmdbClient.discoverMovies(queryParams);
 
-        console.log(
-          `TMDB Response (Page ${page}) - Total: ${response.total_results}, Results: ${response.results?.length || 0}`
-        );
+        log.debug('TMDB Response', { page, total: response.total_results, results: response.results?.length || 0 });
 
         if (!response.results || response.results.length === 0) {
           continue; // Try next page
@@ -284,7 +285,7 @@ export class RecommendationService {
             : response.results;
 
         if (results.length === 0) {
-          console.log(`All results on page ${page} were blacklisted`);
+          log.debug(`All results on page ${page} were blacklisted`);
           continue; // Try next page
         }
 

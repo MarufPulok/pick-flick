@@ -10,9 +10,12 @@ import { connectToDatabase } from "@/infrastructure/db";
 import { TasteProfileModel, UserModel } from "@/infrastructure/db/models";
 import { tmdbClient } from "@/infrastructure/external/tmdb.client";
 import { auth } from "@/lib/auth";
+import { loggers } from "@/lib/logger";
 import { HistoryService } from "@/services/history.service";
 import { RecommendationService } from "@/services/recommendation.service";
 import { NextRequest, NextResponse } from "next/server";
+
+const log = loggers.recommendation;
 
 export async function POST(req: NextRequest) {
   try {
@@ -63,12 +66,12 @@ export async function POST(req: NextRequest) {
         ? [...prioritizedTypes, ...profile.contentTypes.filter((type: string) => !prioritizedTypes.includes(type))]
         : profile.contentTypes;
 
-      // DEBUG: Log profile data
-      console.log('=== PROFILE DEBUG ===');
-      console.log('Content Types in Profile:', profile.contentTypes);
-      console.log('Languages in Profile:', profile.languages);
-      console.log('Ordered Content Types:', orderedContentTypes);
-      console.log('=====================');
+      // Debug profile data (only shows in development)
+      log.debug('Smart mode profile', {
+        contentTypes: profile.contentTypes,
+        languages: profile.languages,
+        orderedContentTypes,
+      });
 
       recommendation = await RecommendationService.generateSmartRecommendation({
         contentTypes: orderedContentTypes,

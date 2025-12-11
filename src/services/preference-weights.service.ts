@@ -4,6 +4,7 @@
  */
 
 import { PreferenceWeightsModel } from '@/infrastructure/db/models';
+import { logger } from '@/lib/logger';
 
 // Weight adjustment constants
 const LIKE_BOOST = 5;      // Points added for a like
@@ -79,7 +80,7 @@ export class PreferenceWeightsService {
 
     await weights.save();
     
-    console.log(`Updated weights for user ${userId}: ${action} on ${contentType} with genres [${genreIds.join(', ')}]`);
+    logger.debug(`Updated weights for user ${userId}: ${action} on ${contentType} with genres [${genreIds.join(', ')}]`);
   }
 
   /**
