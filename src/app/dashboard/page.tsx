@@ -12,7 +12,15 @@
 
 'use client';
 
-import { GeneratorForm, Recommendation, RecommendationCard, StatsCards } from '@/components/dashboard';
+import {
+  ActivityFeed,
+  GeneratorForm,
+  QuickMoods,
+  Recommendation,
+  RecommendationCard,
+  StatsCards,
+  WelcomeHeader,
+} from '@/components/dashboard';
 import { RATING_TIERS } from '@/config/app.config';
 import { useHistoryActions } from '@/hooks/use-history-actions';
 import { useStats } from '@/hooks/use-stats';
@@ -47,17 +55,19 @@ export default function DashboardPage() {
   });
 
   // Generate recommendation
-  const handleGenerate = useCallback(async () => {
+  const handleGenerate = useCallback(async (overrideGenres?: string[]) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const body = mode === 'SMART'
+      const genresToUse = overrideGenres || (filters.genre ? [filters.genre] : []);
+      
+      const body = mode === 'SMART' && !overrideGenres
         ? { mode: 'SMART' }
         : {
             mode: 'FILTERED',
             contentType: filters.contentType,
-            genres: filters.genre ? [filters.genre] : [],
+            genres: genresToUse,
             language: filters.language,
             minRating: RATING_TIERS[filters.rating as keyof typeof RATING_TIERS].min,
           };
@@ -81,6 +91,15 @@ export default function DashboardPage() {
       setIsLoading(false);
     }
   }, [mode, filters]);
+
+  // Handle mood-based quick pick
+  const handleMoodSelect = useCallback((genres: string[]) => {
+    // Switch to filtered mode with selected genres
+    if (genres.length > 0) {
+      setFilters(prev => ({ ...prev, genre: genres[0] }));
+    }
+    handleGenerate(genres);
+  }, [handleGenerate]);
 
   // Record user action on recommendation
   const handleRecordAction = useCallback((action: 'WATCHED' | 'LIKED' | 'DISLIKED' | 'BLACKLISTED') => {
@@ -121,41 +140,54 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-animated px-4 py-12 pt-24">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-2">
-            Hey, {session?.user?.name?.split(' ')[0]}!
-          </h1>
-          <p className="text-muted-foreground">
-            Ready for your perfect pick?
-          </p>
-        </div>
+      <div className="max-w-5xl mx-auto">
+        {/* Welcome Header */}
+        <WelcomeHeader userName={session?.user?.name || undefined} />
 
         {/* Stats */}
         <StatsCards stats={stats} />
 
-        {/* Generator or Recommendation */}
-        {!recommendation ? (
-          <GeneratorForm
-            mode={mode}
-            onModeChange={setMode}
-            filters={filters}
-            onFilterChange={setFilters}
-            isLoading={isLoading}
-            error={error}
-            onGenerate={handleGenerate}
-          />
-        ) : (
-          <RecommendationCard
-            recommendation={recommendation}
-            isLoading={isLoading}
-            isRecording={isRecording}
-            onRecordAction={handleRecordAction}
-            onGetAnother={handleGenerate}
-            onBack={() => setRecommendation(null)}
-          />
+        {/* Quick Moods - only show when not viewing recommendation */}
+        {!recommendation && (
+          <QuickMoods onSelectMood={handleMoodSelect} />
         )}
+
+        {/* Main Content Grid */}
+        <div className="grid md:grid-cols-[1fr_320px] gap-6">
+          {/* Left: Generator or Recommendation */}
+          <div>
+            {!recommendation ? (
+              <GeneratorForm
+                mode={mode}
+                onModeChange={setMode}
+                filters={filters}
+                onFilterChange={setFilters}
+                isLoading={isLoading}
+                error={error}
+                onGenerate={() => handleGenerate()}
+              />
+            ) : (
+              <RecommendationCard
+                recommendation={recommendation}
+                isLoading={isLoading}
+                isRecording={isRecording}
+                onRecordAction={handleRecordAction}
+                onGetAnother={() => handleGenerate()}
+                onBack={() => setRecommendation(null)}
+              />
+            )}
+          </div>
+
+          {/* Right: Activity Feed */}
+          <div className="hidden md:block">
+            <ActivityFeed limit={6} />
+          </div>
+        </div>
+
+        {/* Mobile Activity Feed */}
+        <div className="md:hidden mt-6">
+          <ActivityFeed limit={4} />
+        </div>
       </div>
     </div>
   );
