@@ -20,6 +20,7 @@ import {
 import { ArrowLeft, Calendar, Check, Film, Loader2, Play, Sparkles, Star, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
+import { AnimeStreamingSection } from './anime-streaming-section';
 
 export interface Recommendation {
   tmdbId: number;
@@ -166,6 +167,12 @@ export function RecommendationCard({
                   </div>
                 </div>
               )}
+
+              {/* Anime Streaming Section */}
+              <AnimeStreamingSection 
+                title={recommendation.title}
+                isAnime={recommendation.contentType === 'ANIME'}
+              />
 
               {/* Overview */}
               <div className="mb-4">
