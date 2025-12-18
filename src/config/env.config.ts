@@ -22,7 +22,6 @@ export const serverEnv = {
  */
 export const clientEnv = {
   APP_URL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-  ANIME_STREAM_BASE_URL: process.env.NEXT_PUBLIC_ANIME_STREAM_BASE_URL || "https://hianime.to",
   
   // Free Streaming Configuration
   // Global feature toggle

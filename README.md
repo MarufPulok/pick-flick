@@ -63,21 +63,15 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 NEXT_PUBLIC_ENABLE_FREE_STREAMING=true
 NEXT_PUBLIC_MAX_FREE_SERVICES=4
 
-# Movie Platforms
-NEXT_PUBLIC_ENABLE_TUBI=true
-NEXT_PUBLIC_TUBI_BASE_URL=https://tubitv.com
-NEXT_PUBLIC_ENABLE_CRACKLE=true
-NEXT_PUBLIC_CRACKLE_BASE_URL=https://crackle.com
-
-# TV Series Platforms  
-NEXT_PUBLIC_ENABLE_PLUTO=true
-NEXT_PUBLIC_PLUTO_BASE_URL=https://pluto.tv
+# Movie & TV Series Platforms
+NEXT_PUBLIC_ENABLE_MOVIEBOX=true
+NEXT_PUBLIC_MOVIEBOX_BASE_URL=https://moviebox.ph
+NEXT_PUBLIC_ENABLE_CINEB=true
+NEXT_PUBLIC_CINEB_BASE_URL=https://cineb.gg
 
 # Anime Platforms
 NEXT_PUBLIC_ENABLE_HIANIME=true
 NEXT_PUBLIC_HIANIME_BASE_URL=https://hianime.to
-NEXT_PUBLIC_ENABLE_ZORO=true
-NEXT_PUBLIC_ZORO_BASE_URL=https://zoro.to
 
 # Auth (BetterAuth)
 BETTER_AUTH_SECRET=your-random-secret-here
@@ -93,35 +87,21 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 - **NEXT_PUBLIC_MAX_FREE_SERVICES** - Maximum number of streaming services to display (default: 4)
 
 **Platform Toggles:** Enable/disable individual streaming platforms
-- **NEXT_PUBLIC_ENABLE_TUBI** - Toggle Tubi (movies & TV series)
-- **NEXT_PUBLIC_ENABLE_CRACKLE** - Toggle Crackle (movies & TV series) 
-- **NEXT_PUBLIC_ENABLE_PLUTO** - Toggle Pluto TV (TV series & live TV)
-- **NEXT_PUBLIC_ENABLE_POPCORNFLIX** - Toggle Popcornflix (movies)
-- **NEXT_PUBLIC_ENABLE_FILMRISE** - Toggle FilmRise (movies & documentaries)
-- **NEXT_PUBLIC_ENABLE_YOUTUBE_FREE** - Toggle YouTube Free Movies
-- **NEXT_PUBLIC_ENABLE_INTERNET_ARCHIVE** - Toggle Internet Archive (public domain)
+
+- **NEXT_PUBLIC_ENABLE_MOVIEBOX** - Toggle MovieBox (movies & TV series)
+- **NEXT_PUBLIC_ENABLE_CINEB** - Toggle Cineb (movies & TV series)
 - **NEXT_PUBLIC_ENABLE_HIANIME** - Toggle HiAnime (anime)
-- **NEXT_PUBLIC_ENABLE_ZORO** - Toggle Zoro.to (anime)
-- **NEXT_PUBLIC_ENABLE_9ANIME** - Toggle 9anime (anime)
-- **NEXT_PUBLIC_ENABLE_GOGOANIME** - Toggle Gogoanime (anime)
 
 **Custom Platform URLs:** Override default URLs for streaming platforms
-- **NEXT_PUBLIC_TUBI_BASE_URL** - Custom Tubi URL (default: https://tubitv.com)
-- **NEXT_PUBLIC_CRACKLE_BASE_URL** - Custom Crackle URL (default: https://crackle.com)
-- **NEXT_PUBLIC_PLUTO_BASE_URL** - Custom Pluto TV URL (default: https://pluto.tv)
-- **NEXT_PUBLIC_POPCORNFLIX_BASE_URL** - Custom Popcornflix URL (default: https://popcornflix.com)
-- **NEXT_PUBLIC_FILMRISE_BASE_URL** - Custom FilmRise URL (default: https://filmrise.com)
-- **NEXT_PUBLIC_YOUTUBE_FREE_BASE_URL** - Custom YouTube URL (default: https://youtube.com)
-- **NEXT_PUBLIC_INTERNET_ARCHIVE_BASE_URL** - Custom Internet Archive URL (default: https://archive.org)
+
+- **NEXT_PUBLIC_MOVIEBOX_BASE_URL** - Custom MovieBox URL (default: https://moviebox.ph)
+- **NEXT_PUBLIC_CINEB_BASE_URL** - Custom Cineb URL (default: https://cineb.gg)
 - **NEXT_PUBLIC_HIANIME_BASE_URL** - Custom HiAnime URL (default: https://hianime.to)
-- **NEXT_PUBLIC_ZORO_BASE_URL** - Custom Zoro URL (default: https://zoro.to)
-- **NEXT_PUBLIC_9ANIME_BASE_URL** - Custom 9anime URL (default: https://9anime.to)
-- **NEXT_PUBLIC_GOGOANIME_BASE_URL** - Custom Gogoanime URL (default: https://gogoanime.lu)
 
 **Examples:**
-- **Movies**: Tubi, Crackle, Popcornflix provide free movies with ads
-- **TV Series**: Tubi, Crackle, Pluto TV offer free TV shows and series
-- **Anime**: HiAnime, Zoro, 9anime specialize in free anime streaming
+
+- **Movies & TV Series**: MovieBox and Cineb provide free movies and TV shows with ads
+- **Anime**: HiAnime specializes in free anime streaming
 
 ### Installation
 
