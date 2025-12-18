@@ -23,6 +23,40 @@ export const serverEnv = {
 export const clientEnv = {
   APP_URL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   ANIME_STREAM_BASE_URL: process.env.NEXT_PUBLIC_ANIME_STREAM_BASE_URL || "https://hianime.to",
+  
+  // Free Streaming Configuration
+  // Global feature toggle
+  ENABLE_FREE_STREAMING: process.env.NEXT_PUBLIC_ENABLE_FREE_STREAMING || "true",
+  
+  // Individual platform toggles
+  ENABLE_TUBI: process.env.NEXT_PUBLIC_ENABLE_TUBI || "true",
+  ENABLE_CRACKLE: process.env.NEXT_PUBLIC_ENABLE_CRACKLE || "true",
+  ENABLE_PLUTO: process.env.NEXT_PUBLIC_ENABLE_PLUTO || "true",
+  ENABLE_POPCORNFLIX: process.env.NEXT_PUBLIC_ENABLE_POPCORNFLIX || "true",
+  ENABLE_FILMRISE: process.env.NEXT_PUBLIC_ENABLE_FILMRISE || "true",
+  ENABLE_YOUTUBE_FREE: process.env.NEXT_PUBLIC_ENABLE_YOUTUBE_FREE || "true",
+  ENABLE_INTERNET_ARCHIVE: process.env.NEXT_PUBLIC_ENABLE_INTERNET_ARCHIVE || "true",
+  ENABLE_HIANIME: process.env.NEXT_PUBLIC_ENABLE_HIANIME || "true",
+  ENABLE_ZORO: process.env.NEXT_PUBLIC_ENABLE_ZORO || "true",
+  ENABLE_9ANIME: process.env.NEXT_PUBLIC_ENABLE_9ANIME || "true",
+  ENABLE_GOGOANIME: process.env.NEXT_PUBLIC_ENABLE_GOGOANIME || "true",
+  
+  // Display preferences
+  MAX_FREE_SERVICES: process.env.NEXT_PUBLIC_MAX_FREE_SERVICES || "4",
+  SHOW_SERVICE_DESCRIPTIONS: process.env.NEXT_PUBLIC_SHOW_SERVICE_DESCRIPTIONS || "true",
+  
+  // Custom platform URLs
+  TUBI_BASE_URL: process.env.NEXT_PUBLIC_TUBI_BASE_URL || "https://tubitv.com",
+  CRACKLE_BASE_URL: process.env.NEXT_PUBLIC_CRACKLE_BASE_URL || "https://www.crackle.com",
+  PLUTO_BASE_URL: process.env.NEXT_PUBLIC_PLUTO_BASE_URL || "https://pluto.tv",
+  POPCORNFLIX_BASE_URL: process.env.NEXT_PUBLIC_POPCORNFLIX_BASE_URL || "https://www.popcornflix.com",
+  FILMRISE_BASE_URL: process.env.NEXT_PUBLIC_FILMRISE_BASE_URL || "https://www.filmrise.com",
+  YOUTUBE_FREE_BASE_URL: process.env.NEXT_PUBLIC_YOUTUBE_FREE_BASE_URL || "https://www.youtube.com",
+  INTERNET_ARCHIVE_BASE_URL: process.env.NEXT_PUBLIC_INTERNET_ARCHIVE_BASE_URL || "https://archive.org",
+  HIANIME_BASE_URL: process.env.NEXT_PUBLIC_HIANIME_BASE_URL || "https://hianime.to",
+  ZORO_BASE_URL: process.env.NEXT_PUBLIC_ZORO_BASE_URL || "https://zoro.to",
+  NINEANIME_BASE_URL: process.env.NEXT_PUBLIC_9ANIME_BASE_URL || "https://9anime.to",
+  GOGOANIME_BASE_URL: process.env.NEXT_PUBLIC_GOGOANIME_BASE_URL || "https://gogoanime.lu",
 } as const;
 
 /**
