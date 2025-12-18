@@ -18,6 +18,7 @@
 - **🎬 Trailer Preview** - Watch trailers directly in the app via modal player
 - **💡 "Why This Pick?"** - See explanations for why each recommendation matches you
 - **📺 Streaming Availability** - See where to watch (Netflix, Hulu, Disney+, etc.)
+- **🍥 Anime Streaming Jump** - Direct links to watch anime on HiAnime streaming platform
 
 ### Two Modes
 - **✨ Smart Mode** - AI picks based on your complete taste profile
@@ -58,11 +59,18 @@ TMDB_ACCESS_TOKEN=your-tmdb-access-token
 # Application
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
+# Anime Streaming
+NEXT_PUBLIC_ANIME_STREAM_BASE_URL=https://hianime.to
+
 # Auth (BetterAuth)
 BETTER_AUTH_SECRET=your-random-secret-here
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 ```
+
+#### Environment Variable Details
+
+- **NEXT_PUBLIC_ANIME_STREAM_BASE_URL** - Base URL for anime streaming platform (defaults to https://hianime.to). Used to generate direct links to anime content for seamless watching experience.
 
 ### Installation
 
