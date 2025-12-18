@@ -9,12 +9,12 @@ import { FREE_STREAMING_SERVICES, FreeStreamingService } from './free-streaming-
 
 /**
  * Service priority configuration by content type
- * Most reliable platforms appear first for each content type
+ * Only working sites that are accessible in your region
  */
 const SERVICE_PRIORITIES: Record<ContentType, string[]> = {
-  MOVIE: ['tubi', 'crackle', 'pluto', 'popcornflix', 'filmrise', 'youtube-free', 'internet-archive'],
-  SERIES: ['tubi', 'crackle', 'pluto', 'filmrise', 'internet-archive'],
-  ANIME: ['hianime', 'zoro', '9anime', 'gogoanime'],
+  MOVIE: ['moviebox', 'cineb'],
+  SERIES: ['moviebox', 'cineb'],
+  ANIME: ['hianime'],
 };
 
 /**
@@ -106,11 +106,24 @@ function constructFreeStreamingUrl(
     // Clean base URL (remove trailing slashes)
     const cleanBase = service.baseUrl.replace(/\/+$/, '');
     
-    // Encode title for URL
-    const encodedTitle = encodeURIComponent(cleanTitle);
+    // Format title based on service requirements
+    let formattedTitle: string;
+    
+    if (service.id === 'cineb') {
+      // Cineb requires lowercase with hyphens and colons
+      // Example: "TRON: Ares" -> "tron:-ares"
+      formattedTitle = cleanTitle
+        .toLowerCase()
+        .replace(/\s*:\s*/g, ':-')  // "TRON: Ares" -> "tron:-ares"
+        .replace(/\s+/g, '-')       // Replace spaces with hyphens
+        .replace(/[^\w:-]/g, '');   // Remove special characters except word chars, hyphens, and colons
+    } else {
+      // Default URL encoding for other services
+      formattedTitle = encodeURIComponent(cleanTitle);
+    }
     
     // Replace placeholder in search path
-    const searchPath = service.searchPath.replace('{title}', encodedTitle);
+    const searchPath = service.searchPath.replace('{title}', formattedTitle);
     
     // Construct final URL
     return `${cleanBase}${searchPath}`;

@@ -7,20 +7,20 @@
 'use client';
 
 import {
-    Dialog,
-    DialogContent,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { ArrowLeft, Calendar, Check, Film, Loader2, Play, Sparkles, Star, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
-import { AnimeStreamingSection } from './anime-streaming-section';
+import { UniversalFreeStreamingSection } from './universal-free-streaming-section';
 
 export interface Recommendation {
   tmdbId: number;
@@ -168,10 +168,11 @@ export function RecommendationCard({
                 </div>
               )}
 
-              {/* Anime Streaming Section */}
-              <AnimeStreamingSection 
+              {/* Universal Free Streaming Section */}
+              <UniversalFreeStreamingSection 
                 title={recommendation.title}
-                isAnime={recommendation.contentType === 'ANIME'}
+                contentType={recommendation.contentType}
+                maxServices={4}
               />
 
               {/* Overview */}
