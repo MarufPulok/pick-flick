@@ -150,12 +150,14 @@ export function RecommendationCard({
                             href={recommendation.watchProviders?.link}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="block w-9 h-9 rounded-lg overflow-hidden bg-black/20 hover:scale-110 transition-transform ring-1 ring-white/10 hover:ring-primary/50"
+                            className="relative block w-9 h-9 rounded-lg overflow-hidden bg-black/20 hover:scale-110 transition-transform ring-1 ring-white/10 hover:ring-primary/50"
                           >
-                            <img
+                            <Image
                               src={provider.logoUrl}
                               alt={provider.name}
-                              className="w-full h-full object-cover"
+                              fill
+                              className="object-cover"
+                              unoptimized
                             />
                           </a>
                         </TooltipTrigger>
