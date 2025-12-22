@@ -12,9 +12,9 @@ import { FREE_STREAMING_SERVICES, FreeStreamingService } from './free-streaming-
  * Only working sites that are accessible in your region
  */
 const SERVICE_PRIORITIES: Record<ContentType, string[]> = {
-  MOVIE: ['moviebox', 'cineb'],
-  SERIES: ['moviebox', 'cineb'],
-  ANIME: ['hianime'],
+  MOVIE: ['moviebox', 'cineb', 'syncplay'],
+  SERIES: ['moviebox', 'cineb', 'syncplay'],
+  ANIME: ['hianime', 'syncplay'],
 };
 
 /**

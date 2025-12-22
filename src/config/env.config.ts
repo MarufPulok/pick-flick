@@ -30,6 +30,7 @@ export const clientEnv = {
   // Individual platform toggles (only working sites)
   ENABLE_MOVIEBOX: process.env.NEXT_PUBLIC_ENABLE_MOVIEBOX || "true",
   ENABLE_CINEB: process.env.NEXT_PUBLIC_ENABLE_CINEB || "true",
+  ENABLE_SYNCPLAY: process.env.NEXT_PUBLIC_ENABLE_SYNCPLAY || "true",
   ENABLE_HIANIME: process.env.NEXT_PUBLIC_ENABLE_HIANIME || "true",
   
   // Display preferences
@@ -39,6 +40,7 @@ export const clientEnv = {
   // Custom platform URLs (only working sites)
   MOVIEBOX_BASE_URL: process.env.NEXT_PUBLIC_MOVIEBOX_BASE_URL || "https://moviebox.ph",
   CINEB_BASE_URL: process.env.NEXT_PUBLIC_CINEB_BASE_URL || "https://cineb.gg",
+  SYNCPLAY_BASE_URL: process.env.NEXT_PUBLIC_SYNCPLAY_BASE_URL || "https://syncplay.vercel.app",
   HIANIME_BASE_URL: process.env.NEXT_PUBLIC_HIANIME_BASE_URL || "https://hianime.to",
 } as const;
 

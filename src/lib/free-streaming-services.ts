@@ -57,6 +57,16 @@ export const FREE_STREAMING_SERVICES: FreeStreamingService[] = [
     adSupported: true,
     requiresSignup: false,
   },
+  {
+    id: 'syncplay',
+    name: 'SyncPlay',
+    baseUrl: 'https://syncplay.vercel.app',
+    searchPath: '/stream?q={title}',
+    supportedTypes: ['MOVIE', 'SERIES', 'ANIME'],
+    description: 'Free streaming aggregator',
+    adSupported: true,
+    requiresSignup: false,
+  },
   
   // Anime platform
   {

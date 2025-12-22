@@ -13,6 +13,7 @@ export interface FreeStreamingConfig {
   // Individual service toggles (only working sites)
   ENABLE_MOVIEBOX: boolean;
   ENABLE_CINEB: boolean;
+  ENABLE_SYNCPLAY: boolean;
   ENABLE_HIANIME: boolean;
   
   // Display preferences
@@ -22,6 +23,7 @@ export interface FreeStreamingConfig {
   // Custom service URLs
   MOVIEBOX_BASE_URL: string;
   CINEB_BASE_URL: string;
+  SYNCPLAY_BASE_URL: string;
   HIANIME_BASE_URL: string;
 }
 
@@ -35,6 +37,7 @@ const DEFAULT_CONFIG: FreeStreamingConfig = {
   // Individual service toggles (only working sites)
   ENABLE_MOVIEBOX: true,
   ENABLE_CINEB: true,
+  ENABLE_SYNCPLAY: true,
   ENABLE_HIANIME: true,
   
   // Display preferences
@@ -44,6 +47,7 @@ const DEFAULT_CONFIG: FreeStreamingConfig = {
   // Default service URLs (only working sites)
   MOVIEBOX_BASE_URL: 'https://moviebox.ph',
   CINEB_BASE_URL: 'https://cineb.gg',
+  SYNCPLAY_BASE_URL: 'https://syncplay.vercel.app',
   HIANIME_BASE_URL: 'https://hianime.to',
 };
 
@@ -90,6 +94,10 @@ export const freeStreamingConfig: FreeStreamingConfig = {
     process.env.NEXT_PUBLIC_ENABLE_CINEB,
     DEFAULT_CONFIG.ENABLE_CINEB
   ),
+  ENABLE_SYNCPLAY: parseBooleanEnv(
+    process.env.NEXT_PUBLIC_ENABLE_SYNCPLAY,
+    DEFAULT_CONFIG.ENABLE_SYNCPLAY
+  ),
   ENABLE_HIANIME: parseBooleanEnv(
     process.env.NEXT_PUBLIC_ENABLE_HIANIME,
     DEFAULT_CONFIG.ENABLE_HIANIME
@@ -113,6 +121,10 @@ export const freeStreamingConfig: FreeStreamingConfig = {
   CINEB_BASE_URL: parseStringEnv(
     process.env.NEXT_PUBLIC_CINEB_BASE_URL,
     DEFAULT_CONFIG.CINEB_BASE_URL
+  ),
+  SYNCPLAY_BASE_URL: parseStringEnv(
+    process.env.NEXT_PUBLIC_SYNCPLAY_BASE_URL,
+    DEFAULT_CONFIG.SYNCPLAY_BASE_URL
   ),
   HIANIME_BASE_URL: parseStringEnv(
     process.env.NEXT_PUBLIC_HIANIME_BASE_URL,
