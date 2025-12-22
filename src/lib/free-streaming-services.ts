@@ -56,7 +56,8 @@ export const FREE_STREAMING_SERVICES: FreeStreamingService[] = [
     description: 'Free movies and series streaming',
     adSupported: true,
     requiresSignup: false,
-  },  {
+  },  
+  {
     id: 'syncplay',
     name: 'SyncPlay',
     baseUrl: 'https://syncplay.vercel.app',
