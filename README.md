@@ -68,6 +68,8 @@ NEXT_PUBLIC_ENABLE_MOVIEBOX=true
 NEXT_PUBLIC_MOVIEBOX_BASE_URL=https://moviebox.ph
 NEXT_PUBLIC_ENABLE_CINEB=true
 NEXT_PUBLIC_CINEB_BASE_URL=https://cineb.gg
+NEXT_PUBLIC_ENABLE_SYNCPLAY=true
+NEXT_PUBLIC_SYNCPLAY_BASE_URL=https://syncplay.vercel.app
 
 # Anime Platforms
 NEXT_PUBLIC_ENABLE_HIANIME=true
@@ -90,18 +92,20 @@ GOOGLE_CLIENT_SECRET=your-google-client-secret
 
 - **NEXT_PUBLIC_ENABLE_MOVIEBOX** - Toggle MovieBox (movies & TV series)
 - **NEXT_PUBLIC_ENABLE_CINEB** - Toggle Cineb (movies & TV series)
+- **NEXT_PUBLIC_ENABLE_SYNCPLAY** - Toggle SyncPlay (movies, TV series & anime)
 - **NEXT_PUBLIC_ENABLE_HIANIME** - Toggle HiAnime (anime)
 
 **Custom Platform URLs:** Override default URLs for streaming platforms
 
 - **NEXT_PUBLIC_MOVIEBOX_BASE_URL** - Custom MovieBox URL (default: https://moviebox.ph)
 - **NEXT_PUBLIC_CINEB_BASE_URL** - Custom Cineb URL (default: https://cineb.gg)
+- **NEXT_PUBLIC_SYNCPLAY_BASE_URL** - Custom SyncPlay URL (default: https://syncplay.vercel.app)
 - **NEXT_PUBLIC_HIANIME_BASE_URL** - Custom HiAnime URL (default: https://hianime.to)
 
 **Examples:**
 
-- **Movies & TV Series**: MovieBox and Cineb provide free movies and TV shows with ads
-- **Anime**: HiAnime specializes in free anime streaming
+- **Movies & TV Series**: MovieBox, Cineb, and SyncPlay provide free movies and TV shows with ads
+- **Anime**: HiAnime and SyncPlay provide free anime streaming
 
 ### Installation
 
