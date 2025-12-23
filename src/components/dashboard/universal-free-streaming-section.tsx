@@ -16,6 +16,7 @@ import { ContentType } from '@/dtos/common.dto';
 import { getFreeStreamingOptions, prioritizeFreeServices } from '@/lib/free-streaming';
 import { FreeStreamingService } from '@/lib/free-streaming-services';
 import { hasReportedRecently, reportServiceIssue } from '@/lib/service-feedback';
+import { getHintIcon, getPrimaryHint } from '@/lib/service-hints';
 import {
     getPreferredServices,
     isRecentlyUsed,
@@ -132,8 +133,8 @@ function ServiceCard({
             <ExternalLink className="w-3 h-3 text-green-400 opacity-60 group-hover:opacity-100 transition-opacity flex-shrink-0" />
           </div>
           
-          {/* Row 2: Badges and/or description */}
-          <div className="flex items-center gap-2 mt-1">
+          {/* Row 2: Badges and/or description/hint */}
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
             {/* Reported badge - takes priority over other badges */}
             {hasReported ? (
               <span className="flex items-center gap-0.5 text-[10px] font-medium text-red-300 bg-red-900/40 px-1.5 py-0.5 rounded-full flex-shrink-0">
@@ -156,12 +157,26 @@ function ServiceCard({
                     Recent
                   </span>
                 )}
-                {/* Description (show if no badge) */}
-                {freeStreamingConfig.SHOW_SERVICE_DESCRIPTIONS && !hasBadge && (
-                  <p className="text-xs text-green-200/70 truncate">
-                    {service.description}
-                  </p>
-                )}
+                {/* Service hint (show if no badge and descriptions disabled) */}
+                {!hasBadge && (() => {
+                  const hint = getPrimaryHint(service.id, contentType);
+                  if (hint) {
+                    return (
+                      <p className="text-[10px] text-green-200/60 truncate">
+                        {getHintIcon(hint.type)} {hint.message}
+                      </p>
+                    );
+                  }
+                  // Fallback to description
+                  if (freeStreamingConfig.SHOW_SERVICE_DESCRIPTIONS) {
+                    return (
+                      <p className="text-xs text-green-200/70 truncate">
+                        {service.description}
+                      </p>
+                    );
+                  }
+                  return null;
+                })()}
               </>
             )}
           </div>
