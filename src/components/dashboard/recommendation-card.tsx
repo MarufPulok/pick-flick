@@ -20,8 +20,8 @@ import {
 import {
     clearWatching,
     getCurrentlyWatching,
-    isWatching,
     markAsWatching,
+    onWatchingStateChange,
 } from '@/lib/watching-state';
 import { ArrowLeft, Calendar, Check, Clapperboard, Copy, Film, Loader2, Play, Sparkles, Star, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import Image from 'next/image';
@@ -71,11 +71,21 @@ export function RecommendationCard({
   const [showTrailer, setShowTrailer] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isCurrentlyWatching, setIsCurrentlyWatching] = useState(false);
+  const [hasActiveSession, setHasActiveSession] = useState(false);
 
-  // Check if this content is being watched on mount
-  useEffect(() => {
-    setIsCurrentlyWatching(isWatching(recommendation.tmdbId));
+  // Sync watching state from storage
+  const syncWatchingState = useCallback(() => {
+    const current = getCurrentlyWatching();
+    setIsCurrentlyWatching(current?.tmdbId === recommendation.tmdbId);
+    setHasActiveSession(current !== null);
   }, [recommendation.tmdbId]);
+
+  // Check watching state on mount and subscribe to changes
+  useEffect(() => {
+    syncWatchingState();
+    const unsubscribe = onWatchingStateChange(syncWatchingState);
+    return unsubscribe;
+  }, [syncWatchingState]);
 
   const getYear = (dateString: string | undefined) => {
     if (!dateString) return '';
@@ -311,10 +321,12 @@ export function RecommendationCard({
               ) : (
                 <button
                   onClick={handleStartWatching}
-                  className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-medium hover:from-violet-700 hover:to-purple-700 transition-all flex items-center justify-center gap-2 min-h-[44px] shadow-lg shadow-violet-500/20"
+                  disabled={hasActiveSession}
+                  className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-medium hover:from-violet-700 hover:to-purple-700 transition-all flex items-center justify-center gap-2 min-h-[44px] shadow-lg shadow-violet-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-500 disabled:to-gray-600 disabled:shadow-none"
+                  title={hasActiveSession ? 'Finish watching your current show first' : undefined}
                 >
                   <Clapperboard className="w-5 h-5" />
-                  I&apos;m Watching This Now
+                  {hasActiveSession ? 'Already Watching Something' : "I'm Watching This Now"}
                 </button>
               )}
 

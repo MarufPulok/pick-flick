@@ -10,6 +10,7 @@ import { ContentType } from '@/dtos/common.dto';
 import { storage } from './storage';
 
 const STORAGE_KEY = 'watching-state';
+const STATE_CHANGE_EVENT = 'watching-state-change';
 
 /**
  * Current watching state
@@ -38,6 +39,26 @@ export interface WatchingStateTracker {
 }
 
 /**
+ * Dispatch state change event for real-time component sync
+ */
+function dispatchStateChange(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(STATE_CHANGE_EVENT));
+  }
+}
+
+/**
+ * Subscribe to watching state changes
+ * Returns cleanup function
+ */
+export function onWatchingStateChange(callback: () => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+  
+  window.addEventListener(STATE_CHANGE_EVENT, callback);
+  return () => window.removeEventListener(STATE_CHANGE_EVENT, callback);
+}
+
+/**
  * Get current watching state from storage
  */
 export function getCurrentlyWatching(): WatchingState | null {
@@ -58,6 +79,7 @@ export function markAsWatching(
   };
   
   storage.set(STORAGE_KEY, watchingState);
+  dispatchStateChange();
   return watchingState;
 }
 
@@ -66,6 +88,7 @@ export function markAsWatching(
  */
 export function clearWatching(): void {
   storage.remove(STORAGE_KEY);
+  dispatchStateChange();
 }
 
 /**

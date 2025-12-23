@@ -7,7 +7,7 @@
 'use client';
 
 import { useHistoryActions } from '@/hooks/use-history-actions';
-import { clearWatching, getCurrentlyWatching, WatchingState } from '@/lib/watching-state';
+import { clearWatching, getCurrentlyWatching, onWatchingStateChange, WatchingState } from '@/lib/watching-state';
 import { Check, Clock, X } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
@@ -30,23 +30,31 @@ export function CurrentlyWatchingBanner() {
   const [duration, setDuration] = useState<number>(0);
   const { recordAction, isRecording } = useHistoryActions();
 
-  // Check for active watching session on mount and periodically
-  useEffect(() => {
-    const checkWatching = () => {
-      const current = getCurrentlyWatching();
-      setWatchingState(current);
-      if (current) {
-        const mins = Math.floor((Date.now() - current.startedAt) / (1000 * 60));
-        setDuration(mins);
-      }
-    };
+  // Sync state from storage
+  const syncState = useCallback(() => {
+    const current = getCurrentlyWatching();
+    setWatchingState(current);
+    if (current) {
+      const mins = Math.floor((Date.now() - current.startedAt) / (1000 * 60));
+      setDuration(mins);
+    }
+  }, []);
 
-    checkWatching();
+  // Check for active watching session on mount and subscribe to changes
+  useEffect(() => {
+    syncState();
+    
+    // Subscribe to state changes for instant updates
+    const unsubscribe = onWatchingStateChange(syncState);
     
     // Update duration every minute
-    const interval = setInterval(checkWatching, 60000);
-    return () => clearInterval(interval);
-  }, []);
+    const interval = setInterval(syncState, 60000);
+    
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
+  }, [syncState]);
 
   // Handle "Mark as Watched"
   const handleMarkWatched = useCallback(() => {
