@@ -14,6 +14,11 @@ const STATE_CHANGE_EVENT = 'watching-state-change';
 
 /**
  * Current watching state
+ * 
+ * Designed with future social features in mind:
+ * - "Friends are watching" feed
+ * - Watch party synchronization
+ * - Activity sharing to social platforms
  */
 export interface WatchingState {
   tmdbId: number;
@@ -22,9 +27,57 @@ export interface WatchingState {
   posterUrl?: string;
   startedAt: number;
   serviceUsed?: string;
-  // Future social-ready fields
+  
+  // ==========================================================================
+  // SOCIAL-READY FIELDS (Design Only - for future implementation)
+  // ==========================================================================
+  
+  /** Whether this watching session can be shared with friends */
   isShareable?: boolean;
+  
+  /** Visibility level for this watching session */
   visibility?: 'private' | 'friends' | 'public';
+  
+  /**
+   * Future: User's display name for social features
+   * Would be populated from auth provider
+   */
+  // userName?: string;
+  
+  /**
+   * Future: User's avatar URL for social features
+   */
+  // userAvatar?: string;
+  
+  /**
+   * Future: Watch party ID if watching with friends
+   * Links multiple users watching the same content together
+   */
+  // watchPartyId?: string;
+  
+  /**
+   * Future: Current playback position (for sync)
+   * Useful for watch parties and "continue watching"
+   */
+  // currentPosition?: number; // in seconds
+  
+  /**
+   * Future: Episode information for series/anime
+   */
+  // episode?: {
+  //   season: number;
+  //   episode: number;
+  //   title?: string;
+  // };
+  
+  /**
+   * Future: Reactions/emoji during watching
+   * For watch party live reactions
+   */
+  // lastReaction?: {
+  //   emoji: string;
+  //   timestamp: number;
+  // };
 }
 
 /**

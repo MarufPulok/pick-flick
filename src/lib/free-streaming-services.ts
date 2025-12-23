@@ -29,6 +29,46 @@ export interface FreeStreamingService {
   logo?: string;
   /** Constructed URL (added during processing) */
   url?: string;
+  
+  // ==========================================================================
+  // FUTURE: Alternate Title Hooks (Design Only)
+  // ==========================================================================
+  
+  /**
+   * Future: Preferred language for search queries
+   * Some services work better with original titles vs translated titles
+   * 
+   * Example:
+   * - 'original': Use original title (e.g., "Kimetsu no Yaiba")
+   * - 'en': Use English title (e.g., "Demon Slayer")
+   * - 'local': Use user's locale title
+   * - undefined: Use as-is
+   */
+  preferredTitleLanguage?: 'original' | 'en' | 'local';
+  
+  /**
+   * Future: Title transformation function name
+   * Reference to a function that transforms the title before search
+   * 
+   * Example transformations:
+   * - 'romanize': Convert Japanese/Korean to romanized version
+   * - 'removeYear': Strip year from title
+   * - 'simplify': Remove special characters
+   * - 'seriesFormat': Add "season X" or "S0X" format
+   */
+  titleTransform?: string;
+  
+  /**
+   * Future: Alternative search paths for different content types
+   * Some services have different URL patterns per content type
+   * 
+   * Example:
+   * alternateSearchPaths: {
+   *   ANIME: '/anime/search?q={title}',
+   *   SERIES: '/tv/search?q={title}',
+   * }
+   */
+  alternateSearchPaths?: Partial<Record<ContentType, string>>;
 }
 
 /**
