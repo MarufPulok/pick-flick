@@ -7,19 +7,20 @@
 'use client';
 
 import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
+    Dialog,
+    DialogContent,
+    DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { ArrowLeft, Calendar, Check, Film, Loader2, Play, Sparkles, Star, ThumbsDown, ThumbsUp, X } from 'lucide-react';
+import { ArrowLeft, Calendar, Check, Copy, Film, Loader2, Play, Sparkles, Star, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { toast } from 'sonner';
 import { UniversalFreeStreamingSection } from './universal-free-streaming-section';
 
 export interface Recommendation {
@@ -62,11 +63,39 @@ export function RecommendationCard({
   onBack,
 }: RecommendationCardProps) {
   const [showTrailer, setShowTrailer] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
   const getYear = (dateString: string | undefined) => {
     if (!dateString) return '';
     return new Date(dateString).getFullYear();
   };
+
+  // Copy title to clipboard
+  const handleCopyTitle = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(recommendation.title);
+      setIsCopied(true);
+      toast.success('Title copied to clipboard!');
+      setTimeout(() => setIsCopied(false), 2000);
+    } catch {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = recommendation.title;
+      textArea.style.position = 'fixed';
+      textArea.style.opacity = '0';
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setIsCopied(true);
+        toast.success('Title copied to clipboard!');
+        setTimeout(() => setIsCopied(false), 2000);
+      } catch {
+        toast.error('Failed to copy title');
+      }
+      document.body.removeChild(textArea);
+    }
+  }, [recommendation.title]);
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -106,9 +135,29 @@ export function RecommendationCard({
                     </div>
                   )}
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-bold leading-tight">
-                  {recommendation.title}
-                </h2>
+                <div className="flex items-start gap-2">
+                  <h2 className="text-2xl sm:text-3xl font-bold leading-tight flex-1">
+                    {recommendation.title}
+                  </h2>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={handleCopyTitle}
+                        className="p-2 rounded-lg hover:bg-secondary transition-colors flex-shrink-0 mt-1"
+                        aria-label="Copy title to clipboard"
+                      >
+                        {isCopied ? (
+                          <Check className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <Copy className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{isCopied ? 'Copied!' : 'Copy title'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
               </div>
 
               {/* Stats Row */}
