@@ -141,256 +141,271 @@ export function RecommendationCard({
   return (
     <TooltipProvider delayDuration={200}>
       <div className="glass rounded-2xl overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] lg:grid-cols-[300px_1fr] gap-4 sm:gap-6">
-          {/* Poster */}
-          <div className="relative aspect-[2/3] bg-muted w-full max-w-[300px] mx-auto md:mx-0">
-            {recommendation.posterUrl ? (
-              <Image
-                src={recommendation.posterUrl}
-                alt={recommendation.title}
-                fill
-                className="object-cover"
-                unoptimized
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <Film className="w-16 h-16 text-muted-foreground/20" />
-              </div>
+        {/* Main Grid: Poster + Title/Actions on desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-4 p-4 sm:p-6">
+          {/* Left Column: Poster */}
+          <div className="flex flex-col gap-3">
+            <div className="relative aspect-[2/3] bg-muted w-full max-w-[200px] mx-auto md:mx-0 rounded-xl overflow-hidden">
+              {recommendation.posterUrl ? (
+                <Image
+                  src={recommendation.posterUrl}
+                  alt={recommendation.title}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Film className="w-12 h-12 text-muted-foreground/20" />
+                </div>
+              )}
+            </div>
+            
+            {/* Stats below poster on desktop */}
+            <div className="hidden md:flex flex-col gap-2 text-sm">
+              {recommendation.releaseDate && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Calendar className="w-4 h-4" />
+                  <span>{getYear(recommendation.releaseDate)}</span>
+                </div>
+              )}
+              {recommendation.rating && (
+                <div className="flex items-center gap-2">
+                  <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
+                  <span className="font-medium">{recommendation.rating.toFixed(1)}/10</span>
+                  {recommendation.voteCount && (
+                    <span className="text-xs text-muted-foreground">
+                      ({recommendation.voteCount.toLocaleString()})
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+            
+            {/* Trailer button on desktop */}
+            {recommendation.trailerUrl && (
+              <button
+                onClick={() => setShowTrailer(true)}
+                className="hidden md:flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors"
+              >
+                <Play className="w-4 h-4 fill-white" />
+                Trailer
+              </button>
             )}
           </div>
 
-          {/* Details */}
-          <div className="p-4 sm:p-6 flex flex-col">
-            <div className="flex-1">
-              {/* Title and Type Badge */}
-              <div className="mb-4">
-                <div className="flex items-center gap-2 mb-3 flex-wrap">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs sm:text-sm font-medium">
+          {/* Right Column: Content */}
+          <div className="flex flex-col">
+            {/* Title Row */}
+            <div className="flex items-start gap-2 mb-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
                     {recommendation.contentType === 'MOVIE' && '🎬 Movie'}
                     {recommendation.contentType === 'SERIES' && '📺 Series'}
                     {recommendation.contentType === 'ANIME' && '⚡ Anime'}
-                  </div>
+                  </span>
                   {recommendation.originalLanguage && (
-                    <div className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-secondary text-xs font-medium">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-secondary text-xs">
                       🌐 {recommendation.originalLanguage.toUpperCase()}
-                    </div>
+                    </span>
                   )}
                 </div>
-                <div className="flex items-start gap-2">
-                  <h2 className="text-2xl sm:text-3xl font-bold leading-tight flex-1">
-                    {recommendation.title}
-                  </h2>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={handleCopyTitle}
-                        className="p-2 rounded-lg hover:bg-secondary transition-colors flex-shrink-0 mt-1"
-                        aria-label="Copy title to clipboard"
-                      >
-                        {isCopied ? (
-                          <Check className="w-4 h-4 text-green-500" />
-                        ) : (
-                          <Copy className="w-4 h-4 text-muted-foreground" />
-                        )}
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{isCopied ? 'Copied!' : 'Copy title'}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
+                <h2 className="text-xl sm:text-2xl font-bold leading-tight">
+                  {recommendation.title}
+                </h2>
               </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={handleCopyTitle}
+                    className="p-2 rounded-lg hover:bg-secondary transition-colors flex-shrink-0"
+                    aria-label="Copy title to clipboard"
+                  >
+                    {isCopied ? (
+                      <Check className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <Copy className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{isCopied ? 'Copied!' : 'Copy title'}</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
 
-              {/* Stats Row */}
-              <div className="flex flex-wrap items-center gap-3 sm:gap-4 mb-4 pb-4 border-b border-border">
-                {recommendation.releaseDate && (
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm font-medium">
-                      {getYear(recommendation.releaseDate)}
-                    </span>
-                  </div>
-                )}
-                {recommendation.rating && (
-                  <div className="flex items-center gap-2">
-                    <Star className="w-4 h-4 fill-yellow-500 text-yellow-500" />
-                    <span className="text-sm font-medium">
-                      {recommendation.rating.toFixed(1)}/10
-                    </span>
-                  </div>
-                )}
-                {recommendation.voteCount && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground text-xs">
-                      ({recommendation.voteCount.toLocaleString()} votes)
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Streaming Availability */}
-              {recommendation.watchProviders?.flatrate && recommendation.watchProviders.flatrate.length > 0 && (
-                <div className="mb-4 flex items-center gap-3 flex-wrap">
-                  <span className="text-xs text-muted-foreground">Stream on:</span>
-                  <div className="flex items-center gap-2">
-                    {recommendation.watchProviders.flatrate.map((provider, idx) => (
-                      <Tooltip key={`${provider.providerId}-${idx}`}>
-                        <TooltipTrigger asChild>
-                          <a
-                            href={recommendation.watchProviders?.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="relative block w-9 h-9 rounded-lg overflow-hidden bg-black/20 hover:scale-110 transition-transform ring-1 ring-white/10 hover:ring-primary/50"
-                          >
-                            <Image
-                              src={provider.logoUrl}
-                              alt={provider.name}
-                              fill
-                              className="object-cover"
-                              unoptimized
-                            />
-                          </a>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Watch on {provider.name}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
-                  </div>
+            {/* Mobile: Stats Row */}
+            <div className="flex md:hidden flex-wrap items-center gap-3 mb-3 text-sm">
+              {recommendation.releaseDate && (
+                <div className="flex items-center gap-1">
+                  <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                  <span>{getYear(recommendation.releaseDate)}</span>
                 </div>
               )}
-
-              {/* Universal Free Streaming Section */}
-              <UniversalFreeStreamingSection 
-                title={recommendation.title}
-                contentType={recommendation.contentType}
-                maxServices={4}
-              />
-
-              {/* Overview */}
-              <div className="mb-4">
-                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-                  Overview
-                </h3>
-                <p className="text-sm leading-relaxed">
-                  {recommendation.overview || 'No overview available.'}
-                </p>
-              </div>
-
-              {/* Why This Pick? - Enhanced card display */}
-              {recommendation.explanation && (
-                <div className="mb-4 p-3 rounded-xl bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/10">
-                  <div className="flex items-start gap-2">
-                    <span className="text-base leading-none mt-0.5">{recommendation.explanation.title.split(' ')[0]}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-foreground">
-                        {recommendation.explanation.title.split(' ').slice(1).join(' ')}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                        {recommendation.explanation.description}
-                      </p>
-                    </div>
-                  </div>
+              {recommendation.rating && (
+                <div className="flex items-center gap-1">
+                  <Star className="w-3.5 h-3.5 fill-yellow-500 text-yellow-500" />
+                  <span className="font-medium">{recommendation.rating.toFixed(1)}</span>
                 </div>
-              )}
-
-              {/* Trailer Button - Opens Modal */}
-              {recommendation.trailerUrl && (
-                <button
-                  onClick={() => setShowTrailer(true)}
-                  className="mb-4 group flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-red-600/90 to-red-700/90 text-white text-sm font-medium hover:from-red-600 hover:to-red-700 transition-all shadow-sm hover:shadow-md"
-                >
-                  <Play className="w-4 h-4 fill-white" />
-                  Watch Trailer
-                </button>
               )}
             </div>
 
+            {/* Streaming Providers (Paid) */}
+            {recommendation.watchProviders?.flatrate && recommendation.watchProviders.flatrate.length > 0 && (
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xs text-muted-foreground">Stream on:</span>
+                <div className="flex items-center gap-1.5">
+                  {recommendation.watchProviders.flatrate.slice(0, 4).map((provider, idx) => (
+                    <Tooltip key={`${provider.providerId}-${idx}`}>
+                      <TooltipTrigger asChild>
+                        <a
+                          href={recommendation.watchProviders?.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="relative block w-7 h-7 rounded-md overflow-hidden bg-black/20 hover:scale-110 transition-transform ring-1 ring-white/10"
+                        >
+                          <Image
+                            src={provider.logoUrl}
+                            alt={provider.name}
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+                        </a>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{provider.name}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Free Streaming Section */}
+            <UniversalFreeStreamingSection 
+              title={recommendation.title}
+              contentType={recommendation.contentType}
+              maxServices={4}
+              tmdbId={recommendation.tmdbId}
+            />
+
+            {/* Overview - Collapsible on mobile */}
+            <div className="mb-3">
+              <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                {recommendation.overview || 'No overview available.'}
+              </p>
+            </div>
+
+            {/* Why This Pick? */}
+            {recommendation.explanation && (
+              <div className="mb-3 p-2.5 rounded-lg bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/10">
+                <div className="flex items-start gap-2">
+                  <span className="text-sm leading-none">{recommendation.explanation.title.split(' ')[0]}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium">
+                      {recommendation.explanation.title.split(' ').slice(1).join(' ')}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {recommendation.explanation.description}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Mobile: Trailer Button */}
+            {recommendation.trailerUrl && (
+              <button
+                onClick={() => setShowTrailer(true)}
+                className="md:hidden mb-3 flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-colors"
+              >
+                <Play className="w-4 h-4 fill-white" />
+                Watch Trailer
+              </button>
+            )}
+
             {/* Feedback & Actions */}
-            <div className="space-y-4 mt-6">
-              {/* I'm Watching This Button */}
-              {isCurrentlyWatching ? (
-                <button
-                  onClick={handleStopWatching}
-                  disabled={isRecording}
-                  className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium hover:from-amber-600 hover:to-orange-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[44px] shadow-lg shadow-amber-500/20"
-                >
-                  <Check className="w-5 h-5" />
-                  Done Watching - Mark as Watched
-                </button>
-              ) : (
-                <button
-                  onClick={handleStartWatching}
-                  disabled={hasActiveSession}
-                  className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-medium hover:from-violet-700 hover:to-purple-700 transition-all flex items-center justify-center gap-2 min-h-[44px] shadow-lg shadow-violet-500/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-500 disabled:to-gray-600 disabled:shadow-none"
-                  title={hasActiveSession ? 'Finish watching your current show first' : undefined}
-                >
-                  <Clapperboard className="w-5 h-5" />
-                  {hasActiveSession ? 'Already Watching Something' : "I'm Watching This Now"}
-                </button>
-              )}
+            <div className="space-y-3 mt-4 pt-3 border-t border-border">
+              {/* I'm Watching This + Quick Actions Row */}
+              <div className="flex items-center gap-2">
+                {/* I'm Watching Button */}
+                {isCurrentlyWatching ? (
+                  <button
+                    onClick={handleStopWatching}
+                    disabled={isRecording}
+                    className="flex-1 px-3 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-medium hover:from-amber-600 hover:to-orange-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    <Check className="w-4 h-4" />
+                    Done Watching
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleStartWatching}
+                    disabled={hasActiveSession}
+                    className="flex-1 px-3 py-2 rounded-lg bg-gradient-to-r from-violet-600 to-purple-600 text-white text-sm font-medium hover:from-violet-700 hover:to-purple-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:from-gray-500 disabled:to-gray-600"
+                    title={hasActiveSession ? 'Finish current show first' : undefined}
+                  >
+                    <Clapperboard className="w-4 h-4" />
+                    {hasActiveSession ? 'Watching...' : "I'm Watching"}
+                  </button>
+                )}
 
-              {/* Icon Actions Row */}
-              <div className="flex items-center justify-center gap-3">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={() => onRecordAction('WATCHED')}
-                      disabled={isRecording}
-                      className="w-12 h-12 rounded-full bg-green-600 hover:bg-green-700 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center hover:scale-110"
-                    >
-                      <Check className="w-5 h-5" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Watched</p>
-                  </TooltipContent>
-                </Tooltip>
+                {/* Quick Action Icons */}
+                <div className="flex items-center gap-1">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => onRecordAction('WATCHED')}
+                        disabled={isRecording}
+                        className="w-10 h-10 rounded-lg bg-green-600 hover:bg-green-700 text-white transition-all disabled:opacity-50 inline-flex items-center justify-center"
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Watched</p></TooltipContent>
+                  </Tooltip>
 
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={() => onRecordAction('LIKED')}
-                      disabled={isRecording}
-                      className="w-12 h-12 rounded-full border-2 border-green-500 hover:bg-green-500/20 text-green-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center hover:scale-110"
-                    >
-                      <ThumbsUp className="w-5 h-5" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Like</p>
-                  </TooltipContent>
-                </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => onRecordAction('LIKED')}
+                        disabled={isRecording}
+                        className="w-10 h-10 rounded-lg border border-green-500 hover:bg-green-500/20 text-green-500 transition-all disabled:opacity-50 inline-flex items-center justify-center"
+                      >
+                        <ThumbsUp className="w-4 h-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Like</p></TooltipContent>
+                  </Tooltip>
 
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={() => onRecordAction('DISLIKED')}
-                      disabled={isRecording}
-                      className="w-12 h-12 rounded-full border-2 border-red-500 hover:bg-red-500/20 text-red-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center hover:scale-110"
-                    >
-                      <ThumbsDown className="w-5 h-5" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Dislike</p>
-                  </TooltipContent>
-                </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => onRecordAction('DISLIKED')}
+                        disabled={isRecording}
+                        className="w-10 h-10 rounded-lg border border-red-500 hover:bg-red-500/20 text-red-500 transition-all disabled:opacity-50 inline-flex items-center justify-center"
+                      >
+                        <ThumbsDown className="w-4 h-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Dislike</p></TooltipContent>
+                  </Tooltip>
 
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={() => onRecordAction('BLACKLISTED')}
-                      disabled={isRecording}
-                      className="w-12 h-12 rounded-full bg-red-600 hover:bg-red-700 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center hover:scale-110"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Not Interested</p>
-                  </TooltipContent>
-                </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => onRecordAction('BLACKLISTED')}
+                        disabled={isRecording}
+                        className="w-10 h-10 rounded-lg bg-red-600 hover:bg-red-700 text-white transition-all disabled:opacity-50 inline-flex items-center justify-center"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent><p>Not Interested</p></TooltipContent>
+                  </Tooltip>
+                </div>
               </div>
 
               {/* Get Another / Back */}
