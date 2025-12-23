@@ -23,10 +23,11 @@ import {
     markAsWatching,
     onWatchingStateChange,
 } from '@/lib/watching-state';
-import { ArrowLeft, Calendar, Check, Clapperboard, Copy, Film, Loader2, Play, Sparkles, Star, ThumbsDown, ThumbsUp, X } from 'lucide-react';
+import { ArrowLeft, Calendar, Check, Clapperboard, Copy, Film, Loader2, Play, PlayCircle, Sparkles, Star, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { StreamPlayer } from './stream-player';
 import { UniversalFreeStreamingSection } from './universal-free-streaming-section';
 
 export interface Recommendation {
@@ -69,6 +70,7 @@ export function RecommendationCard({
   onBack,
 }: RecommendationCardProps) {
   const [showTrailer, setShowTrailer] = useState(false);
+  const [showStream, setShowStream] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [isCurrentlyWatching, setIsCurrentlyWatching] = useState(false);
   const [hasActiveSession, setHasActiveSession] = useState(false);
@@ -192,6 +194,15 @@ export function RecommendationCard({
                 Trailer
               </button>
             )}
+            
+            {/* Watch Now button on desktop */}
+            <button
+              onClick={() => setShowStream(true)}
+              className="hidden md:flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-sm font-medium transition-colors"
+            >
+              <PlayCircle className="w-4 h-4" />
+              Watch Now
+            </button>
           </div>
 
           {/* Right Column: Content */}
@@ -325,6 +336,15 @@ export function RecommendationCard({
                 Watch Trailer
               </button>
             )}
+
+            {/* Mobile: Watch Now Button */}
+            <button
+              onClick={() => setShowStream(true)}
+              className="md:hidden mb-3 w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white text-sm font-medium transition-colors"
+            >
+              <PlayCircle className="w-4 h-4" />
+              Watch Now Free
+            </button>
 
             {/* Feedback & Actions */}
             <div className="space-y-3 mt-4 pt-3 border-t border-border">
@@ -465,6 +485,16 @@ export function RecommendationCard({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Stream Player */}
+      {showStream && (
+        <StreamPlayer
+          tmdbId={recommendation.tmdbId}
+          contentType={recommendation.contentType}
+          title={recommendation.title}
+          onClose={() => setShowStream(false)}
+        />
+      )}
     </TooltipProvider>
   );
 }
