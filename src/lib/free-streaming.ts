@@ -62,23 +62,46 @@ export function getFreeStreamingOptions(
 }
 
 /**
- * Prioritize services by content type and reliability
+ * Prioritize services by user preferences, content type, and reliability
  * 
  * @param services - Array of streaming services to prioritize
  * @param contentType - The content type to prioritize for
+ * @param userPreferences - Optional array of user-preferred service IDs (highest priority)
  * @returns Services sorted by priority for the given content type
  */
 export function prioritizeFreeServices(
   services: FreeStreamingService[],
-  contentType: ContentType
+  contentType: ContentType,
+  userPreferences?: string[]
 ): FreeStreamingService[] {
   const priorities = SERVICE_PRIORITIES[contentType] || [];
   
   // Create a map for quick priority lookup
   const priorityMap = new Map(priorities.map((id, index) => [id, index]));
   
-  // Sort services by priority, with unknown services at the end
+  // Create a map for user preferences (highest priority)
+  const userPrefMap = userPreferences
+    ? new Map(userPreferences.map((id, index) => [id, index]))
+    : null;
+  
+  // Sort services: user preferences first, then by content type priority
   return services.sort((a, b) => {
+    // User preferences take absolute priority
+    if (userPrefMap) {
+      const userPrefA = userPrefMap.get(a.id);
+      const userPrefB = userPrefMap.get(b.id);
+      
+      // If both are in user preferences, sort by preference order
+      if (userPrefA !== undefined && userPrefB !== undefined) {
+        return userPrefA - userPrefB;
+      }
+      // If only A is in preferences, it comes first
+      if (userPrefA !== undefined) return -1;
+      // If only B is in preferences, it comes first
+      if (userPrefB !== undefined) return 1;
+    }
+    
+    // Fall back to content type priority
     const priorityA = priorityMap.get(a.id) ?? Number.MAX_SAFE_INTEGER;
     const priorityB = priorityMap.get(b.id) ?? Number.MAX_SAFE_INTEGER;
     return priorityA - priorityB;

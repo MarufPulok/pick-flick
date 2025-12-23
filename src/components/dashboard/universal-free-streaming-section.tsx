@@ -1,15 +1,22 @@
 /**
  * UniversalFreeStreamingSection Component
  * Displays free streaming options for all content types (movies, TV series, and anime)
- * Replaces the anime-specific streaming section with universal coverage
+ * Features: preferred/recent service indicators, usage tracking, personalized ordering
  */
 
 'use client';
 
 import { freeStreamingConfig } from '@/config/free-streaming.config';
 import { ContentType } from '@/dtos/common.dto';
-import { getFreeStreamingOptions } from '@/lib/free-streaming';
-import { ExternalLink, Film, Tv, Zap } from 'lucide-react';
+import { getFreeStreamingOptions, prioritizeFreeServices } from '@/lib/free-streaming';
+import { FreeStreamingService } from '@/lib/free-streaming-services';
+import {
+    getPreferredServices,
+    isRecentlyUsed,
+    trackUsage,
+} from '@/lib/service-usage';
+import { Clock, ExternalLink, Film, Star, Tv, Zap } from 'lucide-react';
+import { useCallback, useMemo } from 'react';
 
 interface UniversalFreeStreamingSectionProps {
   /** Content title to search for */
@@ -18,6 +25,10 @@ interface UniversalFreeStreamingSectionProps {
   contentType: ContentType;
   /** Maximum services to display (default: 4) */
   maxServices?: number;
+  /** Optional TMDB ID for tracking */
+  tmdbId?: number;
+  /** Optional callback when a service is clicked */
+  onServiceClick?: (serviceId: string, url: string) => void;
 }
 
 /**
@@ -53,6 +64,70 @@ function getContentTypeInfo(contentType: ContentType) {
 }
 
 /**
+ * Service card with preferred/recent indicators
+ */
+function ServiceCard({
+  service,
+  title,
+  isPreferred,
+  isRecent,
+  onClick,
+}: {
+  service: FreeStreamingService;
+  title: string;
+  isPreferred: boolean;
+  isRecent: boolean;
+  onClick: () => void;
+}) {
+  const hasBadge = isPreferred || isRecent;
+  
+  return (
+    <a
+      href={service.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Watch ${title} on ${service.name} - Opens in new tab`}
+      onClick={onClick}
+      className="flex items-center gap-3 p-3 rounded-lg border border-green-500/30 bg-green-950/30 text-green-100 hover:bg-green-900/40 hover:border-green-400/50 transition-all min-h-[44px] group"
+    >
+      <div className="flex-1 min-w-0">
+        {/* Row 1: Service name + external link */}
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-medium text-sm">
+            {service.name}
+          </span>
+          <ExternalLink className="w-3 h-3 text-green-400 opacity-60 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+        </div>
+        
+        {/* Row 2: Badges and/or description */}
+        <div className="flex items-center gap-2 mt-1">
+          {/* Preferred badge */}
+          {isPreferred && (
+            <span className="flex items-center gap-0.5 text-[10px] font-semibold text-amber-300 bg-amber-900/40 px-1.5 py-0.5 rounded-full flex-shrink-0">
+              <Star className="w-2.5 h-2.5 fill-current" />
+              Preferred
+            </span>
+          )}
+          {/* Recently used badge (only show if not preferred) */}
+          {isRecent && !isPreferred && (
+            <span className="flex items-center gap-0.5 text-[10px] font-medium text-blue-300 bg-blue-900/40 px-1.5 py-0.5 rounded-full flex-shrink-0">
+              <Clock className="w-2.5 h-2.5" />
+              Recent
+            </span>
+          )}
+          {/* Description (show if no badge or if descriptions enabled) */}
+          {freeStreamingConfig.SHOW_SERVICE_DESCRIPTIONS && !hasBadge && (
+            <p className="text-xs text-green-200/70 truncate">
+              {service.description}
+            </p>
+          )}
+        </div>
+      </div>
+    </a>
+  );
+}
+
+/**
  * Renders a section with free streaming options for any content type
  * Returns null if title is invalid or no services are available
  */
@@ -60,12 +135,26 @@ export function UniversalFreeStreamingSection({
   title,
   contentType,
   maxServices = 4,
+  tmdbId,
+  onServiceClick,
 }: UniversalFreeStreamingSectionProps) {
   // Early return for invalid titles
   if (!title?.trim()) return null;
   
-  // Get available streaming options
-  const streamingOptions = getFreeStreamingOptions(title, contentType);
+  // Get user preferred services for this content type
+  const userPreferences = useMemo(
+    () => getPreferredServices(contentType),
+    [contentType]
+  );
+  
+  // Get available streaming options with user preferences applied
+  const streamingOptions = useMemo(() => {
+    const options = getFreeStreamingOptions(title, contentType);
+    // Re-prioritize with user preferences
+    return userPreferences.length > 0
+      ? prioritizeFreeServices(options, contentType, userPreferences)
+      : options;
+  }, [title, contentType, userPreferences]);
   
   // Early return if no services available
   if (streamingOptions.length === 0) return null;
@@ -78,6 +167,25 @@ export function UniversalFreeStreamingSection({
   const servicesToDisplay = streamingOptions.slice(0, maxServices);
   const hasMoreServices = streamingOptions.length > maxServices;
   const additionalCount = streamingOptions.length - maxServices;
+  
+  // Handle service click - track usage
+  const handleServiceClick = useCallback(
+    (serviceId: string, url: string) => {
+      trackUsage({
+        serviceId,
+        contentType,
+        titleId: tmdbId,
+      });
+      onServiceClick?.(serviceId, url);
+    },
+    [contentType, tmdbId, onServiceClick]
+  );
+  
+  // Sets of preferred and recent services for quick lookup
+  const preferredSet = useMemo(
+    () => new Set(userPreferences),
+    [userPreferences]
+  );
   
   return (
     <div className="mb-4 p-4 rounded-xl border border-dashed border-green-500/50 bg-green-950/20">
@@ -93,28 +201,14 @@ export function UniversalFreeStreamingSection({
         {/* Streaming Options Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {servicesToDisplay.map((service) => (
-            <a
+            <ServiceCard
               key={service.id}
-              href={service.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={`Watch ${title} on ${service.name} - Opens in new tab`}
-              className="flex items-center gap-3 p-3 rounded-lg border border-green-500/30 bg-green-950/30 text-green-100 hover:bg-green-900/40 hover:border-green-400/50 transition-all min-h-[44px] group"
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm truncate">
-                    {service.name}
-                  </span>
-                  <ExternalLink className="w-3 h-3 text-green-400 opacity-60 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                </div>
-                {freeStreamingConfig.SHOW_SERVICE_DESCRIPTIONS && (
-                  <p className="text-xs text-green-200/70 truncate">
-                    {service.description}
-                  </p>
-                )}
-              </div>
-            </a>
+              service={service}
+              title={title}
+              isPreferred={preferredSet.has(service.id)}
+              isRecent={isRecentlyUsed(service.id)}
+              onClick={() => handleServiceClick(service.id, service.url || '')}
+            />
           ))}
         </div>
         
