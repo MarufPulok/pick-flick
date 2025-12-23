@@ -17,9 +17,15 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { ArrowLeft, Calendar, Check, Copy, Film, Loader2, Play, Sparkles, Star, ThumbsDown, ThumbsUp, X } from 'lucide-react';
+import {
+    clearWatching,
+    getCurrentlyWatching,
+    isWatching,
+    markAsWatching,
+} from '@/lib/watching-state';
+import { ArrowLeft, Calendar, Check, Clapperboard, Copy, Film, Loader2, Play, Sparkles, Star, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import Image from 'next/image';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { UniversalFreeStreamingSection } from './universal-free-streaming-section';
 
@@ -64,11 +70,36 @@ export function RecommendationCard({
 }: RecommendationCardProps) {
   const [showTrailer, setShowTrailer] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [isCurrentlyWatching, setIsCurrentlyWatching] = useState(false);
+
+  // Check if this content is being watched on mount
+  useEffect(() => {
+    setIsCurrentlyWatching(isWatching(recommendation.tmdbId));
+  }, [recommendation.tmdbId]);
 
   const getYear = (dateString: string | undefined) => {
     if (!dateString) return '';
     return new Date(dateString).getFullYear();
   };
+
+  // Handle "I'm watching this" action
+  const handleStartWatching = useCallback(() => {
+    markAsWatching({
+      tmdbId: recommendation.tmdbId,
+      contentType: recommendation.contentType,
+      title: recommendation.title,
+      posterUrl: recommendation.posterUrl,
+    });
+    setIsCurrentlyWatching(true);
+    toast.success(`Enjoy watching "${recommendation.title}"! 🎬`);
+  }, [recommendation]);
+
+  // Handle stopping watching (mark as watched)
+  const handleStopWatching = useCallback(() => {
+    clearWatching();
+    setIsCurrentlyWatching(false);
+    onRecordAction('WATCHED');
+  }, [onRecordAction]);
 
   // Copy title to clipboard
   const handleCopyTitle = useCallback(async () => {
@@ -267,6 +298,26 @@ export function RecommendationCard({
 
             {/* Feedback & Actions */}
             <div className="space-y-4 mt-6">
+              {/* I'm Watching This Button */}
+              {isCurrentlyWatching ? (
+                <button
+                  onClick={handleStopWatching}
+                  disabled={isRecording}
+                  className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium hover:from-amber-600 hover:to-orange-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[44px] shadow-lg shadow-amber-500/20"
+                >
+                  <Check className="w-5 h-5" />
+                  Done Watching - Mark as Watched
+                </button>
+              ) : (
+                <button
+                  onClick={handleStartWatching}
+                  className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white font-medium hover:from-violet-700 hover:to-purple-700 transition-all flex items-center justify-center gap-2 min-h-[44px] shadow-lg shadow-violet-500/20"
+                >
+                  <Clapperboard className="w-5 h-5" />
+                  I&apos;m Watching This Now
+                </button>
+              )}
+
               {/* Icon Actions Row */}
               <div className="flex items-center justify-center gap-3">
                 <Tooltip>

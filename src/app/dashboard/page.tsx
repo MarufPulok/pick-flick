@@ -13,13 +13,14 @@
 'use client';
 
 import {
-  ActivityFeed,
-  GeneratorForm,
-  QuickMoods,
-  Recommendation,
-  RecommendationCard,
-  StatsCards,
-  WelcomeHeader,
+    ActivityFeed,
+    CurrentlyWatchingBanner,
+    GeneratorForm,
+    QuickMoods,
+    Recommendation,
+    RecommendationCard,
+    StatsCards,
+    WelcomeHeader,
 } from '@/components/dashboard';
 import { RATING_TIERS } from '@/config/app.config';
 import { useHistoryActions } from '@/hooks/use-history-actions';
@@ -192,6 +193,9 @@ export default function DashboardPage() {
           <ActivityFeed limit={4} />
         </div>
       </div>
+
+      {/* Currently Watching Banner - Fixed at bottom */}
+      <CurrentlyWatchingBanner />
     </div>
   );
 }
