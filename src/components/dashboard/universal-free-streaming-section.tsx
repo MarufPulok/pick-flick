@@ -6,17 +6,24 @@
 
 'use client';
 
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { freeStreamingConfig } from '@/config/free-streaming.config';
 import { ContentType } from '@/dtos/common.dto';
 import { getFreeStreamingOptions, prioritizeFreeServices } from '@/lib/free-streaming';
 import { FreeStreamingService } from '@/lib/free-streaming-services';
+import { hasReportedRecently, reportServiceIssue } from '@/lib/service-feedback';
 import {
     getPreferredServices,
     isRecentlyUsed,
     trackUsage,
 } from '@/lib/service-usage';
-import { Clock, ExternalLink, Film, Star, Tv, Zap } from 'lucide-react';
-import { useCallback, useMemo } from 'react';
+import { AlertTriangle, Clock, ExternalLink, Film, Star, Tv, Zap } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
 interface UniversalFreeStreamingSectionProps {
   /** Content title to search for */
@@ -64,66 +71,121 @@ function getContentTypeInfo(contentType: ContentType) {
 }
 
 /**
- * Service card with preferred/recent indicators
+ * Service card with preferred/recent indicators and report functionality
  */
 function ServiceCard({
   service,
   title,
+  titleId,
+  contentType,
   isPreferred,
   isRecent,
   onClick,
 }: {
   service: FreeStreamingService;
   title: string;
+  titleId?: number;
+  contentType: ContentType;
   isPreferred: boolean;
   isRecent: boolean;
   onClick: () => void;
 }) {
   const hasBadge = isPreferred || isRecent;
+  const [hasReported, setHasReported] = useState(() => 
+    hasReportedRecently(service.id, titleId)
+  );
+  
+  // Handle report button click
+  const handleReport = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    reportServiceIssue({
+      serviceId: service.id,
+      contentType,
+      titleId,
+      titleName: title,
+      feedbackType: 'NOT_WORKING',
+    });
+    
+    setHasReported(true);
+    toast.success('Thanks for reporting! We\'ll look into it.');
+  }, [service.id, contentType, titleId, title]);
   
   return (
-    <a
-      href={service.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={`Watch ${title} on ${service.name} - Opens in new tab`}
-      onClick={onClick}
-      className="flex items-center gap-3 p-3 rounded-lg border border-green-500/30 bg-green-950/30 text-green-100 hover:bg-green-900/40 hover:border-green-400/50 transition-all min-h-[44px] group"
-    >
-      <div className="flex-1 min-w-0">
-        {/* Row 1: Service name + external link */}
-        <div className="flex items-center justify-between gap-2">
-          <span className="font-medium text-sm">
-            {service.name}
-          </span>
-          <ExternalLink className="w-3 h-3 text-green-400 opacity-60 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-        </div>
+    <div className={`${hasReported ? 'opacity-60' : ''}`}>
+      <div className="flex items-center gap-1 p-3 rounded-lg border border-green-500/30 bg-green-950/30 text-green-100 hover:bg-green-900/40 hover:border-green-400/50 transition-all min-h-[44px] group">
+        {/* Main link area */}
+        <a
+          href={service.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label={`Watch ${title} on ${service.name} - Opens in new tab`}
+          onClick={onClick}
+          className="flex-1 min-w-0"
+        >
+          {/* Row 1: Service name + external link */}
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-sm">
+              {service.name}
+            </span>
+            <ExternalLink className="w-3 h-3 text-green-400 opacity-60 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+          </div>
+          
+          {/* Row 2: Badges and/or description */}
+          <div className="flex items-center gap-2 mt-1">
+            {/* Reported badge - takes priority over other badges */}
+            {hasReported ? (
+              <span className="flex items-center gap-0.5 text-[10px] font-medium text-red-300 bg-red-900/40 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                <AlertTriangle className="w-2.5 h-2.5" />
+                Reported
+              </span>
+            ) : (
+              <>
+                {/* Preferred badge */}
+                {isPreferred && (
+                  <span className="flex items-center gap-0.5 text-[10px] font-semibold text-amber-300 bg-amber-900/40 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                    <Star className="w-2.5 h-2.5 fill-current" />
+                    Preferred
+                  </span>
+                )}
+                {/* Recently used badge (only show if not preferred) */}
+                {isRecent && !isPreferred && (
+                  <span className="flex items-center gap-0.5 text-[10px] font-medium text-blue-300 bg-blue-900/40 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                    <Clock className="w-2.5 h-2.5" />
+                    Recent
+                  </span>
+                )}
+                {/* Description (show if no badge) */}
+                {freeStreamingConfig.SHOW_SERVICE_DESCRIPTIONS && !hasBadge && (
+                  <p className="text-xs text-green-200/70 truncate">
+                    {service.description}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        </a>
         
-        {/* Row 2: Badges and/or description */}
-        <div className="flex items-center gap-2 mt-1">
-          {/* Preferred badge */}
-          {isPreferred && (
-            <span className="flex items-center gap-0.5 text-[10px] font-semibold text-amber-300 bg-amber-900/40 px-1.5 py-0.5 rounded-full flex-shrink-0">
-              <Star className="w-2.5 h-2.5 fill-current" />
-              Preferred
-            </span>
-          )}
-          {/* Recently used badge (only show if not preferred) */}
-          {isRecent && !isPreferred && (
-            <span className="flex items-center gap-0.5 text-[10px] font-medium text-blue-300 bg-blue-900/40 px-1.5 py-0.5 rounded-full flex-shrink-0">
-              <Clock className="w-2.5 h-2.5" />
-              Recent
-            </span>
-          )}
-          {/* Description (show if no badge or if descriptions enabled) */}
-          {freeStreamingConfig.SHOW_SERVICE_DESCRIPTIONS && !hasBadge && (
-            <p className="text-xs text-green-200/70 truncate">
-              {service.description}
-            </p>
-          )}
-        </div>
+        {/* Report button - inline at right */}
+        {!hasReported && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={handleReport}
+                className="p-2 rounded-lg text-green-400/40 hover:text-red-400 hover:bg-red-900/40 transition-colors flex-shrink-0 opacity-0 group-hover:opacity-100"
+                aria-label="Report broken link"
+              >
+                <AlertTriangle className="w-4 h-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>Report broken link</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
       </div>
-    </a>
+    </div>
   );
 }
 
@@ -205,6 +267,8 @@ export function UniversalFreeStreamingSection({
               key={service.id}
               service={service}
               title={title}
+              titleId={tmdbId}
+              contentType={contentType}
               isPreferred={preferredSet.has(service.id)}
               isRecent={isRecentlyUsed(service.id)}
               onClick={() => handleServiceClick(service.id, service.url || '')}
