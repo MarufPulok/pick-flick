@@ -19,6 +19,7 @@
 - **💡 "Why This Pick?"** - See explanations for why each recommendation matches you
 - **📺 Streaming Availability** - See where to watch (Netflix, Hulu, Disney+, etc.)
 - **🆓 Universal Free Streaming** - Direct links to 100% free streaming platforms for movies, TV shows, and anime
+- **▶️ In-App Streaming** - Watch movies, TV shows, and anime directly in the app without leaving the page
 
 ### Two Modes
 - **✨ Smart Mode** - AI picks based on your complete taste profile
