@@ -127,9 +127,16 @@ function ServiceCard({
         >
           {/* Row 1: Service name + external link */}
           <div className="flex items-center gap-2">
-            <span className="font-medium text-sm">
-              {service.name}
-            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="font-medium text-sm cursor-help underline decoration-dotted decoration-green-400/50 underline-offset-2">
+                  {service.name}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[200px]">
+                <p>{service.description}</p>
+              </TooltipContent>
+            </Tooltip>
             <ExternalLink className="w-3 h-3 text-green-400 opacity-60 group-hover:opacity-100 transition-opacity flex-shrink-0" />
           </div>
           
