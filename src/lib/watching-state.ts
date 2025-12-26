@@ -10,6 +10,7 @@ import { ContentType } from '@/dtos/common.dto';
 import { storage } from './storage';
 
 const STORAGE_KEY = 'watching-state';
+const STREAM_OPEN_KEY = 'stream-open';
 const STATE_CHANGE_EVENT = 'watching-state-change';
 
 /**
@@ -116,6 +117,26 @@ export function onWatchingStateChange(callback: () => void): () => void {
  */
 export function getCurrentlyWatching(): WatchingState | null {
   return storage.get<WatchingState>(STORAGE_KEY);
+}
+
+/**
+ * Check if stream player is currently open
+ */
+export function isStreamOpen(): boolean {
+  return storage.get<boolean>(STREAM_OPEN_KEY) ?? false;
+}
+
+/**
+ * Set stream player open state
+ * Used to hide the "Currently Watching" banner when stream is active
+ */
+export function setStreamOpen(isOpen: boolean): void {
+  if (isOpen) {
+    storage.set(STREAM_OPEN_KEY, true);
+  } else {
+    storage.remove(STREAM_OPEN_KEY);
+  }
+  dispatchStateChange();
 }
 
 /**

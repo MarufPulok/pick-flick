@@ -7,8 +7,9 @@
 
 import { ContentType } from '@/dtos/common.dto';
 import { buildRiveStreamUrl } from '@/lib/rivestream';
+import { setStreamOpen } from '@/lib/watching-state';
 import { ExternalLink, Maximize2, Minimize2, X } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface StreamPlayerProps {
   tmdbId: number;
@@ -25,6 +26,12 @@ export function StreamPlayer({
 }: StreamPlayerProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const streamUrl = buildRiveStreamUrl(tmdbId, contentType);
+
+  // Mark stream as open when mounted, clear when unmounted
+  useEffect(() => {
+    setStreamOpen(true);
+    return () => setStreamOpen(false);
+  }, []);
 
   const toggleFullscreen = useCallback(() => {
     setIsFullscreen(prev => !prev);

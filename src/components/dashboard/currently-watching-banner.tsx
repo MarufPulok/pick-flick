@@ -7,7 +7,7 @@
 'use client';
 
 import { useHistoryActions } from '@/hooks/use-history-actions';
-import { clearWatching, getCurrentlyWatching, onWatchingStateChange, WatchingState } from '@/lib/watching-state';
+import { clearWatching, getCurrentlyWatching, isStreamOpen, onWatchingStateChange, WatchingState } from '@/lib/watching-state';
 import { Check, Clock, X } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
@@ -28,12 +28,14 @@ function formatDuration(minutes: number): string {
 export function CurrentlyWatchingBanner() {
   const [watchingState, setWatchingState] = useState<WatchingState | null>(null);
   const [duration, setDuration] = useState<number>(0);
+  const [streamActive, setStreamActive] = useState(false);
   const { recordAction, isRecording } = useHistoryActions();
 
   // Sync state from storage
   const syncState = useCallback(() => {
     const current = getCurrentlyWatching();
     setWatchingState(current);
+    setStreamActive(isStreamOpen());
     if (current) {
       const mins = Math.floor((Date.now() - current.startedAt) / (1000 * 60));
       setDuration(mins);
@@ -80,8 +82,8 @@ export function CurrentlyWatchingBanner() {
     setWatchingState(null);
   }, [watchingState]);
 
-  // Don't render if no active session
-  if (!watchingState) return null;
+  // Don't render if no active session or if stream player is open
+  if (!watchingState || streamActive) return null;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 p-4 animate-in slide-in-from-bottom duration-300">
