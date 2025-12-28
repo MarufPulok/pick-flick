@@ -3,20 +3,16 @@
  * GET - Get cache statistics for monitoring
  */
 
-import {
-    discoverCache,
-    providersCache,
-    videosCache,
-} from '@/lib/cache';
+import { getAllCacheStats } from '@/lib/cache';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
-  const stats = {
-    discover: discoverCache.getStats(),
-    videos: videosCache.getStats(),
-    providers: providersCache.getStats(),
-    timestamp: new Date().toISOString(),
-  };
+  const { caches, totals } = getAllCacheStats();
 
-  return NextResponse.json(stats);
+  return NextResponse.json({
+    caches,
+    totals,
+    timestamp: new Date().toISOString(),
+  });
 }
+

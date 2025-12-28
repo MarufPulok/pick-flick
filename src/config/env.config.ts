@@ -14,6 +14,9 @@ export const serverEnv = {
   // TMDB API
   TMDB_API_KEY: process.env.TMDB_API_KEY!,
   TMDB_ACCESS_TOKEN: process.env.TMDB_ACCESS_TOKEN!,
+
+  // Bytez AI (optional - AI features disabled if not set)
+  BYTEZ_API_KEY: process.env.BYTEZ_API_KEY || '',
 } as const;
 
 /**
