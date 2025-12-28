@@ -28,6 +28,7 @@ import { ArrowLeft, Bookmark, BookmarkCheck, Calendar, Check, Clapperboard, Copy
 import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { SimilarContentSection } from './similar-content-section';
 import { StreamPlayer } from './stream-player';
 import { UniversalFreeStreamingSection } from './universal-free-streaming-section';
 
@@ -507,6 +508,13 @@ export function RecommendationCard({
             </div>
           </div>
         </div>
+
+        {/* More Like This Section */}
+        <SimilarContentSection
+          tmdbId={recommendation.tmdbId}
+          contentType={recommendation.contentType}
+          currentTitle={recommendation.title}
+        />
       </div>
 
       {/* Trailer Modal */}

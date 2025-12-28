@@ -10,6 +10,9 @@ import {
     createCacheKey,
     discoverCache,
     providersCache,
+    recommendationsCache,
+    similarCache,
+    trendingCache,
     videosCache,
 } from '@/lib/cache';
 import axios, { type AxiosError, type AxiosInstance } from 'axios';
@@ -143,6 +146,11 @@ export interface TMDBDiscoverParams {
   page?: number;
   include_adult?: boolean;
 }
+
+/**
+ * Trending time window
+ */
+export type TrendingTimeWindow = 'day' | 'week';
 
 /**
  * Rate limiter for API calls
@@ -483,7 +491,150 @@ class TMDBClient {
   getProviderLogoUrl(logoPath: string): string {
     return `${EXTERNAL_APIS.TMDB.IMAGE_BASE_URL}/w92${logoPath}`;
   }
+
+  // ============================================================================
+  // Similar & Recommendations (Phase 2: Discovery Features)
+  // ============================================================================
+
+  /**
+   * Get similar movies (cached)
+   * Uses TMDB's /movie/{id}/similar endpoint
+   */
+  async getSimilarMovies(movieId: number, page = 1): Promise<TMDBSearchResponse<TMDBMovie>> {
+    const cacheKey = `similar:movie:${movieId}:${page}`;
+    
+    return similarCache.getOrSet(
+      cacheKey,
+      () => this.rateLimiter.throttle(async () => {
+        const response = await this.client.get<TMDBSearchResponse<TMDBMovie>>(`/movie/${movieId}/similar`, {
+          params: { language: 'en-US', page },
+        });
+        return response.data;
+      }),
+      CACHE_TTL.SIMILAR
+    ) as Promise<TMDBSearchResponse<TMDBMovie>>;
+  }
+
+  /**
+   * Get similar TV shows (cached)
+   * Uses TMDB's /tv/{id}/similar endpoint
+   */
+  async getSimilarTV(tvId: number, page = 1): Promise<TMDBSearchResponse<TMDBTVShow>> {
+    const cacheKey = `similar:tv:${tvId}:${page}`;
+    
+    return similarCache.getOrSet(
+      cacheKey,
+      () => this.rateLimiter.throttle(async () => {
+        const response = await this.client.get<TMDBSearchResponse<TMDBTVShow>>(`/tv/${tvId}/similar`, {
+          params: { language: 'en-US', page },
+        });
+        return response.data;
+      }),
+      CACHE_TTL.SIMILAR
+    ) as Promise<TMDBSearchResponse<TMDBTVShow>>;
+  }
+
+  /**
+   * Get movie recommendations (cached)
+   * Uses TMDB's /movie/{id}/recommendations endpoint
+   * More personalized than similar - based on user behavior patterns
+   */
+  async getMovieRecommendations(movieId: number, page = 1): Promise<TMDBSearchResponse<TMDBMovie>> {
+    const cacheKey = `recommendations:movie:${movieId}:${page}`;
+    
+    return recommendationsCache.getOrSet(
+      cacheKey,
+      () => this.rateLimiter.throttle(async () => {
+        const response = await this.client.get<TMDBSearchResponse<TMDBMovie>>(`/movie/${movieId}/recommendations`, {
+          params: { language: 'en-US', page },
+        });
+        return response.data;
+      }),
+      CACHE_TTL.RECOMMENDATIONS
+    ) as Promise<TMDBSearchResponse<TMDBMovie>>;
+  }
+
+  /**
+   * Get TV show recommendations (cached)
+   * Uses TMDB's /tv/{id}/recommendations endpoint
+   */
+  async getTVRecommendations(tvId: number, page = 1): Promise<TMDBSearchResponse<TMDBTVShow>> {
+    const cacheKey = `recommendations:tv:${tvId}:${page}`;
+    
+    return recommendationsCache.getOrSet(
+      cacheKey,
+      () => this.rateLimiter.throttle(async () => {
+        const response = await this.client.get<TMDBSearchResponse<TMDBTVShow>>(`/tv/${tvId}/recommendations`, {
+          params: { language: 'en-US', page },
+        });
+        return response.data;
+      }),
+      CACHE_TTL.RECOMMENDATIONS
+    ) as Promise<TMDBSearchResponse<TMDBTVShow>>;
+  }
+
+  // ============================================================================
+  // Trending Content (Phase 2: Discovery Features)
+  // ============================================================================
+
+  /**
+   * Get trending movies (cached with short TTL)
+   * @param timeWindow 'day' for daily trending, 'week' for weekly
+   */
+  async getTrendingMovies(timeWindow: TrendingTimeWindow = 'day'): Promise<TMDBSearchResponse<TMDBMovie>> {
+    const cacheKey = `trending:movie:${timeWindow}`;
+    
+    return trendingCache.getOrSet(
+      cacheKey,
+      () => this.rateLimiter.throttle(async () => {
+        const response = await this.client.get<TMDBSearchResponse<TMDBMovie>>(`/trending/movie/${timeWindow}`, {
+          params: { language: 'en-US' },
+        });
+        return response.data;
+      }),
+      CACHE_TTL.TRENDING
+    ) as Promise<TMDBSearchResponse<TMDBMovie>>;
+  }
+
+  /**
+   * Get trending TV shows (cached with short TTL)
+   * @param timeWindow 'day' for daily trending, 'week' for weekly
+   */
+  async getTrendingTV(timeWindow: TrendingTimeWindow = 'day'): Promise<TMDBSearchResponse<TMDBTVShow>> {
+    const cacheKey = `trending:tv:${timeWindow}`;
+    
+    return trendingCache.getOrSet(
+      cacheKey,
+      () => this.rateLimiter.throttle(async () => {
+        const response = await this.client.get<TMDBSearchResponse<TMDBTVShow>>(`/trending/tv/${timeWindow}`, {
+          params: { language: 'en-US' },
+        });
+        return response.data;
+      }),
+      CACHE_TTL.TRENDING
+    ) as Promise<TMDBSearchResponse<TMDBTVShow>>;
+  }
+
+  /**
+   * Get trending all (movies and TV combined, cached with short TTL)
+   * @param timeWindow 'day' for daily trending, 'week' for weekly
+   */
+  async getTrendingAll(timeWindow: TrendingTimeWindow = 'day'): Promise<TMDBSearchResponse<TMDBMovie | TMDBTVShow>> {
+    const cacheKey = `trending:all:${timeWindow}`;
+    
+    return trendingCache.getOrSet(
+      cacheKey,
+      () => this.rateLimiter.throttle(async () => {
+        const response = await this.client.get<TMDBSearchResponse<TMDBMovie | TMDBTVShow>>(`/trending/all/${timeWindow}`, {
+          params: { language: 'en-US' },
+        });
+        return response.data;
+      }),
+      CACHE_TTL.TRENDING
+    ) as Promise<TMDBSearchResponse<TMDBMovie | TMDBTVShow>>;
+  }
 }
 
 // Singleton instance
 export const tmdbClient = new TMDBClient();
+
