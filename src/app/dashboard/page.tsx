@@ -13,14 +13,16 @@
 'use client';
 
 import {
-    ActivityFeed,
-    CurrentlyWatchingBanner,
-    GeneratorForm,
-    QuickMoods,
-    Recommendation,
-    RecommendationCard,
-    StatsCards,
-    WelcomeHeader,
+  ActivityFeed,
+  CurrentlyWatchingBanner,
+  GeneratorForm,
+  QuickMoods,
+  Recommendation,
+  RecommendationCard,
+  StatsCards,
+  TimeContextPill,
+  TrendingSection,
+  WelcomeHeader,
 } from '@/components/dashboard';
 import { StreamPlayer } from '@/components/dashboard/stream-player';
 import { RATING_TIERS } from '@/config/app.config';
@@ -200,9 +202,20 @@ export default function DashboardPage() {
         {/* Stats */}
         <StatsCards stats={stats} />
 
-        {/* Quick Moods - only show when not viewing recommendation */}
+        {/* Trending Section - shows when not viewing recommendation */}
         {!recommendation && (
-          <QuickMoods onSelectMood={handleMoodSelect} />
+          <TrendingSection limit={8} />
+        )}
+
+        {/* Quick Moods with Time Context - only show when not viewing recommendation */}
+        {!recommendation && (
+          <div className="glass rounded-2xl p-5 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">How are you feeling?</h3>
+              <TimeContextPill showToggle />
+            </div>
+            <QuickMoods onSelectMood={handleMoodSelect} />
+          </div>
         )}
 
         {/* Main Content Grid */}

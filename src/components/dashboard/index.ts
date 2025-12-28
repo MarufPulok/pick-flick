@@ -8,7 +8,9 @@ export { GeneratorForm } from './generator-form';
 export { QuickMoods } from './quick-moods';
 export { RecommendationCard, type Recommendation } from './recommendation-card';
 export { SimilarContentSection } from './similar-content-section';
+export { MoodSelectorGrid, SmartMoodCard } from './smart-mood-card';
 export { EngagementBar, StatsCards } from './stats-cards';
+export { TimeContextBadge, TimeContextPill } from './time-context-pill';
 export { TrendingSection } from './trending-section';
 export { WelcomeHeader } from './welcome-header';
 
