@@ -17,13 +17,14 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useIsInWatchlist, useWatchlist } from '@/hooks/use-watchlist';
 import {
     clearWatching,
     getCurrentlyWatching,
     markAsWatching,
     onWatchingStateChange,
 } from '@/lib/watching-state';
-import { ArrowLeft, Calendar, Check, Clapperboard, Copy, Film, Loader2, Play, PlayCircle, Sparkles, Star, ThumbsDown, ThumbsUp, X } from 'lucide-react';
+import { ArrowLeft, Bookmark, BookmarkCheck, Calendar, Check, Clapperboard, Copy, Film, Loader2, Play, PlayCircle, Sparkles, Star, ThumbsDown, ThumbsUp, X } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -74,6 +75,25 @@ export function RecommendationCard({
   const [isCopied, setIsCopied] = useState(false);
   const [isCurrentlyWatching, setIsCurrentlyWatching] = useState(false);
   const [hasActiveSession, setHasActiveSession] = useState(false);
+
+  // Watchlist hook
+  const { toggleWatchlist, isPending: isWatchlistPending } = useWatchlist();
+  const isInWatchlist = useIsInWatchlist(recommendation.tmdbId, recommendation.contentType);
+
+  // Handle save to watchlist
+  const handleSaveToWatchlist = useCallback(() => {
+    toggleWatchlist(
+      {
+        tmdbId: recommendation.tmdbId,
+        contentType: recommendation.contentType,
+        title: recommendation.title,
+        posterPath: recommendation.posterUrl,
+        rating: recommendation.rating,
+        releaseDate: recommendation.releaseDate,
+      },
+      isInWatchlist
+    );
+  }, [recommendation, isInWatchlist, toggleWatchlist]);
 
   // Sync watching state from storage
   const syncWatchingState = useCallback(() => {
@@ -374,6 +394,29 @@ export function RecommendationCard({
 
                 {/* Quick Action Icons */}
                 <div className="flex items-center gap-1">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={handleSaveToWatchlist}
+                        disabled={isWatchlistPending}
+                        className={`w-10 h-10 rounded-lg transition-all disabled:opacity-50 inline-flex items-center justify-center ${
+                          isInWatchlist
+                            ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                            : 'border border-amber-500 hover:bg-amber-500/20 text-amber-500'
+                        }`}
+                      >
+                        {isInWatchlist ? (
+                          <BookmarkCheck className="w-4 h-4" />
+                        ) : (
+                          <Bookmark className="w-4 h-4" />
+                        )}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{isInWatchlist ? 'Saved' : 'Save for Later'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button

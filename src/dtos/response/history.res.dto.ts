@@ -63,6 +63,7 @@ export const UserStatsResSchema = z.object({
   likeRatio: z.number().optional(), // Percentage 0-100
   currentStreak: z.number().optional(),
   lastActiveDate: z.string().nullable().optional(),
+  watchlistCount: z.number().optional(),
 });
 
 export type UserStatsResDto = z.infer<typeof UserStatsResSchema>;

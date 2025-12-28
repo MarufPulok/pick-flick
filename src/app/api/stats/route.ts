@@ -8,6 +8,7 @@ import { connectToDatabase } from '@/infrastructure/db';
 import { UserModel } from '@/infrastructure/db/models';
 import { auth } from '@/lib/auth';
 import { HistoryService } from '@/services/history.service';
+import { WatchlistService } from '@/services/watchlist.service';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
@@ -26,10 +27,16 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Get detailed stats (includes basic + enhanced stats)
-    const stats = await HistoryService.getDetailedStats(user._id.toString());
+    // Get detailed stats (includes basic + enhanced stats) + watchlist count
+    const [stats, watchlistCount] = await Promise.all([
+      HistoryService.getDetailedStats(user._id.toString()),
+      WatchlistService.getCount(user._id.toString()),
+    ]);
 
-    const response = UserStatsResSchema.parse(stats);
+    const response = UserStatsResSchema.parse({
+      ...stats,
+      watchlistCount,
+    });
 
     return NextResponse.json(response);
   } catch (error) {

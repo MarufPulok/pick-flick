@@ -14,7 +14,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LayoutDashboard, LogOut, Settings, Sparkles } from 'lucide-react';
+import { Bookmark, LayoutDashboard, LogOut, Settings, Sparkles } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
 
@@ -79,6 +79,12 @@ export function GlobalNav() {
                     <Link href="/dashboard" className="cursor-pointer">
                       <LayoutDashboard className="mr-2 h-4 w-4" />
                       Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/watchlist" className="cursor-pointer">
+                      <Bookmark className="mr-2 h-4 w-4" />
+                      My Watchlist
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>

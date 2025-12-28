@@ -22,12 +22,14 @@ import {
     StatsCards,
     WelcomeHeader,
 } from '@/components/dashboard';
+import { StreamPlayer } from '@/components/dashboard/stream-player';
 import { RATING_TIERS } from '@/config/app.config';
+import { ContentType } from '@/dtos/common.dto';
 import { useHistoryActions } from '@/hooks/use-history-actions';
 import { useStats } from '@/hooks/use-stats';
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useCallback, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 
 type Mode = 'SMART' | 'FILTERED';
 
@@ -36,6 +38,53 @@ interface FilterState {
   genre: string;
   language: string;
   rating: string;
+}
+
+interface WatchFromUrl {
+  tmdbId: number;
+  contentType: ContentType;
+  title: string;
+}
+
+/**
+ * URL Stream Handler - Reads search params and renders StreamPlayer
+ * Separated to allow Suspense boundary for useSearchParams
+ */
+function UrlStreamHandler() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [watchFromUrl, setWatchFromUrl] = useState<WatchFromUrl | null>(null);
+
+  useEffect(() => {
+    const watchId = searchParams.get('watch');
+    const type = searchParams.get('type') as ContentType | null;
+
+    if (watchId && type) {
+      setWatchFromUrl({
+        tmdbId: parseInt(watchId, 10),
+        contentType: type,
+        title: 'From Watchlist',
+      });
+    } else {
+      setWatchFromUrl(null);
+    }
+  }, [searchParams]);
+
+  const handleClose = useCallback(() => {
+    setWatchFromUrl(null);
+    router.replace('/dashboard', { scroll: false });
+  }, [router]);
+
+  if (!watchFromUrl) return null;
+
+  return (
+    <StreamPlayer
+      tmdbId={watchFromUrl.tmdbId}
+      contentType={watchFromUrl.contentType}
+      title={watchFromUrl.title}
+      onClose={handleClose}
+    />
+  );
 }
 
 export default function DashboardPage() {
@@ -196,6 +245,11 @@ export default function DashboardPage() {
 
       {/* Currently Watching Banner - Fixed at bottom */}
       <CurrentlyWatchingBanner />
+
+      {/* URL-triggered Stream Player - wrapped in Suspense for useSearchParams */}
+      <Suspense fallback={null}>
+        <UrlStreamHandler />
+      </Suspense>
     </div>
   );
 }

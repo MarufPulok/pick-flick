@@ -6,7 +6,8 @@
 
 'use client';
 
-import { Eye, Film, Flame, Star, ThumbsDown, ThumbsUp, TrendingUp, Tv } from 'lucide-react';
+import { Bookmark, Eye, Film, Flame, Star, ThumbsDown, ThumbsUp, TrendingUp, Tv } from 'lucide-react';
+import Link from 'next/link';
 
 interface UserStats {
   watchedCount: number;
@@ -22,6 +23,7 @@ interface UserStats {
   likeRatio?: number;
   currentStreak?: number;
   lastActiveDate?: string | null;
+  watchlistCount?: number;
 }
 
 interface StatsCardsProps {
@@ -152,6 +154,18 @@ export function StatsCards({ stats }: StatsCardsProps) {
               iconBg="bg-white/20"
               small
             />
+          )}
+          {stats.watchlistCount !== undefined && (
+            <Link href="/watchlist" className="block">
+              <StatCard
+                value={stats.watchlistCount}
+                label="Saved"
+                icon={<Bookmark className="w-4 h-4 text-white" />}
+                gradient="bg-gradient-to-br from-amber-500 to-yellow-600"
+                iconBg="bg-white/20"
+                small
+              />
+            </Link>
           )}
         </div>
       )}
