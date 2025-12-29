@@ -59,15 +59,44 @@ export class HistoryService {
    * Get user's recommendation history
    */
   static async getHistory(userId: string, options: {
-    action?: 'WATCHED' | 'LIKED' | 'DISLIKED';
+    action?: 'WATCHED' | 'LIKED' | 'DISLIKED' | 'BLACKLISTED';
+    contentType?: 'MOVIE' | 'SERIES' | 'ANIME';
+    dateRange?: 'today' | 'week' | 'month';
     limit?: number;
     skip?: number;
   } = {}) {
-    const { action, limit = 20, skip = 0 } = options;
+    const { action, contentType, dateRange, limit = 20, skip = 0 } = options;
 
-    const query: any = { userId };
+    const query: Record<string, unknown> = { userId };
+    
     if (action) {
       query.action = action;
+    }
+    
+    if (contentType) {
+      query.contentType = contentType;
+    }
+    
+    // Date range filter
+    if (dateRange) {
+      const now = new Date();
+      let startDate: Date;
+      
+      switch (dateRange) {
+        case 'today':
+          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          break;
+        case 'week':
+          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          break;
+        case 'month':
+          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          break;
+        default:
+          startDate = new Date(0);
+      }
+      
+      query.createdAt = { $gte: startDate };
     }
 
     const [items, total] = await Promise.all([

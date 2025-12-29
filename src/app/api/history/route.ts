@@ -30,16 +30,24 @@ export async function GET(req: NextRequest) {
 
     // Get query params
     const { searchParams } = new URL(req.url);
-    const action = searchParams.get('action') as 'WATCHED' | 'LIKED' | 'DISLIKED' | null;
+    const action = searchParams.get('action') as 'WATCHED' | 'LIKED' | 'DISLIKED' | 'BLACKLISTED' | null;
+    const contentType = searchParams.get('contentType') as 'MOVIE' | 'SERIES' | 'ANIME' | null;
+    const dateRange = searchParams.get('dateRange') as 'today' | 'week' | 'month' | null;
+    const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
-    const skip = parseInt(searchParams.get('skip') || '0');
+    const skip = (page - 1) * limit;
 
-    // Get history
+    // Get history with extended filters
     const result = await HistoryService.getHistory(user._id.toString(), {
       action: action || undefined,
+      contentType: contentType || undefined,
+      dateRange: dateRange || undefined,
       limit,
       skip,
     });
+
+    // Calculate pagination
+    const totalPages = Math.ceil(result.total / limit);
 
     const response = HistoryListResSchema.parse({
       items: result.items.map((item: any) => ({
@@ -55,7 +63,9 @@ export async function GET(req: NextRequest) {
         createdAt: item.createdAt.toISOString(),
       })),
       total: result.total,
-      hasMore: result.hasMore,
+      page,
+      totalPages,
+      hasMore: page < totalPages,
     });
 
     return NextResponse.json(response);

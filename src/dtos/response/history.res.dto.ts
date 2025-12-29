@@ -41,6 +41,8 @@ export type HistoryItem = z.infer<typeof HistoryItemSchema>;
 export const HistoryListResSchema = z.object({
   items: z.array(HistoryItemSchema),
   total: z.number(),
+  page: z.number().optional(),
+  totalPages: z.number().optional(),
   hasMore: z.boolean(),
 });
 
