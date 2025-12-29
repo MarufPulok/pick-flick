@@ -11,6 +11,7 @@ import {
     discoverCache,
     providersCache,
     recommendationsCache,
+    searchCache,
     similarCache,
     trendingCache,
     videosCache,
@@ -633,6 +634,64 @@ class TMDBClient {
       CACHE_TTL.TRENDING
     ) as Promise<TMDBSearchResponse<TMDBMovie | TMDBTVShow>>;
   }
+
+  // ============================================================================
+  // Multi-Search (Phase 4: Keyword Search)
+  // ============================================================================
+
+  /**
+   * Multi-search result item (can be movie, tv, or person)
+   */
+  async searchMulti(query: string, page = 1): Promise<TMDBSearchResponse<TMDBMultiSearchResult>> {
+    const cacheKey = `search:multi:${query}:${page}`;
+    
+    return searchCache.getOrSet(
+      cacheKey,
+      () => this.rateLimiter.throttle(async () => {
+        const response = await this.client.get<TMDBSearchResponse<TMDBMultiSearchResult>>('/search/multi', {
+          params: {
+            query,
+            page,
+            include_adult: false,
+            language: 'en-US',
+          },
+        });
+        return response.data;
+      }),
+      CACHE_TTL.SEARCH
+    ) as Promise<TMDBSearchResponse<TMDBMultiSearchResult>>;
+  }
+}
+
+/**
+ * Multi-search result type (union of movie, tv, person)
+ */
+export interface TMDBMultiSearchResult {
+  id: number;
+  media_type: 'movie' | 'tv' | 'person';
+  // Movie fields
+  title?: string;
+  original_title?: string;
+  release_date?: string;
+  // TV fields
+  name?: string;
+  original_name?: string;
+  first_air_date?: string;
+  origin_country?: string[];
+  // Shared fields
+  overview?: string | null;
+  poster_path?: string | null;
+  backdrop_path?: string | null;
+  vote_average?: number;
+  vote_count?: number;
+  genre_ids?: number[];
+  original_language?: string;
+  popularity?: number;
+  adult?: boolean;
+  // Person fields
+  profile_path?: string | null;
+  known_for_department?: string;
+  known_for?: TMDBMultiSearchResult[];
 }
 
 // Singleton instance

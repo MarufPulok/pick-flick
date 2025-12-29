@@ -14,7 +14,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bookmark, LayoutDashboard, LogOut, Settings, Sparkles } from 'lucide-react';
+import { Bookmark, LayoutDashboard, LogOut, Search, Settings, Sparkles } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
 
@@ -52,6 +52,17 @@ export function GlobalNav() {
           </Link>
           
           <div className="flex items-center gap-4">
+            {/* Search Button */}
+            {isAuthenticated && (
+              <Link
+                href="/search"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+              >
+                <Search className="w-4 h-4" />
+                <span className="text-sm hidden sm:inline">Search</span>
+              </Link>
+            )}
+
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-secondary transition-colors outline-none">
