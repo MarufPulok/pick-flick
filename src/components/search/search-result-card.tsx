@@ -1,12 +1,13 @@
 /**
  * SearchResultCard Component
- * Displays individual search result with poster, info, and actions
+ * Displays individual search result with poster, info, and streaming buttons
  */
 
 'use client';
 
 import { ContentType } from '@/dtos/common.dto';
-import { Film, Star, Tv, User } from 'lucide-react';
+import { getFreeStreamingOptions } from '@/lib/free-streaming';
+import { ExternalLink, Film, Star, Tv, User } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -43,16 +44,21 @@ export function SearchResultCard({ result }: SearchResultCardProps) {
                  : result.type === 'tv' ? Tv 
                  : User;
 
+  // Get streaming options for movies/TV
+  const streamingServices = result.type !== 'person' && result.contentType
+    ? getFreeStreamingOptions(result.title, result.contentType).slice(0, 3)
+    : [];
+
   return (
-    <Link
-      href={linkUrl}
-      className="group flex gap-4 p-4 rounded-xl glass hover:bg-white/5
-                 transition-all duration-200 border border-transparent
-                 hover:border-primary/30"
-    >
+    <div className="group flex gap-4 p-4 rounded-xl glass hover:bg-white/5
+                    transition-all duration-200 border border-transparent
+                    hover:border-primary/30">
       {/* Poster / Profile */}
-      <div className="w-20 h-28 rounded-lg overflow-hidden bg-secondary flex-shrink-0
-                      ring-2 ring-transparent group-hover:ring-primary transition-all">
+      <Link
+        href={linkUrl}
+        className="w-20 h-28 rounded-lg overflow-hidden bg-secondary flex-shrink-0
+                   ring-2 ring-transparent group-hover:ring-primary transition-all"
+      >
         {result.posterUrl || result.profileUrl ? (
           <Image
             src={result.posterUrl || result.profileUrl!}
@@ -66,16 +72,18 @@ export function SearchResultCard({ result }: SearchResultCardProps) {
             <TypeIcon className="w-8 h-8 text-muted-foreground" />
           </div>
         )}
-      </div>
+      </Link>
 
       {/* Info */}
       <div className="flex-1 min-w-0 py-1">
         {/* Title and Type */}
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold text-lg line-clamp-1 group-hover:text-primary transition-colors">
-            {result.title}
-          </h3>
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary text-xs">
+          <Link href={linkUrl}>
+            <h3 className="font-semibold text-lg line-clamp-1 group-hover:text-primary transition-colors">
+              {result.title}
+            </h3>
+          </Link>
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary text-xs flex-shrink-0">
             <TypeIcon className="w-3 h-3" />
             <span className="capitalize">{result.type}</span>
           </div>
@@ -110,8 +118,30 @@ export function SearchResultCard({ result }: SearchResultCardProps) {
             Known for: {result.knownFor.slice(0, 3).join(', ')}
           </p>
         )}
+
+        {/* Streaming Buttons - Inline */}
+        {streamingServices.length > 0 && (
+          <div className="flex items-center gap-2 mt-3">
+            <span className="text-[10px] text-green-400 font-medium">🆓 Play on:</span>
+            {streamingServices.map((service) => (
+              <a
+                key={service.id}
+                href={service.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg
+                           bg-green-600/20 hover:bg-green-600/30 text-green-400
+                           text-xs font-medium transition-colors border border-green-500/30"
+              >
+                {service.name}
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            ))}
+          </div>
+        )}
       </div>
-    </Link>
+    </div>
   );
 }
 

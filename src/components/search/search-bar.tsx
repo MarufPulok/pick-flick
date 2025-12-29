@@ -1,13 +1,14 @@
 /**
  * SearchBar Component
- * Search input with real-time autocomplete suggestions
+ * Search input with real-time autocomplete suggestions and inline streaming buttons
  */
 
 'use client';
 
 import { ContentType } from '@/dtos/common.dto';
 import { useSearchSuggestions } from '@/hooks/use-search';
-import { Film, Loader2, Search, Tv, User, X } from 'lucide-react';
+import { getFreeStreamingOptions } from '@/lib/free-streaming';
+import { ExternalLink, Film, Loader2, Search, Tv, User, X } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -108,10 +109,8 @@ export function SearchBar({
     if (!item) return;
     
     if (item.type === 'person') {
-      // For now, just search for the person's name
       router.push(`/search?q=${encodeURIComponent(item.title)}`);
     } else {
-      // Navigate to dashboard with watch param
       router.push(`/dashboard?watch=${item.tmdbId}&type=${item.contentType}`);
     }
     setQuery('');
@@ -175,61 +174,93 @@ export function SearchBar({
               <Loader2 className="w-5 h-5 animate-spin text-primary" />
             </div>
           ) : suggestions && suggestions.length > 0 ? (
-            <ul className="py-1">
-              {suggestions.map((item, index) => (
-                <li key={`${item.type}-${item.tmdbId}`}>
-                  <button
-                    onClick={() => handleSuggestionClick(item)}
-                    className={`
-                      w-full flex items-center gap-3 px-4 py-2.5 text-left
-                      transition-colors
-                      ${index === selectedIndex 
-                        ? 'bg-primary/20' 
-                        : 'hover:bg-secondary/50'
-                      }
-                    `}
-                  >
-                    {/* Poster/Profile */}
-                    <div className="w-10 h-14 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                      {item.posterUrl || item.profileUrl ? (
-                        <Image
-                          src={item.posterUrl || item.profileUrl!}
-                          alt={item.title}
-                          width={40}
-                          height={56}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          {item.type === 'movie' && <Film className="w-4 h-4 text-muted-foreground" />}
-                          {item.type === 'tv' && <Tv className="w-4 h-4 text-muted-foreground" />}
-                          {item.type === 'person' && <User className="w-4 h-4 text-muted-foreground" />}
+            <ul className="py-1 max-h-[450px] overflow-y-auto">
+              {suggestions.map((item, index) => {
+                // Get streaming services for this item
+                const streamingServices = item.type !== 'person' && item.contentType
+                  ? getFreeStreamingOptions(item.title, item.contentType).slice(0, 3)
+                  : [];
+
+                return (
+                  <li key={`${item.type}-${item.tmdbId}`} className="border-b border-border/30 last:border-b-0">
+                    <div
+                      className={`
+                        px-4 py-3 transition-colors
+                        ${index === selectedIndex ? 'bg-primary/20' : 'hover:bg-secondary/50'}
+                      `}
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* Poster/Profile */}
+                        <button
+                          onClick={() => handleSuggestionClick(item)}
+                          className="w-12 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0"
+                        >
+                          {item.posterUrl || item.profileUrl ? (
+                            <Image
+                              src={item.posterUrl || item.profileUrl!}
+                              alt={item.title}
+                              width={48}
+                              height={64}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              {item.type === 'movie' && <Film className="w-5 h-5 text-muted-foreground" />}
+                              {item.type === 'tv' && <Tv className="w-5 h-5 text-muted-foreground" />}
+                              {item.type === 'person' && <User className="w-5 h-5 text-muted-foreground" />}
+                            </div>
+                          )}
+                        </button>
+
+                        {/* Info */}
+                        <button
+                          onClick={() => handleSuggestionClick(item)}
+                          className="flex-1 min-w-0 text-left"
+                        >
+                          <p className="font-medium text-sm truncate">{item.title}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                            <span className="capitalize">{item.type}</span>
+                            {item.releaseDate && (
+                              <>
+                                <span>•</span>
+                                <span>{new Date(item.releaseDate).getFullYear()}</span>
+                              </>
+                            )}
+                            {item.rating > 0 && (
+                              <>
+                                <span>•</span>
+                                <span className="text-yellow-500">★ {item.rating.toFixed(1)}</span>
+                              </>
+                            )}
+                          </div>
+                        </button>
+                      </div>
+
+                      {/* Inline Streaming Buttons */}
+                      {streamingServices.length > 0 && (
+                        <div className="flex items-center gap-2 mt-2 ml-15 pl-15">
+                          <span className="text-[10px] text-green-400 font-medium ml-[60px]">🆓</span>
+                          {streamingServices.map((service) => (
+                            <a
+                              key={service.id}
+                              href={service.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="flex items-center gap-1 px-2 py-1 rounded-md
+                                         bg-green-600/20 hover:bg-green-600/40 text-green-400
+                                         text-[11px] font-medium transition-colors"
+                            >
+                              {service.name}
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </a>
+                          ))}
                         </div>
                       )}
                     </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{item.title}</p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="capitalize">{item.type}</span>
-                        {item.releaseDate && (
-                          <>
-                            <span>•</span>
-                            <span>{new Date(item.releaseDate).getFullYear()}</span>
-                          </>
-                        )}
-                        {item.rating > 0 && (
-                          <>
-                            <span>•</span>
-                            <span className="text-yellow-500">★ {item.rating.toFixed(1)}</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           ) : query.length >= 2 ? (
             <div className="py-6 text-center text-sm text-muted-foreground">
