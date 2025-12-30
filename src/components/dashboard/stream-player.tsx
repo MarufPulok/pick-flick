@@ -1,11 +1,13 @@
 /**
  * StreamPlayer Component
  * Embedded streaming player using RiveStream
+ * Tracks viewing for "Continue Watching" feature
  */
 
 'use client';
 
 import { ContentType } from '@/dtos/common.dto';
+import { useRecordViewing } from '@/hooks/use-continue-watching';
 import { buildRiveStreamUrl } from '@/lib/rivestream';
 import { setStreamOpen } from '@/lib/watching-state';
 import { ExternalLink, Maximize2, Minimize2, X } from 'lucide-react';
@@ -15,6 +17,7 @@ interface StreamPlayerProps {
   tmdbId: number;
   contentType: ContentType;
   title: string;
+  posterPath?: string | null;
   onClose: () => void;
 }
 
@@ -22,16 +25,27 @@ export function StreamPlayer({
   tmdbId,
   contentType,
   title,
+  posterPath,
   onClose,
 }: StreamPlayerProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const streamUrl = buildRiveStreamUrl(tmdbId, contentType);
+  const recordViewing = useRecordViewing();
 
-  // Mark stream as open when mounted, clear when unmounted
+  // Mark stream as open and record viewing when mounted
   useEffect(() => {
     setStreamOpen(true);
+    
+    // Record this viewing for "Continue Watching"
+    recordViewing.mutate({
+      tmdbId,
+      contentType,
+      title,
+      posterPath: posterPath || null,
+    });
+
     return () => setStreamOpen(false);
-  }, []);
+  }, [tmdbId, contentType, title, posterPath]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleFullscreen = useCallback(() => {
     setIsFullscreen(prev => !prev);

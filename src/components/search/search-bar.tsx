@@ -111,7 +111,19 @@ export function SearchBar({
     if (item.type === 'person') {
       router.push(`/search?q=${encodeURIComponent(item.title)}`);
     } else {
-      router.push(`/dashboard?watch=${item.tmdbId}&type=${item.contentType}`);
+      // Extract poster path from full URL if available (path includes leading slash)
+      const posterFile = item.posterUrl?.split('/t/p/')[1]?.split('/')[1] || null;
+      const posterPath = posterFile ? `/${posterFile}` : null;
+      
+      const params = new URLSearchParams({
+        watch: item.tmdbId.toString(),
+        type: item.contentType || 'MOVIE',
+        title: item.title,
+      });
+      if (posterPath) {
+        params.set('poster', posterPath);
+      }
+      router.push(`/dashboard?${params.toString()}`);
     }
     setQuery('');
     setIsFocused(false);

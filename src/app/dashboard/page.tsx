@@ -14,17 +14,18 @@
 
 import {
   ActivityFeed,
+  ContinueWatchingSection,
   CurrentlyWatchingBanner,
   GeneratorForm,
   QuickMoods,
   Recommendation,
   RecommendationCard,
   StatsCards,
+  StreamPlayer,
   TimeContextPill,
   TrendingSection,
   WelcomeHeader,
 } from '@/components/dashboard';
-import { StreamPlayer } from '@/components/dashboard/stream-player';
 import { RATING_TIERS } from '@/config/app.config';
 import { ContentType } from '@/dtos/common.dto';
 import { useHistoryActions } from '@/hooks/use-history-actions';
@@ -46,6 +47,7 @@ interface WatchFromUrl {
   tmdbId: number;
   contentType: ContentType;
   title: string;
+  posterPath: string | null;
 }
 
 /**
@@ -60,12 +62,15 @@ function UrlStreamHandler() {
   useEffect(() => {
     const watchId = searchParams.get('watch');
     const type = searchParams.get('type') as ContentType | null;
+    const title = searchParams.get('title');
+    const poster = searchParams.get('poster');
 
     if (watchId && type) {
       setWatchFromUrl({
         tmdbId: parseInt(watchId, 10),
         contentType: type,
-        title: 'From Watchlist',
+        title: title || 'Unknown Title',
+        posterPath: poster || null,
       });
     } else {
       setWatchFromUrl(null);
@@ -84,6 +89,7 @@ function UrlStreamHandler() {
       tmdbId={watchFromUrl.tmdbId}
       contentType={watchFromUrl.contentType}
       title={watchFromUrl.title}
+      posterPath={watchFromUrl.posterPath}
       onClose={handleClose}
     />
   );
@@ -201,6 +207,11 @@ export default function DashboardPage() {
 
         {/* Stats */}
         <StatsCards stats={stats} />
+
+        {/* Continue Watching - shows when not viewing recommendation */}
+        {!recommendation && (
+          <ContinueWatchingSection />
+        )}
 
         {/* Trending Section - shows when not viewing recommendation */}
         {!recommendation && (

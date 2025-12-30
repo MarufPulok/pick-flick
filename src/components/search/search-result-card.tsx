@@ -36,9 +36,13 @@ export function SearchResultCard({ result }: SearchResultCardProps) {
     ? new Date(result.releaseDate).getFullYear() 
     : null;
 
+  // Extract poster path from full URL if available (path includes leading slash)
+  const posterFile = result.posterUrl?.split('/t/p/')[1]?.split('/')[1] || null;
+  const posterPath = posterFile ? `/${posterFile}` : null;
+
   const linkUrl = result.type === 'person'
     ? `/search?q=${encodeURIComponent(result.title)}`
-    : `/dashboard?watch=${result.tmdbId}&type=${result.contentType}`;
+    : `/dashboard?watch=${result.tmdbId}&type=${result.contentType}&title=${encodeURIComponent(result.title)}${posterPath ? `&poster=${encodeURIComponent(posterPath)}` : ''}`;
 
   const TypeIcon = result.type === 'movie' ? Film 
                  : result.type === 'tv' ? Tv 
