@@ -13,13 +13,22 @@
 - **🎯 Personalized Picks** - One recommendation at a time based on your taste profile
 - **🧠 Preference Learning** - System learns from your likes/dislikes to improve over time
 - **🔄 Content Diversity** - Automatically varies between movies, series, and anime
+- **⏰ Time-Based Suggestions** - Different recommendations based on time of day (morning, evening, late night)
+- **😊 Mood Analysis** - AI-powered mood detection for contextual recommendations
 
 ### Rich Discovery
+- **🔍 Universal Search** - Search movies, TV shows, and people with real-time autocomplete
 - **🎬 Trailer Preview** - Watch trailers directly in the app via modal player
 - **💡 "Why This Pick?"** - See explanations for why each recommendation matches you
 - **📺 Streaming Availability** - See where to watch (Netflix, Hulu, Disney+, etc.)
-- **🆓 Universal Free Streaming** - Direct links to 100% free streaming platforms for movies, TV shows, and anime
-- **▶️ In-App Streaming** - Watch movies, TV shows, and anime directly in the app without leaving the page
+- **🆓 Universal Free Streaming** - Direct links to MovieBox, Cineb, SyncPlay for free streaming
+- **▶️ In-App Streaming** - Watch movies, TV shows, and anime directly without leaving the page
+- **✨ More Like This** - Discover similar content with inline streaming buttons
+
+### Content Exploration
+- **🔥 Trending Now** - See what's popular globally and in your region
+- **📑 Watchlist** - Save content to watch later with filtering and quick-pick
+- **📜 Watch History** - Track your viewing history with filters, pagination, and export (JSON/CSV)
 
 ### Two Modes
 - **✨ Smart Mode** - AI picks based on your complete taste profile
@@ -60,6 +69,9 @@ TMDB_ACCESS_TOKEN=your-tmdb-access-token
 # Application
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
+# AI Features (Optional - enables mood analysis)
+BYTEZ_API_KEY=your-bytez-api-key
+
 # Universal Free Streaming
 NEXT_PUBLIC_ENABLE_FREE_STREAMING=true
 NEXT_PUBLIC_MAX_FREE_SERVICES=4
@@ -81,32 +93,6 @@ BETTER_AUTH_SECRET=your-random-secret-here
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 ```
-
-#### Environment Variable Details
-
-**Universal Free Streaming Configuration:**
-
-- **NEXT_PUBLIC_ENABLE_FREE_STREAMING** - Global toggle for the free streaming feature (true/false)
-- **NEXT_PUBLIC_MAX_FREE_SERVICES** - Maximum number of streaming services to display (default: 4)
-
-**Platform Toggles:** Enable/disable individual streaming platforms
-
-- **NEXT_PUBLIC_ENABLE_MOVIEBOX** - Toggle MovieBox (movies & TV series)
-- **NEXT_PUBLIC_ENABLE_CINEB** - Toggle Cineb (movies & TV series)
-- **NEXT_PUBLIC_ENABLE_SYNCPLAY** - Toggle SyncPlay (movies, TV series & anime)
-- **NEXT_PUBLIC_ENABLE_HIANIME** - Toggle HiAnime (anime)
-
-**Custom Platform URLs:** Override default URLs for streaming platforms
-
-- **NEXT_PUBLIC_MOVIEBOX_BASE_URL** - Custom MovieBox URL (default: https://moviebox.ph)
-- **NEXT_PUBLIC_CINEB_BASE_URL** - Custom Cineb URL (default: https://cineb.gg)
-- **NEXT_PUBLIC_SYNCPLAY_BASE_URL** - Custom SyncPlay URL (default: https://syncplay.vercel.app)
-- **NEXT_PUBLIC_HIANIME_BASE_URL** - Custom HiAnime URL (default: https://hianime.to)
-
-**Examples:**
-
-- **Movies & TV Series**: MovieBox, Cineb, and SyncPlay provide free movies and TV shows with ads
-- **Anime**: HiAnime and SyncPlay provide free anime streaming
 
 ### Installation
 
@@ -133,6 +119,7 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 | **Auth** | NextAuth.js (Google OAuth) |
 | **API** | TMDB (The Movie Database) |
 | **State** | React Query (TanStack) |
+| **AI** | Bytez (Optional - Mood Analysis) |
 
 ---
 
@@ -142,22 +129,34 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 src/
 ├── app/                    # Next.js App Router pages
 │   ├── api/               # API routes
+│   │   ├── history/       # Watch history endpoints
+│   │   ├── search/        # Multi-search endpoint
+│   │   ├── similar/       # Similar content endpoint
+│   │   ├── trending/      # Trending content endpoint
+│   │   ├── watchlist/     # Watchlist endpoints
+│   │   └── mood-analyze/  # AI mood analysis
 │   ├── dashboard/         # Main recommendation page
+│   ├── history/           # Watch history page
+│   ├── search/            # Search results page
+│   ├── watchlist/         # Saved content page
 │   ├── login/             # Authentication
 │   └── onboarding/        # Taste profile setup
 ├── components/
 │   ├── dashboard/         # Dashboard-specific components
+│   ├── search/            # Search components
 │   └── ui/                # shadcn/ui components
 ├── config/                # App configuration
 ├── dtos/                  # Data transfer objects (Zod schemas)
 ├── hooks/                 # Custom React hooks
 ├── infrastructure/
 │   ├── db/               # MongoDB models & connection
-│   └── external/         # TMDB API client
+│   └── external/         # TMDB API client, Bytez client
 ├── lib/                   # Auth & utilities
 └── services/              # Business logic
     ├── history.service.ts
-    ├── preference-weights.service.ts
+    ├── similar.service.ts
+    ├── search.service.ts
+    ├── trending.service.ts
     └── recommendation.service.ts
 ```
 
@@ -184,22 +183,32 @@ The system tries these strategies in order until one succeeds:
 
 ---
 
-## 🛣️ Roadmap
+## 📱 Pages & Routes
 
-### ✅ Completed
-- [x] Trailer Preview Integration
-- [x] "Why This Pick?" Explanation
-- [x] Content Type Diversity Tracking
-- [x] Streaming Availability
-- [x] Preference Weights Learning
-- [x] Enhanced Stats Dashboard
+| Route | Description |
+|-------|-------------|
+| `/` | Landing page |
+| `/dashboard` | Main recommendation interface |
+| `/search` | Search movies, TV shows, people |
+| `/watchlist` | Saved content with filtering |
+| `/history` | Watch history with export |
+| `/onboarding` | Taste profile setup |
 
-### 📋 Coming Soon
-- [ ] Query Result Caching
-- [ ] Time-Based Recommendations
-- [ ] Watchlist / Save for Later
-- [ ] "More Like This"
-- [ ] Trending Now Section
+---
+
+## 🔌 API Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/recommendation` | POST | Get personalized recommendation |
+| `/api/search` | GET | Multi-search (movies, TV, people) |
+| `/api/similar/[id]` | GET | Get similar content |
+| `/api/trending` | GET | Trending content by region |
+| `/api/watchlist` | GET/POST/DELETE | Manage watchlist |
+| `/api/history` | GET/POST | View/record history |
+| `/api/mood-analyze` | GET/POST | AI mood analysis |
+| `/api/stats` | GET | User statistics |
+| `/api/cache-stats` | GET | Cache performance stats |
 
 ---
 
@@ -214,6 +223,7 @@ This project is for educational and personal use. TMDB API usage subject to thei
 - [TMDB](https://www.themoviedb.org) for the amazing movie database API
 - [shadcn/ui](https://ui.shadcn.com) for beautiful UI components
 - [Vercel](https://vercel.com) for Next.js and hosting
+- [Bytez](https://bytez.com) for AI capabilities
 
 ---
 
