@@ -111,7 +111,7 @@ export function SearchBar({
     if (item.type === 'person') {
       router.push(`/search?q=${encodeURIComponent(item.title)}`);
     } else {
-      router.push(`/dashboard?watch=${item.tmdbId}&type=${item.contentType}`);
+      router.push(`/watch?id=${item.tmdbId}&type=${item.contentType}&title=${encodeURIComponent(item.title)}&poster=${encodeURIComponent(item.posterUrl || '')}`);
     }
     setQuery('');
     setIsFocused(false);

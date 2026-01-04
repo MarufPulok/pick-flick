@@ -52,16 +52,14 @@ export function GlobalNav() {
           </Link>
           
           <div className="flex items-center gap-4">
-            {/* Search Button */}
-            {isAuthenticated && (
-              <Link
-                href="/search"
-                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
-              >
-                <Search className="w-4 h-4" />
-                <span className="text-sm hidden sm:inline">Search</span>
-              </Link>
-            )}
+            {/* Search Button - Available for all users */}
+            <Link
+              href="/search"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+            >
+              <Search className="w-4 h-4" />
+              <span className="text-sm hidden sm:inline">Search</span>
+            </Link>
 
             {isAuthenticated ? (
               <DropdownMenu>

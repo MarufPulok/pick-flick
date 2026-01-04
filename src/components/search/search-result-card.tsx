@@ -38,7 +38,7 @@ export function SearchResultCard({ result }: SearchResultCardProps) {
 
   const linkUrl = result.type === 'person'
     ? `/search?q=${encodeURIComponent(result.title)}`
-    : `/dashboard?watch=${result.tmdbId}&type=${result.contentType}`;
+    : `/watch?id=${result.tmdbId}&type=${result.contentType}&title=${encodeURIComponent(result.title)}&poster=${encodeURIComponent(result.posterUrl || '')}`;
 
   const TypeIcon = result.type === 'movie' ? Film 
                  : result.type === 'tv' ? Tv 
