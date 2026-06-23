@@ -8,10 +8,10 @@
 
 import { ContentType } from '@/dtos/common.dto';
 import { useTrending } from '@/hooks/use-trending';
-import { Film, Flame, Loader2, Play, Tv } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Film, Flame, Loader2, Play, Tv } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface TrendingSectionProps {
   limit?: number;
@@ -20,6 +20,9 @@ interface TrendingSectionProps {
 export function TrendingSection({ limit = 8 }: TrendingSectionProps) {
   const [selectedType, setSelectedType] = useState<'ALL' | 'MOVIE' | 'SERIES'>('ALL');
   const [timeWindow, setTimeWindow] = useState<'day' | 'week'>('day');
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(true);
 
   const { data, isLoading, error } = useTrending({
     type: selectedType,
@@ -28,6 +31,46 @@ export function TrendingSection({ limit = 8 }: TrendingSectionProps) {
   });
 
   const items = data?.items ?? [];
+
+  const checkScrollButtons = () => {
+    if (!scrollContainerRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+    const hasOverflow = scrollWidth > clientWidth;
+    setShowLeftArrow(hasOverflow && scrollLeft > 10);
+    setShowRightArrow(hasOverflow && scrollLeft < scrollWidth - clientWidth - 10);
+  };
+
+  useEffect(() => {
+    // Use setTimeout to ensure DOM is fully rendered
+    const timer = setTimeout(() => {
+      checkScrollButtons();
+    }, 100);
+    
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.addEventListener('scroll', checkScrollButtons);
+      window.addEventListener('resize', checkScrollButtons);
+      return () => {
+        clearTimeout(timer);
+        container.removeEventListener('scroll', checkScrollButtons);
+        window.removeEventListener('resize', checkScrollButtons);
+      };
+    }
+    return () => clearTimeout(timer);
+  }, [items]);
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (!scrollContainerRef.current) return;
+    const scrollAmount = scrollContainerRef.current.clientWidth * 0.8;
+    const scrollTo = direction === 'left' 
+      ? scrollContainerRef.current.scrollLeft - scrollAmount
+      : scrollContainerRef.current.scrollLeft + scrollAmount;
+    
+    scrollContainerRef.current.scrollTo({
+      left: scrollTo,
+      behavior: 'smooth',
+    });
+  };
 
   return (
     <div className="glass rounded-2xl p-5 mb-6">
@@ -100,10 +143,54 @@ export function TrendingSection({ limit = 8 }: TrendingSectionProps) {
           <p className="text-muted-foreground">No trending content available</p>
         </div>
       ) : (
-        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-          {items.map((item, index) => (
-            <TrendingCard key={item.tmdbId} item={item} rank={index + 1} />
-          ))}
+        <div className="relative">
+          {/* Left Arrow */}
+          {showLeftArrow && (
+            <button
+              onClick={() => scroll('left')}
+              className="absolute left-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center
+                         bg-gradient-to-r from-card/95 via-card/50 to-transparent
+                         hover:from-card hover:via-card/70 hover:to-transparent
+                         transition-all duration-200"
+              aria-label="Scroll left"
+            >
+              <div className="w-8 h-8 rounded-full bg-primary/90 hover:bg-primary flex items-center justify-center
+                            shadow-lg backdrop-blur-sm transition-all hover:scale-110">
+                <ChevronLeft className="w-5 h-5 text-primary-foreground" />
+              </div>
+            </button>
+          )}
+
+          {/* Scrollable Container */}
+          <div 
+            ref={scrollContainerRef}
+            className="w-full overflow-x-auto pb-2 scrollbar-hide"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+            onScroll={checkScrollButtons}
+          >
+            <div className="flex gap-3 flex-nowrap select-none">
+              {items.map((item, index) => (
+                <TrendingCard key={item.tmdbId} item={item} rank={index + 1} />
+              ))}
+            </div>
+          </div>
+
+          {/* Right Arrow */}
+          {showRightArrow && (
+            <button
+              onClick={() => scroll('right')}
+              className="absolute right-0 top-0 bottom-0 z-10 w-12 flex items-center justify-center
+                         bg-gradient-to-l from-card/95 via-card/50 to-transparent
+                         hover:from-card hover:via-card/70 hover:to-transparent
+                         transition-all duration-200"
+              aria-label="Scroll right"
+            >
+              <div className="w-8 h-8 rounded-full bg-primary/90 hover:bg-primary flex items-center justify-center
+                            shadow-lg backdrop-blur-sm transition-all hover:scale-110">
+                <ChevronRight className="w-5 h-5 text-primary-foreground" />
+              </div>
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -134,12 +221,12 @@ function TrendingCard({ item, rank }: { item: TrendingContentItem; rank: number 
   return (
     <Link
       href={watchUrl}
-      className="group flex-shrink-0 w-[130px] sm:w-[150px]"
+      className="group flex-shrink-0 w-[130px] sm:w-[150px] select-none cursor-pointer"
     >
       {/* Poster with Rank */}
       <div className="aspect-[2/3] relative rounded-xl overflow-hidden bg-secondary 
-                      ring-2 ring-transparent group-hover:ring-primary transition-all duration-200
-                      group-hover:scale-[1.02] group-hover:shadow-lg">
+                      border-2 border-transparent group-hover:border-primary/30
+                      transition-all duration-200">
         {item.posterUrl ? (
           <Image
             src={item.posterUrl}
@@ -168,12 +255,12 @@ function TrendingCard({ item, rank }: { item: TrendingContentItem; rank: number 
         </div>
 
         {/* Hover Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent 
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent 
                         opacity-0 group-hover:opacity-100 transition-opacity duration-200 
-                        flex items-center justify-center">
-          <div className="p-3 rounded-full bg-primary/90 backdrop-blur-sm shadow-lg
-                          transform scale-90 group-hover:scale-100 transition-transform">
-            <Play className="w-5 h-5 text-primary-foreground" fill="currentColor" />
+                        flex items-center justify-center pointer-events-none">
+          <div className="p-2.5 rounded-full bg-primary/80 backdrop-blur-sm shadow-lg
+                          transform scale-75 group-hover:scale-100 transition-transform duration-200">
+            <Play className="w-4 h-4 text-primary-foreground" fill="currentColor" />
           </div>
         </div>
 
@@ -194,8 +281,8 @@ function TrendingCard({ item, rank }: { item: TrendingContentItem; rank: number 
       </div>
 
       {/* Info */}
-      <div className="mt-2 px-0.5">
-        <h4 className="font-medium text-xs line-clamp-2 leading-tight group-hover:text-primary transition-colors">
+      <div className="mt-2 px-0.5 select-none">
+        <h4 className="font-medium text-xs line-clamp-2 leading-tight transition-colors duration-200">
           {item.title}
         </h4>
         {year && (

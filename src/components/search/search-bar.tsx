@@ -3,20 +3,20 @@
  * Search input with real-time autocomplete suggestions and inline streaming buttons
  */
 
-'use client';
+"use client";
 
-import { ContentType } from '@/dtos/common.dto';
-import { useSearchSuggestions } from '@/hooks/use-search';
-import { getFreeStreamingOptions } from '@/lib/free-streaming';
-import { ExternalLink, Film, Loader2, Search, Tv, User, X } from 'lucide-react';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { ContentType } from "@/dtos/common.dto";
+import { useSearchSuggestions } from "@/hooks/use-search";
+import { getFreeStreamingOptions } from "@/lib/free-streaming";
+import { ExternalLink, Film, Loader2, Search, Tv, User, X } from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface SearchResultItem {
   tmdbId: number;
   title: string;
-  type: 'movie' | 'tv' | 'person';
+  type: "movie" | "tv" | "person";
   contentType: ContentType | null;
   posterUrl: string | null;
   releaseDate: string | null;
@@ -35,12 +35,12 @@ interface SearchBarProps {
 }
 
 export function SearchBar({
-  placeholder = 'Search movies, shows, people...',
+  placeholder = "Search movies, shows, people...",
   onSearch,
   onChange,
-  defaultValue = '',
+  defaultValue = "",
   autoFocus = false,
-  className = '',
+  className = "",
   showAutocomplete = true,
 }: SearchBarProps) {
   const router = useRouter();
@@ -50,50 +50,63 @@ export function SearchBar({
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { data: suggestions, isLoading } = useSearchSuggestions(query, isFocused && showAutocomplete);
-  const showSuggestionsDropdown = showAutocomplete && isFocused && query.length >= 2 && (suggestions?.length || isLoading);
+  const { data: suggestions, isLoading } = useSearchSuggestions(
+    query,
+    isFocused && showAutocomplete,
+  );
+  const showSuggestionsDropdown =
+    showAutocomplete &&
+    isFocused &&
+    query.length >= 2 &&
+    (suggestions?.length || isLoading);
 
   // Handle click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setIsFocused(false);
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Handle keyboard navigation
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (!showSuggestionsDropdown || !suggestions?.length) return;
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!showSuggestionsDropdown || !suggestions?.length) return;
 
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setSelectedIndex(prev => 
-          prev < suggestions.length - 1 ? prev + 1 : prev
-        );
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
-        break;
-      case 'Enter':
-        e.preventDefault();
-        if (selectedIndex >= 0 && suggestions[selectedIndex]) {
-          handleSuggestionClick(suggestions[selectedIndex]);
-        } else if (query.trim()) {
-          handleSearch();
-        }
-        break;
-      case 'Escape':
-        setIsFocused(false);
-        setSelectedIndex(-1);
-        break;
-    }
-  }, [showSuggestionsDropdown, suggestions, selectedIndex, query]);
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          setSelectedIndex((prev) =>
+            prev < suggestions.length - 1 ? prev + 1 : prev,
+          );
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
+          break;
+        case "Enter":
+          e.preventDefault();
+          if (selectedIndex >= 0 && suggestions[selectedIndex]) {
+            handleSuggestionClick(suggestions[selectedIndex]);
+          } else if (query.trim()) {
+            handleSearch();
+          }
+          break;
+        case "Escape":
+          setIsFocused(false);
+          setSelectedIndex(-1);
+          break;
+      }
+    },
+    [showSuggestionsDropdown, suggestions, selectedIndex, query],
+  );
 
   // Handle search submit
   const handleSearch = useCallback(() => {
@@ -105,33 +118,37 @@ export function SearchBar({
   }, [query, onSearch, router]);
 
   // Handle suggestion click
-  const handleSuggestionClick = useCallback((item: SearchResultItem) => {
-    if (!item) return;
-    
-    if (item.type === 'person') {
-      router.push(`/search?q=${encodeURIComponent(item.title)}`);
-    } else {
-      // Extract poster path from full URL if available (path includes leading slash)
-      const posterFile = item.posterUrl?.split('/t/p/')[1]?.split('/')[1] || null;
-      const posterPath = posterFile ? `/${posterFile}` : null;
-      
-      const params = new URLSearchParams({
-        watch: item.tmdbId.toString(),
-        type: item.contentType || 'MOVIE',
-        title: item.title,
-      });
-      if (posterPath) {
-        params.set('poster', posterPath);
+  const handleSuggestionClick = useCallback(
+    (item: SearchResultItem) => {
+      if (!item) return;
+
+      if (item.type === "person") {
+        router.push(`/search?q=${encodeURIComponent(item.title)}`);
+      } else {
+        // Extract poster path from full URL if available (path includes leading slash)
+        const posterFile =
+          item.posterUrl?.split("/t/p/")[1]?.split("/")[1] || null;
+        const posterPath = posterFile ? `/${posterFile}` : null;
+
+        const params = new URLSearchParams({
+          watch: item.tmdbId.toString(),
+          type: item.contentType || "MOVIE",
+          title: item.title,
+        });
+        if (posterPath) {
+          params.set("poster", posterPath);
+        }
+        router.push(`/dashboard?${params.toString()}`);
       }
-      router.push(`/dashboard?${params.toString()}`);
-    }
-    setQuery('');
-    setIsFocused(false);
-  }, [router]);
+      setQuery("");
+      setIsFocused(false);
+    },
+    [router],
+  );
 
   // Clear search
   const handleClear = useCallback(() => {
-    setQuery('');
+    setQuery("");
     setSelectedIndex(-1);
     inputRef.current?.focus();
   }, []);
@@ -139,14 +156,17 @@ export function SearchBar({
   return (
     <div ref={containerRef} className={`relative ${className}`}>
       {/* Search Input */}
-      <div className={`
+      <div
+        className={`
         relative flex items-center gap-2 px-4 py-3 rounded-xl
         bg-secondary/50 border transition-all duration-200
-        ${isFocused 
-          ? 'border-primary ring-2 ring-primary/20' 
-          : 'border-border hover:border-muted-foreground/50'
+        ${
+          isFocused
+            ? "border-primary ring-2 ring-primary/20"
+            : "border-border hover:border-muted-foreground/50"
         }
-      `}>
+      `}
+      >
         <Search className="w-5 h-5 text-muted-foreground flex-shrink-0" />
         <input
           ref={inputRef}
@@ -179,8 +199,10 @@ export function SearchBar({
 
       {/* Suggestions Dropdown */}
       {showSuggestionsDropdown && (
-        <div className="absolute top-full left-0 right-0 mt-2 z-[100]
-                        glass rounded-xl border border-border shadow-xl overflow-hidden">
+        <div
+          className="absolute top-full left-0 right-0 mt-2 z-[100]
+                        glass rounded-xl border border-border shadow-xl overflow-hidden"
+        >
           {isLoading ? (
             <div className="flex items-center justify-center py-6">
               <Loader2 className="w-5 h-5 animate-spin text-primary" />
@@ -189,16 +211,23 @@ export function SearchBar({
             <ul className="py-1 max-h-[450px] overflow-y-auto">
               {suggestions.map((item, index) => {
                 // Get streaming services for this item
-                const streamingServices = item.type !== 'person' && item.contentType
-                  ? getFreeStreamingOptions(item.title, item.contentType).slice(0, 3)
-                  : [];
+                const streamingServices =
+                  item.type !== "person" && item.contentType
+                    ? getFreeStreamingOptions(
+                        item.title,
+                        item.contentType,
+                      ).slice(0, 3)
+                    : [];
 
                 return (
-                  <li key={`${item.type}-${item.tmdbId}`} className="border-b border-border/30 last:border-b-0">
+                  <li
+                    key={`${item.type}-${item.tmdbId}`}
+                    className="border-b border-border/30 last:border-b-0"
+                  >
                     <div
                       className={`
                         px-4 py-3 transition-colors
-                        ${index === selectedIndex ? 'bg-primary/20' : 'hover:bg-secondary/50'}
+                        ${index === selectedIndex ? "bg-primary/20" : "hover:bg-secondary/50"}
                       `}
                     >
                       <div className="flex items-center gap-3">
@@ -217,9 +246,15 @@ export function SearchBar({
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              {item.type === 'movie' && <Film className="w-5 h-5 text-muted-foreground" />}
-                              {item.type === 'tv' && <Tv className="w-5 h-5 text-muted-foreground" />}
-                              {item.type === 'person' && <User className="w-5 h-5 text-muted-foreground" />}
+                              {item.type === "movie" && (
+                                <Film className="w-5 h-5 text-muted-foreground" />
+                              )}
+                              {item.type === "tv" && (
+                                <Tv className="w-5 h-5 text-muted-foreground" />
+                              )}
+                              {item.type === "person" && (
+                                <User className="w-5 h-5 text-muted-foreground" />
+                              )}
                             </div>
                           )}
                         </button>
@@ -229,19 +264,25 @@ export function SearchBar({
                           onClick={() => handleSuggestionClick(item)}
                           className="flex-1 min-w-0 text-left"
                         >
-                          <p className="font-medium text-sm truncate">{item.title}</p>
+                          <p className="font-medium text-sm truncate">
+                            {item.title}
+                          </p>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
                             <span className="capitalize">{item.type}</span>
                             {item.releaseDate && (
                               <>
                                 <span>•</span>
-                                <span>{new Date(item.releaseDate).getFullYear()}</span>
+                                <span>
+                                  {new Date(item.releaseDate).getFullYear()}
+                                </span>
                               </>
                             )}
                             {item.rating > 0 && (
                               <>
                                 <span>•</span>
-                                <span className="text-yellow-500">★ {item.rating.toFixed(1)}</span>
+                                <span className="text-yellow-500">
+                                  ★ {item.rating.toFixed(1)}
+                                </span>
                               </>
                             )}
                           </div>
@@ -251,7 +292,9 @@ export function SearchBar({
                       {/* Inline Streaming Buttons */}
                       {streamingServices.length > 0 && (
                         <div className="flex items-center gap-2 mt-2 ml-15 pl-15">
-                          <span className="text-[10px] text-green-400 font-medium ml-[60px]">🆓</span>
+                          <span className="text-[10px] text-green-400 font-medium ml-[60px]">
+                            🆓
+                          </span>
                           {streamingServices.map((service) => (
                             <a
                               key={service.id}

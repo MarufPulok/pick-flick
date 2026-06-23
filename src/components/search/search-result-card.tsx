@@ -3,18 +3,18 @@
  * Displays individual search result with poster, info, and streaming buttons
  */
 
-'use client';
+"use client";
 
-import { ContentType } from '@/dtos/common.dto';
-import { getFreeStreamingOptions } from '@/lib/free-streaming';
-import { ExternalLink, Film, Star, Tv, User } from 'lucide-react';
-import Image from 'next/image';
-import Link from 'next/link';
+import { ContentType } from "@/dtos/common.dto";
+import { getFreeStreamingOptions } from "@/lib/free-streaming";
+import { ExternalLink, Film, Star, Tv, User } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 
 interface SearchResultItem {
   tmdbId: number;
   title: string;
-  type: 'movie' | 'tv' | 'person';
+  type: "movie" | "tv" | "person";
   contentType: ContentType | null;
   posterUrl: string | null;
   backdropUrl: string | null;
@@ -32,31 +32,34 @@ interface SearchResultCardProps {
 }
 
 export function SearchResultCard({ result }: SearchResultCardProps) {
-  const year = result.releaseDate 
-    ? new Date(result.releaseDate).getFullYear() 
+  const year = result.releaseDate
+    ? new Date(result.releaseDate).getFullYear()
     : null;
 
   // Extract poster path from full URL if available (path includes leading slash)
-  const posterFile = result.posterUrl?.split('/t/p/')[1]?.split('/')[1] || null;
+  const posterFile = result.posterUrl?.split("/t/p/")[1]?.split("/")[1] || null;
   const posterPath = posterFile ? `/${posterFile}` : null;
 
-  const linkUrl = result.type === 'person'
-    ? `/search?q=${encodeURIComponent(result.title)}`
-    : `/dashboard?watch=${result.tmdbId}&type=${result.contentType}&title=${encodeURIComponent(result.title)}${posterPath ? `&poster=${encodeURIComponent(posterPath)}` : ''}`;
+  const linkUrl =
+    result.type === "person"
+      ? `/search?q=${encodeURIComponent(result.title)}`
+      : `/dashboard?watch=${result.tmdbId}&type=${result.contentType}&title=${encodeURIComponent(result.title)}${posterPath ? `&poster=${encodeURIComponent(posterPath)}` : ""}`;
 
-  const TypeIcon = result.type === 'movie' ? Film 
-                 : result.type === 'tv' ? Tv 
-                 : User;
+  const TypeIcon =
+    result.type === "movie" ? Film : result.type === "tv" ? Tv : User;
 
   // Get streaming options for movies/TV
-  const streamingServices = result.type !== 'person' && result.contentType
-    ? getFreeStreamingOptions(result.title, result.contentType).slice(0, 3)
-    : [];
+  const streamingServices =
+    result.type !== "person" && result.contentType
+      ? getFreeStreamingOptions(result.title, result.contentType).slice(0, 3)
+      : [];
 
   return (
-    <div className="group flex gap-4 p-4 rounded-xl glass hover:bg-white/5
+    <div
+      className="group flex gap-4 p-4 rounded-xl glass hover:bg-white/5
                     transition-all duration-200 border border-transparent
-                    hover:border-primary/30">
+                    hover:border-primary/30"
+    >
       {/* Poster / Profile */}
       <Link
         href={linkUrl}
@@ -110,7 +113,7 @@ export function SearchResultCard({ result }: SearchResultCardProps) {
         </div>
 
         {/* Overview */}
-        {result.overview && result.type !== 'person' && (
+        {result.overview && result.type !== "person" && (
           <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
             {result.overview}
           </p>
@@ -119,14 +122,16 @@ export function SearchResultCard({ result }: SearchResultCardProps) {
         {/* Known For (Person) */}
         {result.knownFor && result.knownFor.length > 0 && (
           <p className="mt-2 text-sm text-muted-foreground">
-            Known for: {result.knownFor.slice(0, 3).join(', ')}
+            Known for: {result.knownFor.slice(0, 3).join(", ")}
           </p>
         )}
 
         {/* Streaming Buttons - Inline */}
         {streamingServices.length > 0 && (
           <div className="flex items-center gap-2 mt-3">
-            <span className="text-[10px] text-green-400 font-medium">🆓 Play on:</span>
+            <span className="text-[10px] text-green-400 font-medium">
+              🆓 Play on:
+            </span>
             {streamingServices.map((service) => (
               <a
                 key={service.id}
@@ -164,7 +169,10 @@ export function SearchResultsGrid({ results }: SearchResultsGridProps) {
   return (
     <div className="space-y-3">
       {results.map((result) => (
-        <SearchResultCard key={`${result.type}-${result.tmdbId}`} result={result} />
+        <SearchResultCard
+          key={`${result.type}-${result.tmdbId}`}
+          result={result}
+        />
       ))}
     </div>
   );
