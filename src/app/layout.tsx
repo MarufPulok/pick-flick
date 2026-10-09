@@ -2,7 +2,7 @@ import { GlobalNav } from '@/components/layout/global-nav';
 import { ToastProvider } from '@/components/providers/toast-provider';
 import { QueryProvider, SessionProvider, ThemeProvider } from '@/providers';
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Bricolage_Grotesque, Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 
 const geistSans = Geist({
@@ -15,10 +15,16 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
+const bricolage = Bricolage_Grotesque({
+  variable: '--font-bricolage',
+  subsets: ['latin'],
+  axes: ['opsz', 'wdth'],
+});
+
 export const metadata: Metadata = {
-  title: 'PickFlick | One Click. One Pick. No Paralysis.',
+  title: 'Pick Flick',
   description:
-    'Stop scrolling, start watching. PickFlick gives you one perfect recommendation based on your taste. No more decision fatigue.',
+    'One pick for tonight, chosen from your taste, then press play. No scrolling.',
   keywords: [
     'movie recommendations',
     'tv show finder',
@@ -44,7 +50,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${bricolage.variable} antialiased`}
       >
         <ToastProvider />
         <SessionProvider>

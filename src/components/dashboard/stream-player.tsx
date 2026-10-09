@@ -7,15 +7,18 @@
 'use client';
 
 import { ContentType } from '@/dtos/common.dto';
+import { Button } from '@/components/ui/button';
 import { useRecordViewing } from '@/hooks/use-continue-watching';
 import {
   DEFAULT_EMBED_PROVIDER,
   EMBED_PROVIDERS,
   buildEmbedUrl,
 } from '@/lib/embed-providers';
+import { getFreeStreamingOptions } from '@/lib/free-streaming';
 import { setStreamOpen } from '@/lib/watching-state';
 import { ExternalLink, Maximize2, Minimize2, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface StreamPlayerProps {
   tmdbId: number;
@@ -65,79 +68,61 @@ export function StreamPlayer({
     window.open(streamUrl, '_blank', 'noopener,noreferrer');
   }, [streamUrl]);
 
-  return (
-    <div
-      className={`fixed inset-0 z-50 bg-black/95 flex flex-col ${
-        isFullscreen ? '' : 'p-4 md:p-8'
-      }`}
-    >
-      {/* Header */}
-      <div
-        className={`flex items-center justify-between gap-4 ${
-          isFullscreen
-            ? 'absolute top-0 left-0 right-0 p-4 bg-linear-to-b from-black/80 to-transparent z-10'
-            : 'mb-4'
-        }`}
-      >
-        {/* Title + provider picker */}
-        <div className="flex items-center gap-3 min-w-0">
-          <h2 className="text-lg font-semibold text-white truncate">{title}</h2>
+  const externalLinks = getFreeStreamingOptions(title, contentType);
 
-          {/* Provider tabs */}
-          <div className="flex items-center gap-1 shrink-0">
-            {EMBED_PROVIDERS.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => setProviderId(p.id)}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                  providerId === p.id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
-                }`}
-              >
-                {p.name}
-              </button>
-            ))}
-          </div>
+  // Portal: the pick section is an isolated stacking context, so the overlay must sit on body to cover the nav.
+  return createPortal(
+    <div className="fixed inset-0 z-[60] flex flex-col bg-background">
+      <div className="flex shrink-0 flex-col gap-2 px-4 py-2 sm:h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:py-0">
+        <div className="flex min-w-0 items-center justify-between gap-3">
+          <h2 className="font-display min-w-0 truncate text-lg font-semibold tracking-[-0.02em]">{title}</h2>
+          <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close" className="sm:hidden">
+            <X className="size-4" strokeWidth={1.5} />
+            Close
+          </Button>
         </div>
 
-        {/* Controls */}
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={openExternal}
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
-            title="Open in new tab"
-          >
-            <ExternalLink className="w-5 h-5" />
-          </button>
-          <button
-            onClick={toggleFullscreen}
-            className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
-            title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-          >
-            {isFullscreen ? (
-              <Minimize2 className="w-5 h-5" />
-            ) : (
-              <Maximize2 className="w-5 h-5" />
-            )}
-          </button>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg bg-white/10 hover:bg-red-500/50 text-white transition-colors"
-            title="Close"
-          >
-            <X className="w-5 h-5" />
-          </button>
+        <div className="flex min-w-0 shrink-0 items-center gap-2">
+          <div role="group" aria-label="Source" className="flex min-w-0 items-center gap-2">
+            <span className="hidden text-xs text-muted-foreground sm:inline">Source</span>
+            <div className="scrollbar-hide flex min-w-0 gap-1 overflow-x-auto rounded-md border border-border p-1">
+              {EMBED_PROVIDERS.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setProviderId(p.id)}
+                  aria-pressed={providerId === p.id}
+                  className={`h-7 shrink-0 cursor-pointer rounded-sm px-3 text-xs ${
+                    providerId === p.id
+                      ? 'bg-foreground/10 text-foreground'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {p.name}
+                </button>
+              ))}
+            </div>
+          </div>
+          <Button variant="icon" onClick={openExternal} aria-label="Open in new tab">
+            <ExternalLink className="size-4" strokeWidth={1.5} />
+          </Button>
+          <Button variant="icon" onClick={toggleFullscreen} aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'} className="hidden sm:inline-flex">
+            {isFullscreen ? <Minimize2 className="size-4" strokeWidth={1.5} /> : <Maximize2 className="size-4" strokeWidth={1.5} />}
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close" className="hidden sm:inline-flex">
+            <X className="size-4" strokeWidth={1.5} />
+            Close
+          </Button>
         </div>
       </div>
 
-      {/* Player — key forces iframe reload on provider change */}
-      <div className={`flex-1 ${isFullscreen ? '' : 'rounded-xl overflow-hidden'}`}>
+      {/* key forces iframe reload on provider change */}
+      <div className={`min-h-0 flex-1 overflow-hidden ${isFullscreen ? '' : 'mx-4 rounded-md border border-border'}`}>
         <iframe
           key={`${providerId}-${tmdbId}`}
           src={streamUrl}
           title={`Stream ${title}`}
-          className="w-full h-full border-0"
+          className="h-full w-full border-0"
           allowFullScreen
           allow="autoplay; fullscreen; picture-in-picture"
           referrerPolicy="no-referrer"
@@ -145,10 +130,22 @@ export function StreamPlayer({
       </div>
 
       {!isFullscreen && (
-        <p className="mt-3 text-center text-xs text-white/50">
-          Streaming via {EMBED_PROVIDERS.find((p) => p.id === providerId)?.name} • Press ESC or click X to close
-        </p>
+        <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-sm text-muted-foreground">
+          <p>Source not loading? Try another source above.</p>
+          {externalLinks.map((service) => (
+            <a
+              key={service.id}
+              href={service.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline decoration-border underline-offset-4 hover:text-foreground"
+            >
+              Open on {service.name}
+            </a>
+          ))}
+        </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -122,7 +122,7 @@ export function buildExplanation(params: {
     if (genreNames.length > 0 && languageNames.length > 0) {
       return {
         title: '🎯 Perfect Match',
-        description: `This ${contentLabel} combines your favorite genres — ${formatGenres(genreNames.slice(0, 2))} — with ${languageNames[0]} content you love.`
+        description: `This ${contentLabel} combines two of your genres, ${formatGenres(genreNames.slice(0, 2))}, with the ${languageNames[0]} content you watch.`
       };
     }
     if (genreNames.length > 0) {
@@ -147,7 +147,7 @@ export function buildExplanation(params: {
     if (genreNames.length >= 2) {
       return {
         title: '✨ Genre Blend',
-        description: `Mixes ${genreNames[0]} with ${genreNames[1]} — a combo based on your taste profile.`
+        description: `Mixes ${genreNames[0]} with ${genreNames[1]}, a pairing taken from your taste profile.`
       };
     }
   }
@@ -156,7 +156,7 @@ export function buildExplanation(params: {
   if (strategyName.includes('vote_average') || strategyName.includes('highly-rated')) {
     return {
       title: '⭐ Critically Acclaimed',
-      description: `A top-rated ${contentLabel} that matches your preferences — critics and audiences agree on this one.`
+      description: `A top-rated ${contentLabel} that matches your preferences. Critics and audiences agree on this one.`
     };
   }
 
@@ -173,7 +173,7 @@ export function buildExplanation(params: {
   if (strategyName.includes('lower rating')) {
     return {
       title: '💎 Hidden Gem',
-      description: `A lesser-known ${contentLabel} that fits your taste — sometimes the best finds are off the beaten path.`
+      description: `A lesser-known ${contentLabel} that fits your taste. Some of the best finds are off the beaten path.`
     };
   }
 
@@ -190,7 +190,7 @@ export function buildExplanation(params: {
     if (languageNames.length > 0) {
       return {
         title: '🎭 Popular in ' + languageNames[0],
-        description: `A trending ${contentLabel} in ${languageNames[0]} — popular with viewers who share your preferences.`
+        description: `A ${contentLabel} in ${languageNames[0]} that is trending right now and clears your rating floor.`
       };
     }
   }

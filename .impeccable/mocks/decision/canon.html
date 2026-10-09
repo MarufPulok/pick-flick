@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pick Flick - Dashboard (canon)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;width:1440px;height:900px;overflow:hidden}
+body{position:relative;background:#141414;color:#fff;font:400 16px/1.4 Inter,sans-serif}
+*{box-sizing:border-box}
+.bar{position:absolute;top:0;left:0;width:1440px;height:68px;background:rgba(20,20,20,.9);border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;padding:0 60px;z-index:3}
+.logo{color:#e50914;font-weight:900;font-size:22px;margin-right:auto}
+.bar a{font-size:15px;color:#fff;margin-left:28px;text-decoration:none}
+.avatar{width:32px;height:32px;border-radius:4px;background:#e50914;margin-left:28px}
+.hero{position:absolute;top:68px;left:0;width:1440px;height:492px;background:linear-gradient(135deg,#3a3a3a,#141414)}
+.hero::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(20,20,20,.92) 0%,rgba(20,20,20,.55) 55%,rgba(20,20,20,.15) 100%)}
+.hero::after{content:"";position:absolute;left:0;right:0;bottom:0;height:80px;background:linear-gradient(transparent,#141414)}
+.copy{position:absolute;left:60px;top:82px;width:640px;z-index:2}
+.mood{display:block;width:420px;height:44px;background:#262626;border:1px solid rgba(255,255,255,.1);border-radius:4px;padding:0 14px;color:#fff;font:400 16px Inter,sans-serif;outline:0}
+.mood::placeholder{color:#8c8c8c}
+.chips{display:flex;gap:8px;margin-top:12px}
+.chip{height:36px;padding:0 14px;background:#262626;color:#fff;border:1px solid rgba(255,255,255,.1);border-radius:4px;font:500 14px Inter,sans-serif}
+.chip.on{background:#fff;color:#000;border-color:#fff}
+h1{margin:40px 0 0;font-size:64px;line-height:1.05;font-weight:800;letter-spacing:-.02em}
+.meta{margin-top:10px;font-size:15px;color:#8c8c8c}
+.reason{margin:10px 0 0;font-size:18px;line-height:1.4;max-width:520px}
+.btns{display:flex;gap:12px;margin-top:20px}
+.btn{width:150px;height:48px;border:0;border-radius:4px;color:#fff;font:700 16px Inter,sans-serif}
+.play{background:#e50914}
+.alt{background:rgba(109,109,110,.7)}
+.poster{position:absolute;left:1120px;top:150px;width:240px;height:360px;border-radius:4px;background:linear-gradient(160deg,#3d3d3d,#1e1e1e);z-index:2}
+.rail{position:absolute;left:60px;right:60px}
+.rail h2{margin:0;font-size:20px;line-height:24px;font-weight:700}
+.row{display:flex;gap:16px;margin-top:8px}
+.card{width:280px}
+.thumb{position:relative;width:280px;height:158px;border-radius:4px;background:linear-gradient(135deg,#333,#1f1f1f);overflow:hidden}
+.thumb i{position:absolute;left:0;bottom:0;height:3px;background:#e50914}
+.card p{margin:4px 0 0;font-size:14px;line-height:16px}
+.tp{width:140px;height:210px;border-radius:4px;background:linear-gradient(160deg,#3a3a3a,#1e1e1e);flex:none;position:relative}
+.tp span{position:absolute;left:8px;bottom:8px;font-size:12px;font-weight:700}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="logo">Pick Flick</div>
+  <a href="#">Search</a><a href="#">Watchlist</a><a href="#">History</a>
+  <div class="avatar"></div>
+</header>
+
+<section class="hero">
+  <div class="copy">
+    <input class="mood" type="text" placeholder="What's the vibe tonight?">
+    <div class="chips">
+      <button class="chip">Something light</button>
+      <button class="chip">Slow burn</button>
+      <button class="chip">Under 2 hours</button>
+      <button class="chip on">Surprise me</button>
+    </div>
+    <h1>Past Lives</h1>
+    <div class="meta">2023 · 1h 46m · 7.8 ★</div>
+    <p class="reason">Quiet, Korean-language, and under two hours. You liked Drive My Car and it is past ten.</p>
+    <div class="btns">
+      <button class="btn play">&#9654; Play</button>
+      <button class="btn alt">Not tonight</button>
+    </div>
+  </div>
+  <div class="poster"></div>
+</section>
+
+<section class="rail" style="top:596px">
+  <h2>Continue watching</h2>
+  <div class="row">
+    <div class="card"><div class="thumb"><i style="width:62%"></i></div><p>Severance S2 E4</p></div>
+    <div class="card"><div class="thumb"><i style="width:28%"></i></div><p>The Bear S3 E1</p></div>
+    <div class="card"><div class="thumb"><i style="width:85%"></i></div><p>Perfect Days</p></div>
+  </div>
+</section>
+
+<section class="rail" style="top:820px">
+  <h2>Trending now</h2>
+  <div class="row">
+    <div class="tp"><span>Dune: Part Two</span></div>
+    <div class="tp"><span>Shogun</span></div>
+    <div class="tp"><span>Frieren</span></div>
+    <div class="tp"><span>Anora</span></div>
+    <div class="tp"><span>The Substance</span></div>
+  </div>
+</section>
+</body>
+</html>

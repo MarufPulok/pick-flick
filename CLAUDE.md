@@ -86,7 +86,11 @@ Two separate mechanisms, both client-side only:
 
 ### Client-side state (`src/lib/`)
 
-Browser-only, not persisted to MongoDB: `storage.ts` (localStorage wrapper with in-memory fallback), `watching-state.ts` (currently-watching tracker + open-stream flag, drives `currently-watching-banner`), `service-status.ts` / `service-usage.ts` / `service-feedback.ts` (per-platform health, usage counts, thumbs). Treat these as ephemeral.
+Browser-only, not persisted to MongoDB: `storage.ts` (localStorage wrapper with in-memory fallback), `watching-state.ts` (currently-watching tracker + open-stream flag, drives `currently-watching-banner`). Treat these as ephemeral.
+
+### Visual system
+
+Design tokens live in `src/app/globals.css` and are documented in `DESIGN.md` (dark-only "Projection Booth" world; amber is reserved for pressable things). Product truth is in `PRODUCT.md`. The dashboard is one surface, `src/components/dashboard/pick-screen.tsx`: mood input, chips, one pick lit by its own backdrop, Play. Mood chips and free-text keywords map to TMDB genre ids in `src/lib/mood-chips.ts`.
 
 ### API Docs
 

@@ -1,14 +1,16 @@
-/**
- * LanguageStep Component
- * Step 3: Select languages and optional minimum rating
- * Single Responsibility: Handles language and rating preferences
- */
-
 'use client';
 
 import { LANGUAGES } from '@/config/app.config';
+import { cn } from '@/lib/utils';
 
 type ContentType = 'MOVIE' | 'SERIES' | 'ANIME';
+
+const RATING_OPTIONS = [
+  { value: undefined, label: 'Any' },
+  { value: 6, label: '6+' },
+  { value: 7, label: '7+' },
+  { value: 8, label: '8+' },
+];
 
 interface LanguageStepProps {
   contentTypes: ContentType[];
@@ -28,71 +30,51 @@ export function LanguageStep({
   const hasAnime = contentTypes.includes('ANIME');
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold mb-2">Language preferences</h2>
-        <p className="text-muted-foreground">
-          Which languages do you prefer?
-        </p>
-      </div>
+    <div>
+      <h1 className="font-display text-3xl font-semibold tracking-[-0.02em]">Which languages?</h1>
+      <p className="mt-2 text-muted-foreground">
+        {hasAnime ? 'Japanese stays on for anime.' : 'Pick all you are happy to watch in.'}
+      </p>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="mt-8 flex flex-wrap gap-2">
         {Object.values(LANGUAGES).map((lang) => {
-          const isJapaneseLocked = lang.code === 'ja' && hasAnime;
+          const locked = lang.code === 'ja' && hasAnime;
+          const on = selectedLanguages.includes(lang.code);
           return (
             <button
               key={lang.code}
+              type="button"
+              aria-pressed={on}
               onClick={() => onToggleLanguage(lang.code)}
-              disabled={isJapaneseLocked}
-              className={`px-4 py-3 rounded-lg border transition-all text-left ${
-                selectedLanguages.includes(lang.code)
-                  ? 'border-primary bg-primary/10 font-medium'
-                  : 'border-border hover:border-primary/50'
-              } ${isJapaneseLocked ? 'opacity-60 cursor-not-allowed' : ''}`}
+              disabled={locked}
+              className={cn(
+                'h-10 cursor-pointer rounded-full border px-4 text-sm transition-colors disabled:cursor-default',
+                on ? 'border-accent bg-accent font-medium text-accent-foreground' : 'border-border hover:bg-foreground/[0.06]'
+              )}
             >
-              <div className="font-medium">
-                {lang.flag} {lang.name}
-                {isJapaneseLocked && <span className="ml-2 text-xs">🔒</span>}
-              </div>
+              {lang.name}
             </button>
           );
         })}
       </div>
 
-      {hasAnime && (
-        <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
-          <p className="text-sm">
-            💡 <strong>Pro tip:</strong> Japanese will be automatically
-            included for anime recommendations!
-          </p>
-        </div>
-      )}
-
-      {/* Minimum Rating */}
-      <div className="pt-6 border-t border-border">
-        <h3 className="text-lg font-semibold mb-3">Minimum Rating (Optional)</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Only recommend content rated this & above
-        </p>
-        <div className="grid grid-cols-4 gap-3">
-          {[
-            { value: undefined, label: 'Any' },
-            { value: 6, label: '6+' },
-            { value: 7, label: '7+' },
-            { value: 8, label: '8+' },
-          ].map((option) => (
+      <div className="mt-10">
+        <p className="text-sm text-muted-foreground">Minimum rating. Optional.</p>
+        <div role="group" aria-label="Minimum rating" className="mt-3 inline-flex gap-1 rounded-md border border-border p-1">
+          {RATING_OPTIONS.map((option) => (
             <button
               key={option.label}
               type="button"
+              aria-pressed={minRating === option.value}
               onClick={() => onSetMinRating(option.value)}
-              className={`p-4 rounded-xl border-2 transition-all text-center ${
+              className={cn(
+                'h-7 min-w-11 cursor-pointer rounded-sm px-3 text-xs',
                 minRating === option.value
-                  ? 'border-primary bg-primary/10'
-                  : 'border-border hover:border-primary/50'
-              }`}
+                  ? 'bg-foreground/10 text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
             >
-              <div className="text-2xl mb-1">⭐</div>
-              <div className="font-semibold">{option.label}</div>
+              {option.label}
             </button>
           ))}
         </div>

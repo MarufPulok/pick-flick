@@ -1,20 +1,11 @@
-/**
- * ContentTypeStep Component
- * Step 1: Select content types (Movie, Series, Anime)
- * Single Responsibility: Only handles content type selection
- */
-
 'use client';
 
 import { CONTENT_TYPES } from '@/config/app.config';
+import { cn } from '@/lib/utils';
 
 type ContentType = 'MOVIE' | 'SERIES' | 'ANIME';
 
-const CONTENT_TYPE_INFO = {
-  MOVIE: { emoji: '🎬', label: 'Movies', description: 'Feature films' },
-  SERIES: { emoji: '📺', label: 'TV Series', description: 'Shows & episodes' },
-  ANIME: { emoji: '⚡', label: 'Anime', description: 'Japanese animation' },
-} as const;
+const LABELS = { MOVIE: 'Movies', SERIES: 'TV Series', ANIME: 'Anime' } as const;
 
 interface ContentTypeStepProps {
   selected: ContentType[];
@@ -23,33 +14,27 @@ interface ContentTypeStepProps {
 
 export function ContentTypeStep({ selected, onToggle }: ContentTypeStepProps) {
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold mb-2">What do you watch?</h2>
-        <p className="text-muted-foreground">Select all that apply</p>
-      </div>
+    <div>
+      <h1 className="font-display text-3xl font-semibold tracking-[-0.02em]">What do you watch?</h1>
+      <p className="mt-2 text-muted-foreground">Pick all that apply.</p>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {CONTENT_TYPES.map((type) => {
-          const info = CONTENT_TYPE_INFO[type];
-          return (
-            <button
-              key={type}
-              onClick={() => onToggle(type)}
-              className={`p-6 rounded-xl border-2 transition-all text-left ${
-                selected.includes(type)
-                  ? 'border-primary bg-primary/10'
-                  : 'border-border hover:border-primary/50'
-              }`}
-            >
-              <div className="text-4xl mb-3">{info.emoji}</div>
-              <div className="font-semibold mb-1">{info.label}</div>
-              <div className="text-sm text-muted-foreground">
-                {info.description}
-              </div>
-            </button>
-          );
-        })}
+      <div className="mt-8 flex flex-wrap gap-2">
+        {CONTENT_TYPES.map((type) => (
+          <button
+            key={type}
+            type="button"
+            aria-pressed={selected.includes(type)}
+            onClick={() => onToggle(type)}
+            className={cn(
+              'h-12 cursor-pointer rounded-full border px-6 text-base transition-colors',
+              selected.includes(type)
+                ? 'border-accent bg-accent font-medium text-accent-foreground'
+                : 'border-border hover:bg-foreground/[0.06]'
+            )}
+          >
+            {LABELS[type]}
+          </button>
+        ))}
       </div>
     </div>
   );

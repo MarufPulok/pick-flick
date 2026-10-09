@@ -1,0 +1,341 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-10T00:00:00Z",
+  "title": "Design System: Pick Flick",
+  "extensions": {
+    "colorMeta": {
+      "marquee-amber": {
+        "role": "primary",
+        "displayName": "Marquee Amber",
+        "canonical": "oklch(0.78 0.15 72)",
+        "tonalRamp": [
+          "oklch(0.15 0.15 72)",
+          "oklch(0.26 0.15 72)",
+          "oklch(0.37 0.15 72)",
+          "oklch(0.48 0.15 72)",
+          "oklch(0.6 0.15 72)",
+          "oklch(0.71 0.15 72)",
+          "oklch(0.83 0.15 72)",
+          "oklch(0.95 0.15 72)"
+        ]
+      },
+      "booth-black": {
+        "role": "neutral",
+        "displayName": "Booth Black",
+        "canonical": "oklch(0.17 0.012 70)",
+        "tonalRamp": [
+          "oklch(0.15 0.012 70)",
+          "oklch(0.26 0.012 70)",
+          "oklch(0.37 0.012 70)",
+          "oklch(0.48 0.012 70)",
+          "oklch(0.6 0.012 70)",
+          "oklch(0.71 0.012 70)",
+          "oklch(0.83 0.012 70)",
+          "oklch(0.95 0.012 70)"
+        ]
+      },
+      "booth-card": {
+        "role": "neutral",
+        "displayName": "Booth Card",
+        "canonical": "oklch(0.2 0.013 70)",
+        "tonalRamp": [
+          "oklch(0.15 0.013 70)",
+          "oklch(0.26 0.013 70)",
+          "oklch(0.37 0.013 70)",
+          "oklch(0.48 0.013 70)",
+          "oklch(0.6 0.013 70)",
+          "oklch(0.71 0.013 70)",
+          "oklch(0.83 0.013 70)",
+          "oklch(0.95 0.013 70)"
+        ]
+      },
+      "booth-surface": {
+        "role": "neutral",
+        "displayName": "Booth Surface",
+        "canonical": "oklch(0.22 0.014 70)",
+        "tonalRamp": [
+          "oklch(0.15 0.014 70)",
+          "oklch(0.26 0.014 70)",
+          "oklch(0.37 0.014 70)",
+          "oklch(0.48 0.014 70)",
+          "oklch(0.6 0.014 70)",
+          "oklch(0.71 0.014 70)",
+          "oklch(0.83 0.014 70)",
+          "oklch(0.95 0.014 70)"
+        ]
+      },
+      "bone": {
+        "role": "neutral",
+        "displayName": "Bone",
+        "canonical": "oklch(0.92 0.016 85)",
+        "tonalRamp": [
+          "oklch(0.15 0.016 85)",
+          "oklch(0.26 0.016 85)",
+          "oklch(0.37 0.016 85)",
+          "oklch(0.48 0.016 85)",
+          "oklch(0.6 0.016 85)",
+          "oklch(0.71 0.016 85)",
+          "oklch(0.83 0.016 85)",
+          "oklch(0.95 0.016 85)"
+        ]
+      },
+      "dim-bone": {
+        "role": "neutral",
+        "displayName": "Dim Bone",
+        "canonical": "oklch(0.66 0.02 80)",
+        "tonalRamp": [
+          "oklch(0.15 0.02 80)",
+          "oklch(0.26 0.02 80)",
+          "oklch(0.37 0.02 80)",
+          "oklch(0.48 0.02 80)",
+          "oklch(0.6 0.02 80)",
+          "oklch(0.71 0.02 80)",
+          "oklch(0.83 0.02 80)",
+          "oklch(0.95 0.02 80)"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "oklch(0.92 0.016 85 / 14%)",
+        "tonalRamp": [
+          "oklch(0.92 0.016 85 / 6%)",
+          "oklch(0.92 0.016 85 / 10%)",
+          "oklch(0.92 0.016 85 / 14%)",
+          "oklch(0.92 0.016 85 / 18%)",
+          "oklch(0.92 0.016 85 / 30%)",
+          "oklch(0.92 0.016 85 / 40%)",
+          "oklch(0.92 0.016 85 / 85%)",
+          "oklch(0.92 0.016 85 / 100%)"
+        ]
+      },
+      "signal-red": {
+        "role": "error",
+        "displayName": "Signal Red",
+        "canonical": "oklch(0.62 0.19 25)",
+        "tonalRamp": [
+          "oklch(0.15 0.19 25)",
+          "oklch(0.26 0.19 25)",
+          "oklch(0.37 0.19 25)",
+          "oklch(0.48 0.19 25)",
+          "oklch(0.6 0.19 25)",
+          "oklch(0.71 0.19 25)",
+          "oklch(0.83 0.19 25)",
+          "oklch(0.95 0.19 25)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Pick title and landing hero line; one per viewport. Titles over 22 characters use clamp(2.25rem, 5.5vw, 4.25rem)."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Landing section headings; 2.25rem below 640px."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Onboarding questions and pick-screen empty/error states."
+      },
+      "title-sm": {
+        "displayName": "Title Small",
+        "purpose": "Rail headings and the player title bar."
+      },
+      "wordmark": {
+        "displayName": "Wordmark",
+        "purpose": "\"Pick Flick\" in nav and footer; the only 700 weight."
+      },
+      "body-lead": {
+        "displayName": "Body Lead",
+        "purpose": "Reason line and hero subcopy at 85% bone; 1.125rem below 640px, max 520px."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Supporting copy, usually dim bone."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Button and nav text; 14px on small controls, 12px on segments."
+      },
+      "meta": {
+        "displayName": "Meta",
+        "purpose": "Mono metadata line joined by \" · \"; 0.75rem on poster tiles."
+      }
+    },
+    "shadows": [
+      {
+        "name": "poster",
+        "value": "0 30px 60px oklch(0 0 0 / 0.55)",
+        "purpose": "The featured pick poster only (360px pick poster, landing posters). Never on tiles, panels, or controls."
+      }
+    ],
+    "motion": [
+      {
+        "name": "reel-swap",
+        "value": "reel-in 480ms cubic-bezier(0.16, 1, 0.3, 1) both",
+        "purpose": "Entrance for a new pick's backdrop and poster: opacity 0, blur(6px), translateY(8px) to rest. Disabled under prefers-reduced-motion."
+      },
+      {
+        "name": "reel-swap-late",
+        "value": "reel-in 480ms 120ms cubic-bezier(0.16, 1, 0.3, 1) both",
+        "purpose": "Same entrance for the pick's text block, 120ms behind the image."
+      },
+      {
+        "name": "control-transition",
+        "value": "150ms (background-color, border-color, opacity, transform)",
+        "purpose": "Button state changes; active state presses down 1px."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Play Button",
+      "kind": "button",
+      "refersTo": "button-play",
+      "description": "Primary action, amber fill. Once per decision point.",
+      "html": "<button class=\"ds-btn-play\">Play</button>",
+      "css": ".ds-btn-play { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 48px; padding: 0 20px; border-radius: 8px; font-family: var(--font-geist-sans, Geist), sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; transition: background-color 150ms, border-color 150ms, opacity 150ms, transform 150ms; width: 160px; border: none; background: var(--accent); color: var(--accent-foreground); } .ds-btn-play:hover { background: oklch(0.78 0.15 72 / 0.9); } .ds-btn-play:active { transform: translateY(1px); } .ds-btn-play:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary action beside Play, hairline outline.",
+      "html": "<button class=\"ds-btn-ghost\">Not tonight</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 48px; padding: 0 20px; border-radius: 8px; font-family: var(--font-geist-sans, Geist), sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; transition: background-color 150ms, border-color 150ms, opacity 150ms, transform 150ms; width: 160px; border: 1px solid var(--border); background: transparent; color: var(--foreground); } .ds-btn-ghost:hover { background: oklch(0.92 0.016 85 / 0.06); } .ds-btn-ghost:active { transform: translateY(1px); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Icon Toggle",
+      "kind": "button",
+      "refersTo": "button-icon",
+      "description": "40px round feedback toggle; amber when on.",
+      "html": "<div class=\"ds-icon-row\"><button class=\"ds-btn-icon\" data-on=\"true\" aria-label=\"Saved\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z\"/></svg></button><button class=\"ds-btn-icon\" aria-label=\"Like\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 10v12\"/><path d=\"M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z\"/></svg></button></div>",
+      "css": ".ds-icon-row { display: flex; gap: 12px; } .ds-btn-icon { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 9999px; border: 1px solid var(--border); background: transparent; color: var(--foreground); cursor: pointer; transition: background-color 150ms, border-color 150ms; } .ds-btn-icon:hover { background: oklch(0.92 0.016 85 / 0.06); } .ds-btn-icon[data-on=\"true\"] { border-color: var(--accent); background: oklch(0.78 0.15 72 / 0.15); color: var(--accent); } .ds-btn-icon:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Mood Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Fully round hairline chip; solid amber when active.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip\" aria-pressed=\"true\">Something light</button><button class=\"ds-chip\" aria-pressed=\"false\">Slow burn</button><button class=\"ds-chip\" aria-pressed=\"false\">Edge of my seat</button></div>",
+      "css": ".ds-chips { display: flex; flex-wrap: wrap; gap: 8px; } .ds-chip { height: 36px; padding: 0 16px; border-radius: 9999px; border: 1px solid var(--border); background: transparent; color: var(--foreground); font-family: var(--font-geist-sans, Geist), sans-serif; font-size: 14px; cursor: pointer; transition: background-color 150ms, color 150ms; } .ds-chip:hover { background: oklch(0.92 0.016 85 / 0.06); } .ds-chip[aria-pressed=\"true\"] { border-color: var(--accent); background: var(--accent); color: var(--accent-foreground); font-weight: 500; } .ds-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Mood Input",
+      "kind": "input",
+      "refersTo": "input-text",
+      "description": "48px hairline field; amber border and 3px amber ring on focus.",
+      "html": "<input class=\"ds-input\" placeholder=\"What's the vibe tonight?\" aria-label=\"Mood\" />",
+      "css": ".ds-input { height: 48px; width: 100%; max-width: 520px; padding: 0 16px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--foreground); caret-color: var(--accent); font-family: var(--font-geist-sans, Geist), sans-serif; font-size: 16px; } .ds-input::placeholder { color: var(--muted-foreground); } .ds-input:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px oklch(0.78 0.15 72 / 0.35); }"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "custom",
+      "refersTo": "segment",
+      "description": "View filter; selected segment is a bone wash, never amber.",
+      "html": "<div class=\"ds-seg\" role=\"tablist\"><button class=\"ds-seg-item\" aria-selected=\"true\">All</button><button class=\"ds-seg-item\" aria-selected=\"false\">Movies</button><button class=\"ds-seg-item\" aria-selected=\"false\">Series</button></div>",
+      "css": ".ds-seg { display: inline-flex; gap: 4px; padding: 4px; border-radius: 8px; border: 1px solid var(--border); } .ds-seg-item { height: 28px; padding: 0 12px; border-radius: 6px; border: none; background: transparent; color: var(--muted-foreground); font-family: var(--font-geist-sans, Geist), sans-serif; font-size: 12px; cursor: pointer; transition: color 150ms, background-color 150ms; } .ds-seg-item:hover { color: var(--foreground); } .ds-seg-item[aria-selected=\"true\"] { background: oklch(0.92 0.016 85 / 0.1); color: var(--foreground); } .ds-seg-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Poster Tile",
+      "kind": "card",
+      "refersTo": "poster-tile",
+      "description": "2:3 rail/grid tile with hairline; no shadow.",
+      "html": "<a class=\"ds-tile\" href=\"#\"><span class=\"ds-tile-art\"></span><span class=\"ds-tile-title\">The Long Walk Home</span><span class=\"ds-tile-meta\">7.8</span></a>",
+      "css": ".ds-tile { display: block; width: 130px; color: var(--foreground); text-decoration: none; } .ds-tile-art { display: block; aspect-ratio: 2 / 3; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); overflow: hidden; transition: border-color 150ms; } .ds-tile:hover .ds-tile-art { border-color: oklch(0.92 0.016 85 / 0.4); } .ds-tile-title { display: block; margin-top: 8px; font-family: var(--font-geist-sans, Geist), sans-serif; font-size: 14px; line-height: 1.25; } .ds-tile-meta { display: block; margin-top: 2px; font-family: var(--font-geist-mono, \"Geist Mono\"), monospace; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--muted-foreground); } .ds-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 8px; }"
+    },
+    {
+      "name": "Global Nav",
+      "kind": "nav",
+      "refersTo": "",
+      "description": "Floating 64px bar; wordmark left, text links at 75% opacity.",
+      "html": "<header class=\"ds-nav\"><a class=\"ds-nav-mark\" href=\"#\">Pick Flick</a><nav class=\"ds-nav-links\"><a href=\"#\" aria-current=\"page\">Search</a><a href=\"#\">Watchlist</a><a href=\"#\">History</a><span class=\"ds-nav-avatar\">MA</span></nav></header>",
+      "css": ".ds-nav { display: flex; align-items: center; justify-content: space-between; height: 64px; padding: 0 24px; background: linear-gradient(to bottom, oklch(0.17 0.012 70 / 0.85), transparent); color: var(--foreground); } .ds-nav-mark { font-family: var(--font-bricolage, \"Bricolage Grotesque\"), var(--font-geist-sans, Geist), sans-serif; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; color: inherit; text-decoration: none; } .ds-nav-links { display: flex; align-items: center; gap: 32px; font-family: var(--font-geist-sans, Geist), sans-serif; font-size: 15px; } .ds-nav-links a { color: inherit; text-decoration: none; opacity: 0.75; transition: opacity 150ms; } .ds-nav-links a:hover, .ds-nav-links a[aria-current=\"page\"] { opacity: 1; } .ds-nav-links a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } .ds-nav-avatar { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 9999px; border: 1px solid var(--border); background: var(--surface); font-size: 12px; font-weight: 500; }"
+    },
+    {
+      "name": "Pick Block",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "Signature: scrim-backed title, mono meta, reason, Play + Not tonight, reel-swap entrance.",
+      "html": "<section class=\"ds-pick\"><div class=\"ds-pick-text\"><h1 class=\"ds-pick-title\">Past Lives</h1><p class=\"ds-pick-meta\">2023 · Korean · 7.8 · <a href=\"#\">Trailer</a></p><p class=\"ds-pick-reason\">A quiet one for a slow night: two old friends, one long evening, and everything they never said.</p><div class=\"ds-pick-actions\"><button class=\"ds-pick-play\">Play</button><button class=\"ds-pick-ghost\">Not tonight</button></div></div></section>",
+      "css": ".ds-pick { padding: 48px 32px; background: linear-gradient(90deg, oklch(0.17 0.012 70 / 0.92) 0%, oklch(0.17 0.012 70 / 0.88) 45%, oklch(0.17 0.012 70 / 0.35) 100%), linear-gradient(180deg, oklch(0.17 0.012 70 / 0.2) 0%, oklch(0.17 0.012 70 / 0.1) 60%, oklch(0.17 0.012 70 / 0.98) 100%), oklch(0.3 0.04 60); color: var(--foreground); } .ds-pick-text { max-width: 620px; animation: ds-reel-in 480ms 120ms cubic-bezier(0.16, 1, 0.3, 1) both; } .ds-pick-title { margin: 0; font-family: var(--font-bricolage, \"Bricolage Grotesque\"), var(--font-geist-sans, Geist), sans-serif; font-optical-sizing: auto; font-size: clamp(2.75rem, 7vw, 5.5rem); font-weight: 600; line-height: 0.95; letter-spacing: -0.02em; text-wrap: balance; } .ds-pick-meta { margin: 20px 0 0; font-family: var(--font-geist-mono, \"Geist Mono\"), monospace; font-size: 14px; font-variant-numeric: tabular-nums; color: var(--muted-foreground); } .ds-pick-meta a { color: inherit; text-decoration: underline; text-decoration-color: var(--border); text-underline-offset: 4px; } .ds-pick-meta a:hover { color: var(--foreground); } .ds-pick-reason { margin: 20px 0 0; max-width: 520px; font-family: var(--font-geist-sans, Geist), sans-serif; font-size: 20px; line-height: 1.625; color: oklch(0.92 0.016 85 / 0.85); } .ds-pick-actions { display: flex; gap: 12px; margin-top: 32px; } .ds-pick-play, .ds-pick-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 48px; padding: 0 20px; border-radius: 8px; font-family: var(--font-geist-sans, Geist), sans-serif; font-size: 15px; font-weight: 500; cursor: pointer; transition: background-color 150ms, border-color 150ms, opacity 150ms, transform 150ms; width: 160px; } .ds-pick-play { border: none; background: var(--accent); color: var(--accent-foreground); } .ds-pick-play:hover { background: oklch(0.78 0.15 72 / 0.9); } .ds-pick-ghost { border: 1px solid var(--border); background: transparent; color: var(--foreground); } .ds-pick-ghost:hover { background: oklch(0.92 0.016 85 / 0.06); } .ds-pick-play:focus-visible, .ds-pick-ghost:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; } @keyframes ds-reel-in { from { opacity: 0; filter: blur(6px); transform: translateY(8px); } to { opacity: 1; filter: blur(0); transform: translateY(0); } } @media (prefers-reduced-motion: reduce) { .ds-pick-text { animation: none; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Projection Booth",
+    "overview": "Pick Flick is one lit picture in a dark room. The current pick's backdrop fills the viewport under a warm scrim. The title, a single mono metadata line and a short reason sit in the darker part of that scrim, and everything else stays in the dark around it. The ground is a warm off-black, the text is bone, and one marquee amber marks the things you can press. Nothing else on the screen has a color of its own. The imagery comes from TMDB and supplies all the color the room needs.\n\nThe world is dark only (`color-scheme: dark`, no light tokens). Surfaces are flat. A 14% bone hairline is what separates things. The one shadow in the system belongs to the large hero poster, so the picture looks lifted off the wall. Density is low. A screen produces one pick or helps you act on one, and secondary rails (Continue watching, Trending) sit below it at a smaller scale.\n\nMotion is a single gesture, the **reel swap**. When a new pick arrives, its backdrop, poster and text come in from a 6px blur and an 8px drop. The animation runs 480ms on an exponential ease-out (`cubic-bezier(0.16, 1, 0.3, 1)`), and the text block follows 120ms behind the image. When `prefers-reduced-motion: reduce` is set, the swap is turned off entirely. Controls get only a 150ms color transition and a 1px press-down.",
+    "keyCharacteristics": [
+      "Warm off-black room, bone text, one amber accent for pressable things.",
+      "Full-bleed backdrop under a warm scrim that is darker where the text sits.",
+      "Bricolage Grotesque display at weight 600, -0.02em tracking. Geist for UI. Geist Mono for metadata.",
+      "Hairlines instead of fills or shadows. One poster shadow.",
+      "8px corners on controls and posters, 6px on small inputs, full radius on chips and icon toggles.",
+      "One entrance animation (the reel swap), switched off under reduced motion."
+    ],
+    "rules": [
+      {
+        "name": "The Marquee Rule",
+        "body": "Amber goes only on things you can press, and on the focus and selection states of those things. Headings, progress, metadata and decoration never use it. Selected segments in a segmented control use a 10% bone wash, not amber.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Room Rule",
+        "body": "The app has one theme, and it is dark. Do not add a light variant or a second accent hue. Color for a scene comes from the TMDB imagery, never from the chrome.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Marquee Rule",
+        "body": "Each viewport gets at most one display-scale title: the pick, or the hero line. Every other heading steps down to headline or smaller.",
+        "section": "typography"
+      },
+      {
+        "name": "The Mono Meta Rule",
+        "body": "Factual metadata (years, ratings, languages, counts, page numbers) is set in Geist Mono with tabular numerals, in dim bone, on one line separated by \" · \". Do not put metadata in pills or badges.",
+        "section": "typography"
+      },
+      {
+        "name": "The Scrim Rule",
+        "body": "A full-bleed backdrop always sits under the `.scrim` layer. On desktop the scrim runs horizontally, from 92% booth-black on the left to 35% on the right, with a vertical fade to 98% at the bottom. Under 1024px it runs vertically, from 55% to 98%. Text never sits directly on a raw backdrop.",
+        "section": "layout"
+      },
+      {
+        "name": "The Hairline Rule",
+        "body": "Elements are separated by a 1px border at 14% bone. Do not add background fills to make a container read as a card.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Lit Poster Rule",
+        "body": "Only the poster of the current or featured pick casts a shadow. If a second thing on the screen has a shadow, one of them is wrong.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep amber for pressable things and their focus or selection states (The Marquee Rule).",
+      "Do put every full-bleed image under the `.scrim` utility, which turns vertical below 1024px.",
+      "Do set titles in Bricolage Grotesque at weight 600 with -0.02em tracking, and metadata in Geist Mono with tabular numerals.",
+      "Do separate things with the 14% bone hairline, and save `shadow-poster` for the one featured poster.",
+      "Do use 8px corners on controls and posters, 6px on small inputs and segments, and full radius on chips and icon toggles.",
+      "Do bring new picks in with `.reel-swap` / `.reel-swap-late`, and keep the reduced-motion override.",
+      "Do draw icons as 16px line glyphs at 1.5 stroke."
+    ],
+    "donts": [
+      "Don't use amber on headings, progress, selected segments or decorative fills.",
+      "Don't add a light theme or a second accent hue.",
+      "Don't use glassmorphism (backdrop blur), decorative glows, or gradient text. The world's only gradients are the scrim and the nav fade.",
+      "Don't put shadows on tiles, panels, buttons or menus.",
+      "Don't wrap metadata in pills or badges. It belongs on the mono meta line.",
+      "Don't put more than one display-scale title in a viewport."
+    ]
+  }
+}

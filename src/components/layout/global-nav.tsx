@@ -1,142 +1,83 @@
 'use client';
 
-/**
- * Global Navigation Bar
- * Persistent across all pages for authenticated users
- */
-
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Bookmark, Clock, LayoutDashboard, LogOut, Search, Settings, Sparkles } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
+const LINKS = [
+  { href: '/search', label: 'Search' },
+  { href: '/watchlist', label: 'Watchlist' },
+  { href: '/history', label: 'History' },
+];
 
 export function GlobalNav() {
   const { data: session, status } = useSession();
+  const pathname = usePathname();
 
-  if (status === 'loading') {
-    return null; // Don't show nav while loading
-  }
+  if (status === 'loading' || pathname === '/watch') return null;
 
-  const isAuthenticated = status === 'authenticated';
-
-  const getUserInitials = () => {
-    if (!session?.user?.name) return 'U';
-    const names = session.user.name.split(' ');
-    if (names.length >= 2) {
-      return `${names[0][0]}${names[1][0]}`.toUpperCase();
-    }
-    return names[0][0].toUpperCase();
-  };
-
-  const handleSignOut = () => {
-    signOut({ callbackUrl: '/' });
-  };
+  const authed = status === 'authenticated';
+  const initials = (session?.user?.name ?? 'U')
+    .split(' ')
+    .slice(0, 2)
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase();
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <Link href={isAuthenticated ? "/dashboard" : "/"} className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold text-gradient">PickFlick</span>
-          </Link>
-          
-          <div className="flex items-center gap-4">
-            {/* Search Button - Available for all users */}
-            <Link
-              href="/search"
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
-            >
-              <Search className="w-4 h-4" />
-              <span className="text-sm hidden sm:inline">Search</span>
-            </Link>
+    <header className="fixed inset-x-0 top-0 z-50 bg-linear-to-b from-background/85 to-transparent">
+      <div className="mx-auto flex h-16 max-w-330 items-center justify-between px-4 sm:px-6 lg:px-15">
+        <Link href={authed ? '/dashboard' : '/'} className="font-display text-xl font-bold tracking-[-0.01em]">
+          Pick Flick
+        </Link>
 
-            {isAuthenticated ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-secondary transition-colors outline-none">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={session?.user?.image || undefined} alt={session?.user?.name || 'User'} />
-                    <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
-                      {getUserInitials()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm font-medium hidden sm:inline">
-                    {session?.user?.name?.split(' ')[0] || 'Account'}
-                  </span>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{session?.user?.name}</p>
-                      <p className="text-xs leading-none text-muted-foreground">
-                        {session?.user?.email}
-                      </p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard" className="cursor-pointer">
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      Dashboard
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/watchlist" className="cursor-pointer">
-                      <Bookmark className="mr-2 h-4 w-4" />
-                      My Watchlist
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/history" className="cursor-pointer">
-                      <Clock className="mr-2 h-4 w-4" />
-                      History
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/onboarding" className="cursor-pointer">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Preferences
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={handleSignOut} 
-                    className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  href="/onboarding"
-                  className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
-                >
-                  Get Started
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
+        <nav className="flex items-center gap-5 text-[15px] sm:gap-8">
+          {(authed ? LINKS : LINKS.slice(0, 1)).map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className={cn('transition-opacity hover:opacity-100', pathname === l.href ? 'opacity-100' : 'opacity-75')}
+            >
+              {l.label}
+            </Link>
+          ))}
+
+          {authed ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger className="cursor-pointer rounded-full outline-none focus-visible:ring-2 focus-visible:ring-accent" aria-label="Account">
+                <Avatar className="size-8 border border-border">
+                  <AvatarImage src={session?.user?.image || undefined} alt="" />
+                  <AvatarFallback className="bg-surface text-xs font-medium">{initials}</AvatarFallback>
+                </Avatar>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <p className="text-sm font-medium">{session?.user?.name}</p>
+                  <p className="text-xs text-muted-foreground">{session?.user?.email}</p>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild><Link href="/onboarding">Taste profile</Link></DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => signOut({ callbackUrl: '/' })}>Sign out</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : pathname === '/login' ? null : (
+            <Link href="/login" className="inline-flex h-9 items-center rounded-md bg-accent px-4 text-sm font-medium text-accent-foreground hover:bg-accent/90">
+              Sign in
+            </Link>
+          )}
+        </nav>
       </div>
-    </nav>
+    </header>
   );
 }

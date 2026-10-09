@@ -7,7 +7,8 @@
 
 import { SearchBar, SearchResultsGrid } from '@/components/search';
 import { useSearch } from '@/hooks/use-search';
-import { ArrowLeft, Film, Loader2, Search, Tv, User } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useState } from 'react';
 
@@ -58,130 +59,92 @@ function SearchContent() {
   const totalPages = data?.totalPages ?? 0;
 
   return (
-    <div className="min-h-screen bg-gradient-animated px-4 sm:px-6 py-8 pt-20 sm:pt-24">
-      <div className="max-w-4xl mx-auto">
-        {/* Header with Back Button */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-2">
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="p-2 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors"
-              title="Back to Dashboard"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <h1 className="text-3xl font-bold">Search</h1>
-          </div>
-          <p className="text-muted-foreground ml-12">
-            Find movies, TV shows, and people
-          </p>
-        </div>
+    <div className="mx-auto max-w-330 px-4 pb-24 pt-24 sm:px-6 lg:px-15">
+      <SearchBar
+        placeholder="What are you looking for?"
+        defaultValue={initialQuery}
+        onChange={(newQuery) => {
+          setQuery(newQuery);
+          setPage(1);
+        }}
+        onSearch={handleSearch}
+        autoFocus
+        showAutocomplete={false}
+      />
 
-        {/* Search Bar */}
-        <div className="mb-6">
-          <SearchBar
-            placeholder="What are you looking for?"
-            defaultValue={initialQuery}
-            onChange={(newQuery) => {
-              setQuery(newQuery);
-              setPage(1);
-            }}
-            onSearch={handleSearch}
-            autoFocus
-            showAutocomplete={false}
-          />
-        </div>
+      <div className="mt-4 flex w-fit gap-1 rounded-md border border-border p-1" role="group" aria-label="Filter results">
+        {[
+          { type: 'movie' as const, label: 'Movies' },
+          { type: 'tv' as const, label: 'TV Shows' },
+          { type: 'person' as const, label: 'People' },
+        ].map(({ type, label }) => (
+          <button
+            key={type}
+            onClick={() => toggleFilter(type)}
+            aria-pressed={filterTypes.includes(type)}
+            className={cn(
+              'h-7 cursor-pointer rounded-sm px-3 text-xs transition-colors',
+              filterTypes.includes(type)
+                ? 'bg-foreground/10 text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-2 mb-6">
-          <span className="text-sm text-muted-foreground">Filter:</span>
-          <div className="flex gap-2">
-            {[
-              { type: 'movie' as const, label: 'Movies', Icon: Film },
-              { type: 'tv' as const, label: 'TV Shows', Icon: Tv },
-              { type: 'person' as const, label: 'People', Icon: User },
-            ].map(({ type, label, Icon }) => (
-              <button
-                key={type}
-                onClick={() => toggleFilter(type)}
-                className={`
-                  flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm
-                  transition-all duration-200
-                  ${filterTypes.includes(type)
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-secondary/50 hover:bg-secondary text-muted-foreground hover:text-foreground'
-                  }
-                `}
-              >
-                <Icon className="w-4 h-4" />
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Results */}
+      <div className="mt-8">
         {query.length < 2 ? (
-          <div className="glass rounded-2xl p-12 text-center">
-            <Search className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-            <h2 className="text-xl font-semibold mb-2">Start Searching</h2>
-            <p className="text-muted-foreground">
-              Enter at least 2 characters to search
-            </p>
-          </div>
+          <p className="text-sm text-muted-foreground">Search for a title, a show, or a person.</p>
         ) : isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="flex flex-col items-center gap-3">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              <span className="text-muted-foreground">Searching...</span>
-            </div>
-          </div>
+          <ul className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6" aria-busy="true">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <li key={i}>
+                <div className="aspect-2/3 rounded-md bg-foreground/10" />
+                <div className="mt-2 h-4 rounded-md bg-foreground/10" />
+              </li>
+            ))}
+          </ul>
         ) : results.length === 0 ? (
-          <div className="glass rounded-2xl p-12 text-center">
-            <Search className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <h2 className="text-xl font-semibold mb-2">No Results Found</h2>
-            <p className="text-muted-foreground">
-              No results for &ldquo;{query}&rdquo;. Try a different search.
+          <div>
+            <h2 className="font-display text-lg font-semibold tracking-[-0.02em]">No matches.</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Nothing for &ldquo;{query}&rdquo;. Try a different search.
             </p>
           </div>
         ) : (
-          <>
-            {/* Results Count */}
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-muted-foreground">
-                {totalResults.toLocaleString()} result{totalResults !== 1 ? 's' : ''} for &ldquo;{query}&rdquo;
-                {isFetching && <Loader2 className="inline w-4 h-4 ml-2 animate-spin" />}
-              </p>
-            </div>
+          <div aria-busy={isFetching}>
+            <p className="tabular mb-4 font-mono text-sm text-muted-foreground">
+              {totalResults.toLocaleString()} result{totalResults !== 1 ? 's' : ''}
+            </p>
 
-            {/* Results Grid */}
             <SearchResultsGrid results={results} />
 
-            {/* Pagination */}
             {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-8">
-                <button
+              <div className="mt-8 flex items-center justify-center gap-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="px-4 py-2 rounded-lg bg-secondary hover:bg-secondary/80
-                           disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Previous
-                </button>
-                <span className="px-4 py-2 text-sm text-muted-foreground">
-                  Page {page} of {totalPages}
+                </Button>
+                <span className="tabular font-mono text-sm text-muted-foreground">
+                  {page} / {totalPages}
                 </span>
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
-                  className="px-4 py-2 rounded-lg bg-secondary hover:bg-secondary/80
-                           disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Next
-                </button>
+                </Button>
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>
@@ -193,11 +156,7 @@ function SearchContent() {
  */
 export default function SearchPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gradient-animated flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    }>
+    <Suspense fallback={<div className="min-h-dvh" aria-busy="true" />}>
       <SearchContent />
     </Suspense>
   );

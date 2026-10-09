@@ -1,12 +1,7 @@
-/**
- * GenreStep Component
- * Step 2: Select favorite genres
- * Single Responsibility: Only handles genre selection
- */
-
 'use client';
 
 import { ANIME_GENRES, GENRES } from '@/config/app.config';
+import { cn } from '@/lib/utils';
 
 type ContentType = 'MOVIE' | 'SERIES' | 'ANIME';
 
@@ -17,7 +12,6 @@ interface GenreStepProps {
 }
 
 export function GenreStep({ contentTypes, selected, onToggle }: GenreStepProps) {
-  // Get relevant genres based on selected content types
   const hasAnime = contentTypes.includes('ANIME');
   const hasMovieOrSeries = contentTypes.includes('MOVIE') || contentTypes.includes('SERIES');
 
@@ -29,36 +23,31 @@ export function GenreStep({ contentTypes, selected, onToggle }: GenreStepProps) 
       : Object.values(GENRES);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold mb-2">Pick your favorites</h2>
-        <p className="text-muted-foreground">
-          Choose at least 3 genres you love
-        </p>
-      </div>
+    <div>
+      <h1 className="font-display text-3xl font-semibold tracking-[-0.02em]">Which genres?</h1>
+      <p className="mt-2 text-muted-foreground">
+        {selected.length >= 3 ? `${selected.length} chosen.` : `Choose at least 3. ${3 - selected.length} to go.`}
+      </p>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-        {relevantGenres.map((genre) => (
-          <button
-            key={genre.id}
-            onClick={() => onToggle(String(genre.id))}
-            className={`px-4 py-3 rounded-lg border transition-all ${
-              selected.includes(String(genre.id))
-                ? 'border-primary bg-primary/10 font-medium'
-                : 'border-border hover:border-primary/50'
-            }`}
-          >
-            <span className="mr-2">{genre.icon}</span>
-            {genre.name}
-          </button>
-        ))}
+      <div className="mt-8 flex flex-wrap gap-2">
+        {relevantGenres.map((genre) => {
+          const on = selected.includes(String(genre.id));
+          return (
+            <button
+              key={genre.id}
+              type="button"
+              aria-pressed={on}
+              onClick={() => onToggle(String(genre.id))}
+              className={cn(
+                'h-10 cursor-pointer rounded-full border px-4 text-sm transition-colors',
+                on ? 'border-accent bg-accent font-medium text-accent-foreground' : 'border-border hover:bg-foreground/[0.06]'
+              )}
+            >
+              {genre.name}
+            </button>
+          );
+        })}
       </div>
-
-      {selected.length > 0 && selected.length < 3 && (
-        <p className="text-sm text-muted-foreground text-center">
-          {3 - selected.length} more to go!
-        </p>
-      )}
     </div>
   );
 }

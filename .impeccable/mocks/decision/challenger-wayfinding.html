@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pick Flick - Tonight, This Way</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;width:1440px;height:900px;overflow:hidden}
+body{background:#141414;color:#fff;font-family:"Hanken Grotesk",sans-serif;font-size:17px;position:relative}
+*{box-sizing:border-box}
+.abs{position:absolute}
+.bar{left:0;top:0;width:1440px;height:64px;border-bottom:1px solid rgba(255,255,255,0.14)}
+.bar .in{position:absolute;left:60px;width:1320px;top:0;height:63px}
+.wordmark{position:absolute;left:0;top:19px;font-weight:700;font-size:18px;line-height:24px}
+.nav{position:absolute;right:48px;top:21px;font-size:15px;line-height:20px;color:rgba(255,255,255,0.75)}
+.nav span{margin-left:32px}
+.avatar{position:absolute;right:0;top:15px;width:32px;height:32px;border-radius:50%;background:#9a9a9a}
+.mood{left:60px;top:104px;width:560px;height:48px;border:1px solid rgba(255,255,255,0.14);border-radius:4px;background:transparent;color:#fff;font:400 17px "Hanken Grotesk",sans-serif;padding:0 16px;outline:0}
+.mood::placeholder{color:#fff;opacity:1}
+.chips{left:636px;top:108px;display:flex;gap:8px}
+.chip{height:40px;padding:0 16px;border:1px solid rgba(255,255,255,0.14);border-radius:4px;font-size:15px;line-height:38px;white-space:nowrap}
+.chip.on{background:#fff;color:#111;border-color:#fff}
+.band{left:60px;top:196px;width:1320px;height:324px;background:#f5c400;border-radius:6px;color:#111}
+.pict{left:40px;top:40px;width:48px;height:48px;background:#000;display:flex;align-items:center;justify-content:center}
+.pict i{width:24px;height:24px;border-radius:50%;background:#fff}
+.kick{left:40px;top:108px;font-size:15px;line-height:20px}
+.title{left:40px;top:128px;margin:0;font-size:64px;font-weight:600;letter-spacing:-0.01em;line-height:72px;white-space:nowrap}
+.meta{left:40px;top:206px;font-size:17px;line-height:24px}
+.mins{left:560px;top:80px;font-weight:700;font-size:160px;line-height:160px;letter-spacing:-0.02em;white-space:nowrap}
+.mins small{font-size:28px;font-weight:600;letter-spacing:0;margin-left:12px}
+.play{right:0;top:88px;width:120px;text-align:center;font-size:15px;line-height:20px}
+.play b{display:block;width:120px;height:120px;background:#000;border-radius:6px;margin-bottom:8px;position:relative}
+.play b::after{content:"";position:absolute;left:46px;top:40px;border-left:40px solid #fff;border-top:20px solid transparent;border-bottom:20px solid transparent}
+.reason{left:60px;top:548px;width:640px;margin:0;font-size:20px;line-height:30px}
+.ghost{left:740px;top:548px;width:150px;height:48px;border:1px solid rgba(255,255,255,0.14);border-radius:4px;text-align:center;line-height:46px;font-size:17px}
+.ico{top:552px;width:40px;height:40px;border:1px solid rgba(255,255,255,0.14);border-radius:50%}
+.poster{background:linear-gradient(160deg,#3a3a3a,#1d1d1d);border-radius:4px}
+.cw{left:60px;top:830px;font-size:16px;font-weight:600;line-height:22px}
+.cwi{top:864px;width:100px;height:150px}
+.cwl{top:830px;font-size:15px;line-height:20px;color:#9a9a9a}
+</style>
+</head>
+<body>
+<div class="abs bar"><div class="in">
+  <div class="wordmark">Pick Flick</div>
+  <div class="nav"><span>Search</span><span>Watchlist</span><span>History</span></div>
+  <div class="avatar"></div>
+</div></div>
+
+<input class="abs mood" placeholder="What's the vibe tonight?">
+<div class="abs chips">
+  <div class="chip">Something light</div><div class="chip on">Slow burn</div><div class="chip">Under 2 hours</div><div class="chip">Surprise me</div>
+</div>
+
+<div class="abs band">
+  <div class="abs pict"><i></i></div>
+  <div class="abs kick">Tonight</div>
+  <h1 class="abs title">Past Lives</h1>
+  <div class="abs meta">2023 · Rated 7.8</div>
+  <div class="abs mins">106<small>min</small></div>
+  <div class="abs play"><b></b>Play</div>
+</div>
+
+<p class="abs reason">Quiet, Korean-language, and under two hours. You liked Drive My Car and it is past ten.</p>
+<div class="abs ghost">Not tonight</div>
+<div class="abs ico" style="left:910px"></div>
+<div class="abs ico" style="left:958px"></div>
+<div class="abs ico" style="left:1006px"></div>
+<div class="abs poster" style="left:1200px;top:548px;width:180px;height:270px"></div>
+
+<div class="abs cw">Continue watching</div>
+<div class="abs poster cwi" style="left:60px"></div>
+<div class="abs poster cwi" style="left:176px"></div>
+<div class="abs poster cwi" style="left:292px"></div>
+<div class="abs cwl" style="left:60px;top:830px;display:none">Severance S2 E4</div>
+<div class="abs" style="left:408px;top:864px;font-size:15px;line-height:22px;color:#9a9a9a">Severance S2 E4<br>The Bear S3 E1<br>Perfect Days</div>
+</body>
+</html>

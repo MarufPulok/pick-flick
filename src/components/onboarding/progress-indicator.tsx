@@ -1,9 +1,3 @@
-/**
- * ProgressIndicator Component
- * Shows current step progress
- * Single Responsibility: Only displays progress
- */
-
 'use client';
 
 interface ProgressIndicatorProps {
@@ -13,15 +7,14 @@ interface ProgressIndicatorProps {
 
 export function ProgressIndicator({ currentStep, totalSteps }: ProgressIndicatorProps) {
   return (
-    <div className="flex gap-2 justify-center mt-6">
-      {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
-        <div
-          key={step}
-          className={`h-2 w-16 rounded-full transition-colors ${
-            step <= currentStep ? 'bg-primary' : 'bg-border'
-          }`}
-        />
-      ))}
+    <div
+      role="progressbar"
+      aria-valuemin={1}
+      aria-valuemax={totalSteps}
+      aria-valuenow={currentStep}
+      className="h-0.5 w-full bg-border"
+    >
+      <div className="h-full bg-foreground transition-[width]" style={{ width: `${(currentStep / totalSteps) * 100}%` }} />
     </div>
   );
 }

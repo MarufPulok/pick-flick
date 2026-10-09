@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pick Flick - Dashboard (Leader)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;width:1440px;height:900px;overflow:hidden}
+body{position:relative;background:#0b0b0b;color:#f1efe9;font:400 16px/1.5 'Archivo',sans-serif}
+.mono{font-family:'JetBrains Mono',monospace;font-weight:400}
+.dim{opacity:.4}
+.abs{position:absolute}
+.bar{left:0;top:0;width:1440px;height:64px;border-bottom:1px solid rgba(241,239,233,.12)}
+.bar .in{position:absolute;left:60px;width:1320px;height:64px;display:flex;align-items:center}
+.logo{font-weight:700;font-size:18px;flex:1}
+.bar a{font-size:15px;color:rgba(241,239,233,.7);margin-right:32px}
+.av{width:32px;height:32px;border-radius:50%;background:#262626;border:1px solid rgba(241,239,233,.12)}
+.mood{left:60px;top:112px;display:flex;align-items:center;gap:12px}
+.field{box-sizing:border-box;width:560px;height:48px;padding:0 20px;background:transparent;border:1px solid rgba(241,239,233,.12);border-radius:6px;color:#f1efe9;font:400 16px 'Archivo',sans-serif;margin-right:12px}
+.field::placeholder{color:#6b6b6b}
+.chip{font:400 14px 'Archivo',sans-serif;color:#f1efe9;background:transparent;border:1px solid rgba(241,239,233,.12);border-radius:999px;padding:8px 16px}
+.pick{left:60px;top:196px;width:856px}
+h1{margin:0;font-weight:800;font-stretch:125%;font-size:96px;line-height:1.1;letter-spacing:-.02em}
+.meta{margin-top:12px;font-size:15px;color:#6b6b6b}
+.reason{margin:28px 0 0;max-width:560px;font-size:20px;line-height:1.5}
+.row{display:flex;gap:16px;margin-top:36px}
+.btn{box-sizing:border-box;height:56px;border-radius:6px;font:600 17px 'Archivo',sans-serif;color:#f1efe9}
+.play{width:180px;background:#e3261b;color:#fff;border:0}
+.ghost{padding:0 28px;background:transparent;border:1px solid rgba(241,239,233,.12)}
+.icons{display:flex;gap:16px;margin-top:32px}
+.ic{box-sizing:border-box;width:40px;height:40px;border-radius:50%;border:1px solid rgba(241,239,233,.12);background:transparent}
+.frame{left:1080px;top:196px;width:300px;height:450px;box-sizing:border-box;border:1px solid rgba(241,239,233,.12);background:linear-gradient(160deg,#1a1a1a,#262626);overflow:hidden}
+.ring{position:absolute;left:49px;top:124px;width:200px;height:200px;box-sizing:border-box;border:2px solid #e3261b;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:120px;line-height:1}
+.h,.v{position:absolute;background:rgba(241,239,233,.12)}
+.h{left:0;right:0;top:224px;height:1px}
+.v{top:0;bottom:0;left:149px;width:1px}
+.cap{left:1080px;top:658px;font-size:11px;letter-spacing:.08em;color:#6b6b6b}
+.rail{left:60px;top:766px;width:1320px}
+.rail .lab{font-size:14px;color:#f1efe9}
+.posters{display:flex;gap:24px;margin-top:12px}
+.p{width:120px;height:180px;border-radius:4px;background:linear-gradient(160deg,#1a1a1a,#262626);border:1px solid rgba(241,239,233,.12)}
+.p:nth-child(2){background:linear-gradient(160deg,#202020,#2b2b2b)}
+.p:nth-child(3){background:linear-gradient(160deg,#161616,#222)}
+.sr{position:absolute;left:-9999px}
+</style>
+</head>
+<body>
+<header class="abs bar dim"><div class="in"><span class="logo">Pick Flick</span><a>Search</a><a>Watchlist</a><a>History</a><span class="av"></span></div></header>
+
+<div class="abs mood dim">
+  <input class="field" placeholder="What's the vibe tonight?" aria-label="Mood">
+  <button class="chip">Something light</button>
+  <button class="chip">Slow burn</button>
+  <button class="chip">Under 2 hours</button>
+  <button class="chip">Surprise me</button>
+</div>
+
+<main class="abs pick">
+  <h1>Past Lives</h1>
+  <div class="meta mono">2023 / 106 min / 7.8</div>
+  <p class="reason">Quiet, Korean-language, and under two hours. You liked Drive My Car and it is past ten.</p>
+  <div class="row"><button class="btn play">Play</button><button class="btn ghost">Not tonight</button></div>
+  <div class="icons dim"><span class="ic"></span><span class="ic"></span><span class="ic"></span></div>
+</main>
+
+<div class="abs frame"><span class="h"></span><span class="v"></span><div class="ring mono">2</div></div>
+<div class="abs cap mono">FRAME 00:02</div>
+
+<section class="abs rail dim">
+  <div class="lab">Continue watching</div>
+  <div class="posters"><div class="p" title="Severance S2 E4"></div><div class="p" title="The Bear S3 E1"></div><div class="p" title="Perfect Days"></div></div>
+</section>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pick Flick - Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;width:1440px;height:900px;overflow:hidden}
+body{background:#f6efe6;color:#1f1b16;font:400 17px/1.5 'Figtree',sans-serif}
+*{box-sizing:border-box}
+.wrap{width:1200px;margin:0 auto}
+.top{height:72px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-weight:800;font-size:20px}
+.nav{display:flex;align-items:center;gap:28px;font-size:15px}
+.nav a{color:#1f1b16;text-decoration:none}
+.avatar{width:36px;height:36px;border-radius:50%;background:#d9c8b3}
+.mood{display:block;width:100%;height:56px;margin-top:32px;padding:0 24px;border:0;border-radius:12px;background:#fff;box-shadow:0 8px 24px rgba(80,60,40,.10);font:400 17px 'Figtree',sans-serif;color:#1f1b16}
+.mood::placeholder{color:#7a7066}
+.chips{display:flex;gap:12px;margin-top:16px}
+.chip{height:40px;padding:0 20px;border:0;border-radius:999px;background:#fff;color:#1f1b16;font:600 15px 'Figtree',sans-serif;box-shadow:0 8px 24px rgba(80,60,40,.10)}
+.chip.on{background:#e2572b;color:#fff}
+.card{background:#fff;border-radius:20px;box-shadow:0 8px 24px rgba(80,60,40,.10)}
+.pick{margin-top:16px;padding:32px;display:flex;gap:40px}
+.poster{width:240px;height:360px;border-radius:12px;background:linear-gradient(#c9b9a4,#8d7b66);flex:none}
+.info{display:flex;flex-direction:column;justify-content:center}
+.label{font-size:13px;color:#7a7066}
+h1{margin:8px 0 4px;font-size:56px;line-height:1.1;font-weight:700;letter-spacing:-.02em}
+.meta{font-size:15px;color:#7a7066}
+.why{max-width:520px;margin:20px 0 32px}
+.row{display:flex;align-items:center;gap:24px}
+.play{width:160px;height:52px;border:0;border-radius:999px;background:#e2572b;color:#fff;font:700 17px 'Figtree',sans-serif}
+.skip{color:#1f1b16;font-weight:600;text-decoration:none}
+.icons{display:flex;gap:12px;margin-left:16px}
+.ic{width:40px;height:40px;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(80,60,40,.12)}
+h2{margin:34px 0 16px;font-size:20px;line-height:26px;font-weight:700}
+.cw{display:flex;gap:20px}
+.mini{width:300px;height:200px;padding:20px;border-radius:16px;display:flex;gap:16px;align-items:flex-start}
+.mini .p{width:56px;height:84px;border-radius:8px;flex:none}
+.mini b{font-weight:600;font-size:17px;line-height:1.3}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="logo">Pick Flick</div>
+    <div class="nav"><a href="#">Search</a><a href="#">Watchlist</a><a href="#">History</a><div class="avatar"></div></div>
+  </div>
+  <input class="mood" type="text" placeholder="What's the vibe tonight?">
+  <div class="chips">
+    <button class="chip">Something light</button>
+    <button class="chip">Slow burn</button>
+    <button class="chip on">Under 2 hours</button>
+    <button class="chip">Surprise me</button>
+  </div>
+  <div class="card pick">
+    <div class="poster"></div>
+    <div class="info">
+      <div class="label">Tonight's pick</div>
+      <h1>Past Lives</h1>
+      <div class="meta">2023 · 1h 46m · 7.8</div>
+      <p class="why">Quiet, Korean-language, and under two hours. You liked Drive My Car and it is past ten.</p>
+      <div class="row">
+        <button class="play">Play</button>
+        <a class="skip" href="#">Not tonight</a>
+        <div class="icons"><div class="ic"></div><div class="ic"></div><div class="ic"></div></div>
+      </div>
+    </div>
+  </div>
+  <h2>Continue watching</h2>
+  <div class="cw">
+    <div class="card mini"><div class="p" style="background:linear-gradient(#b8c2c9,#6f7d88)"></div><b>Severance S2 E4</b></div>
+    <div class="card mini"><div class="p" style="background:linear-gradient(#d9b8a0,#9c6e55)"></div><b>The Bear S3 E1</b></div>
+    <div class="card mini"><div class="p" style="background:linear-gradient(#d8cfa8,#9b9068)"></div><b>Perfect Days</b></div>
+  </div>
+</div>
+</body>
+</html>

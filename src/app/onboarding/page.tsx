@@ -1,15 +1,3 @@
-/**
- * Onboarding Page
- * Multi-step form for collecting user preferences
- * 
- * SOLID Principles Applied:
- * - S: Page orchestrates, step components handle their own concerns
- * - O: New steps can be added without modifying existing ones
- * - L: Step components are interchangeable with proper interfaces
- * - I: Components receive only the props they need
- * - D: Components depend on callbacks (abstractions) not implementations
- */
-
 'use client';
 
 import {
@@ -161,11 +149,7 @@ export default function OnboardingPage() {
 
   // Loading state
   if (status === 'loading' || isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-animated flex items-center justify-center">
-        <div className="w-12 h-12 rounded-xl bg-primary animate-pulse" />
-      </div>
-    );
+    return <div className="bg-background min-h-dvh" aria-busy="true" />;
   }
 
   if (status === 'unauthenticated') {
@@ -173,36 +157,15 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-animated px-4 sm:px-6 py-8 sm:py-12 pt-20 sm:pt-24">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8 sm:mb-12">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2">
-            {isEditMode ? 'Update Your Preferences' : "Let's Get Started"}
-          </h1>
-          <p className="text-sm sm:text-base text-muted-foreground px-4">
-            {isEditMode
-              ? 'Adjust your preferences to get better recommendations'
-              : "Tell us what you like, and we'll find your perfect picks"}
-          </p>
-          <ProgressIndicator currentStep={step} totalSteps={TOTAL_STEPS} />
-        </div>
+    <div className="min-h-dvh">
+      <div className="mx-auto max-w-[720px] px-4 sm:px-6 pt-24 pb-24">
+        <ProgressIndicator currentStep={step} totalSteps={TOTAL_STEPS} />
 
-        {/* Step Content */}
-        <div className="glass rounded-2xl p-5 sm:p-6 lg:p-8 mb-6">
-          {step === 1 && (
-            <ContentTypeStep
-              selected={contentTypes}
-              onToggle={toggleContentType}
-            />
-          )}
+        <div className="mt-10">
+          {step === 1 && <ContentTypeStep selected={contentTypes} onToggle={toggleContentType} />}
 
           {step === 2 && (
-            <GenreStep
-              contentTypes={contentTypes}
-              selected={selectedGenres}
-              onToggle={toggleGenre}
-            />
+            <GenreStep contentTypes={contentTypes} selected={selectedGenres} onToggle={toggleGenre} />
           )}
 
           {step === 3 && (
@@ -216,13 +179,11 @@ export default function OnboardingPage() {
           )}
         </div>
 
-        {/* Navigation */}
         <StepNavigation
           currentStep={step}
           totalSteps={TOTAL_STEPS}
           canProceed={canProceed()}
           isSubmitting={isSubmitting}
-          isEditMode={isEditMode}
           onBack={handleBack}
           onNext={handleNext}
           onSubmit={handleSubmit}

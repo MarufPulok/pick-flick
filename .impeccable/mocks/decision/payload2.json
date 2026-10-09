@@ -1,0 +1,270 @@
+{
+ "title": "Choose Pick Flick's visual world",
+ "question": "You asked for a merge. Marquee Band leads; the earlier hand stays as alternates. Lock one or re-roll.",
+ "options": [
+  {
+   "id": "merged",
+   "label": "Marquee Band",
+   "kicker": "IMPROVISED",
+   "lineage": "Projection Booth owns the world; the airport sign band becomes its signature move",
+   "thesis": "The lit screen in the dark room is the sign: title, what it costs you in minutes, and an arrow that is Play.",
+   "palette": [
+    "#17150f",
+    "#ece5d5",
+    "#e8a33a",
+    "#3a342a"
+   ],
+   "materials": [
+    "projected backdrop",
+    "marquee amber",
+    "one band per pick"
+   ],
+   "viewport": "Warm off-black room. Floating top bar, mood field and chips at the top left. The pick is ONE lit band across the width: the backdrop image lives inside it under a scrim, poster at the left edge, title in Bricolage Grotesque, a mono meta line, a two-line reason, the runtime as a monumental figure labeled 'Costs you 106 min', and the Play arrow as an amber block locked to the band's right edge. Under the band: 'Not tonight' and three icon buttons. Everything outside the band dims to 55% while a pick is live. Continue Watching rail below. On phones the band stacks and is the whole first screen: only the next decision shows.",
+   "risk": "The band must stay the only lit thing on screen; a second bright region and the whole idea collapses into a dashboard. Monumental runtime can read as a countdown if the type is too heavy.",
+   "raised": [
+    {
+     "from": "challenger-wayfinding",
+     "raise": "Runtime shown as a cost in minutes at monumental scale, and the arrow is the Play control, locked to the band edge."
+    },
+    {
+     "from": "assigned",
+     "raise": "Everything outside the live pick dims to 55%; the picking state is an amber ring, never a spinner."
+    },
+    {
+     "from": "challenger-warm-app",
+     "raise": "Amber appears only on things you can press: Play, the active chip, the focus ring."
+    },
+    {
+     "from": "challenger-saville",
+     "raise": "Nothing is labeled twice; no eyebrows, no section kickers, the heading carries itself."
+    }
+   ],
+   "html": ".impeccable/mocks/decision/merged.html"
+  },
+  {
+   "id": "assigned",
+   "label": "Leader",
+   "kicker": "THE ROLL",
+   "lineage": "Academy film leader countdown, the seconds before the picture starts",
+   "thesis": "The pick arrives the way a film does: a countdown, a sync pop, then the title, and nothing else on screen.",
+   "palette": [
+    "#0b0b0b",
+    "#f1efe9",
+    "#e3261b",
+    "#6b6b6b"
+   ],
+   "materials": [
+    "film leader",
+    "frame counter",
+    "sync pop"
+   ],
+   "viewport": "Near-black screen. Top bar: Pick Flick wordmark, Search, Watchlist, History, avatar. Left two thirds: the pick's title in wide grotesk at display size, one mono line of frame-counter metadata (year, runtime in minutes, rating), a two-line 'why this pick', Play as a solid red button and 'Not tonight' as a ghost. Right third: the poster as a bordered frame with a red circle registration mark. Mood field sits above the pick, one line, four plain chips. The picking state is the signature: a 3-2-1 leader countdown fills the poster frame and the title lands on 2. Continue Watching rail peeks at the bottom edge.",
+   "risk": "The countdown reads as a gimmick if the idle screen is not dead calm; the world lives or dies on restraint. Black with one red is also close to what cinema apps already ship.",
+   "raised": [
+    {
+     "from": "challenger-title-wall",
+     "raise": "When a pick lands, every other region on screen dims to 40% until the user acts."
+    },
+    {
+     "from": "challenger-crouwel",
+     "raise": "Poster, metadata and controls sit on one fixed 12-cell grid and reflow by whole cells, never by fractions."
+    },
+    {
+     "from": "challenger-saville",
+     "raise": "Nothing is labeled twice: the Play button is the only place the word Play appears, chips have no heading."
+    },
+    {
+     "from": "challenger-ikeda",
+     "raise": "Every animated state has a still equivalent; reduced motion shows the pick instantly with the counter at 2."
+    }
+   ],
+   "html": ".impeccable/mocks/decision/assigned.html"
+  },
+  {
+   "id": "model-pick",
+   "label": "Projection Booth",
+   "kicker": "IMPECCABLE\u2019S PICK",
+   "lineage": "A dark theater lit only by the picture on the screen",
+   "thesis": "The pick's own backdrop lights the room; the interface is the dark around it.",
+   "palette": [
+    "#17150f",
+    "#ece5d5",
+    "#e8a33a",
+    "#3a342a"
+   ],
+   "materials": [
+    "projected backdrop",
+    "dark scrim",
+    "marquee amber"
+   ],
+   "viewport": "The pick's TMDB backdrop fills the viewport behind a warm dark scrim. Top bar floats over it. Left-aligned stack: title in Bricolage Grotesque, one meta line in Geist Mono, two-line reason, amber Play and bone 'Not tonight'. Poster large on the right with a soft tinted shadow. Mood field with chips sits at the top of the stack. Continue Watching and Trending are poster rails below the fold. Signature move: the next pick crossfades like a reel change, the backdrop swapping first and the text following.",
+   "risk": "Dark ground plus a full-bleed backdrop is where most streaming apps land; it earns its place only through type and restraint, and a weak backdrop image drags the whole screen down.",
+   "html": ".impeccable/mocks/decision/model-pick.html"
+  },
+  {
+   "id": "challenger-warm-app",
+   "label": "Warm Consumer Surface",
+   "verdict": "competitive",
+   "lineage": "Soft-cornered consumer app on a warm tinted ground",
+   "thesis": "A friendly app where the only bright thing on screen is something you can press, and tonight that is Play.",
+   "palette": [
+    "#f6efe6",
+    "#ffffff",
+    "#1f1b16",
+    "#e2572b"
+   ],
+   "materials": [
+    "warm tinted ground",
+    "white cards",
+    "spring press"
+   ],
+   "viewport": "Warm cream ground. Top bar in the same cream. One white card holds the pick: poster left, title in Figtree, meta line, reason, a single orange Play button; 'Not tonight' is plain text. Mood field above the card with chips as soft pills. Continue Watching as a second card row. On phones a bottom bar carries Pick, Search, Saved, History. Signature move: orange appears nowhere except actionable elements, so the eye finds Play without searching.",
+   "case": "Wins audience identification outright: a tired person on a phone reads it instantly as a friendly app. Ties on clarity with the assigned direction, so it does not take the build on its own.",
+   "risk": "Cards on a tinted ground is the most-shipped consumer pattern of the decade; without disciplined type it reads as a template.",
+   "html": ".impeccable/mocks/decision/challenger-warm-app.html",
+   "hero": "https://impeccable.style/worlds/cards/digital-design-canon-warm-consumer-app-surface-hero.webp",
+   "board": "https://impeccable.style/worlds/cards/digital-design-canon-warm-consumer-app-surface.webp"
+  },
+  {
+   "id": "challenger-wayfinding",
+   "label": "Tonight, This Way",
+   "verdict": "competitive",
+   "lineage": "Airport overhead signage: one message per band, distance in minutes",
+   "thesis": "The pick is a sign band at a junction: title, how many minutes it costs you, and an arrow to Play.",
+   "palette": [
+    "#f5c400",
+    "#111111",
+    "#ffffff",
+    "#2b2b2b"
+   ],
+   "materials": [
+    "yellow sign band",
+    "black humanist sans",
+    "pictogram inset"
+   ],
+   "viewport": "Near-black concourse ground. Top bar standard. The pick is one saturated yellow band across the width: title in black humanist sans, '106 min' at monumental scale where a gate number would be, a running-figure pictogram, and a right-pointing arrow that is the Play button locked to the band's edge. Reason sits under the band in white. Poster beside the band, small. Mood chips above as black inset squares. Signature move: skipping repaints the band with a split-flap swap; on phones only the next decision shows.",
+   "case": "Holds product clarity: runtime as a distance in minutes is the clearest statement of what a pick costs a tired person. Loses identification: an airport is stress, not an evening in.",
+   "risk": "Saturated yellow at full width is loud for a dim room; the band must be the only yellow and everything else must stay black.",
+   "html": ".impeccable/mocks/decision/challenger-wayfinding.html",
+   "hero": "https://impeccable.style/worlds/cards/wayfinding-cartography-signage-terminal-yellow-wayfinding-hero.webp",
+   "board": "https://impeccable.style/worlds/cards/wayfinding-cartography-signage-terminal-yellow-wayfinding.webp"
+  },
+  {
+   "id": "challenger-title-wall",
+   "label": "Title Card Wall",
+   "verdict": "declined",
+   "lineage": "Streaming catalog rows, the focused tile expands",
+   "thesis": "Rows of artwork; the one you land on grows and tells you what it is.",
+   "palette": [
+    "#0f0f0f",
+    "#ffffff",
+    "#e50914"
+   ],
+   "materials": [
+    "poster rows",
+    "focus expansion",
+    "row dimming"
+   ],
+   "viewport": "Horizontally scrolling poster rows with the pick as the expanded tile in the top row.",
+   "case": "Fails product truth: Pick Flick is one pick, not a wall. The product's own principle rules it out before the axes are weighed.",
+   "kept": "Row-level dimming: when one thing is in focus everything else gets out of the way.",
+   "risk": "Indistinguishable from Netflix.",
+   "hero": "https://impeccable.style/worlds/cards/pop-culture-shelf-streaming-title-card-wall-hero.webp"
+  },
+  {
+   "id": "challenger-crouwel",
+   "label": "Grid Specimen",
+   "verdict": "declined",
+   "lineage": "Wim Crouwel gridded type specimen",
+   "thesis": "The title built cell by cell on a visible construction grid.",
+   "palette": [
+    "#ffffff",
+    "#1a4fd8",
+    "#111111"
+   ],
+   "materials": [
+    "construction hairlines",
+    "cell-built letterforms"
+   ],
+   "viewport": "Faint grid over the whole screen, the pick's title assembled from cells.",
+   "case": "Loses identification for a tired viewer and loses clarity: the grid is the content, the movie is not.",
+   "kept": "Reflow by whole cells on a fixed grid.",
+   "risk": "Reads as a poster, not a product.",
+   "hero": "https://impeccable.style/worlds/cards/crouwel-grid-specimen-hero.webp"
+  },
+  {
+   "id": "challenger-saville",
+   "label": "Catalog Sleeve",
+   "verdict": "declined",
+   "lineage": "Factory Records catalog identity, fac numbers and coded color strips",
+   "thesis": "Every pick is a numbered entry; genres are a strip of colored blocks you learn to read.",
+   "palette": [
+    "#0a0a0a",
+    "#ffffff",
+    "#ff3b1f",
+    "#1fb6ff"
+   ],
+   "materials": [
+    "matte black",
+    "white hairline plot",
+    "hue code strip"
+   ],
+   "viewport": "Vast black, a small catalog number as the only headline, a pulse plot, a coded strip.",
+   "case": "Loses identification outside design circles and loses clarity: codes in place of words on a screen built for a tired person.",
+   "kept": "Nothing is labeled twice.",
+   "risk": "Beautiful and unreadable.",
+   "hero": "https://impeccable.style/worlds/cards/brand-identity-canon-saville-catalog-sleeve-hero.webp"
+  },
+  {
+   "id": "challenger-ikeda",
+   "label": "Datamatics",
+   "verdict": "declined",
+   "lineage": "Ryoji Ikeda data-sublime fields, black and white only",
+   "thesis": "Barcode columns and sine lattices strobe in pure black and white.",
+   "palette": [
+    "#000000",
+    "#ffffff"
+   ],
+   "materials": [
+    "hairline bars",
+    "mono numerics",
+    "frame inversion"
+   ],
+   "viewport": "A wall of hairline bars with mono numbers in the margin.",
+   "case": "Loses both axes: strobing fields are the opposite of an evening wind-down and carry no movie.",
+   "kept": "Every animation holds a single still under reduced motion.",
+   "risk": "Hostile to the use scene.",
+   "hero": "https://impeccable.style/worlds/cards/ikeda-datamatics-hero.webp"
+  }
+ ],
+ "reroll": {
+  "registers": [
+   "safer",
+   "bolder"
+  ]
+ },
+ "buildPath": {
+  "value": "code",
+  "toggle": false
+ },
+ "canon": true,
+ "canonCard": {
+  "label": "The category standard",
+  "thesis": "Dark grey ground, a hero poster with a red Play, rails of posters below; what streaming apps ship, executed impeccably.",
+  "palette": [
+   "#141414",
+   "#ffffff",
+   "#e50914",
+   "#8c8c8c"
+  ],
+  "materials": [
+   "dark grey ground",
+   "poster rails",
+   "red CTA"
+  ],
+  "viewport": "Top bar, a hero area with backdrop, title, red Play and a grey secondary, then horizontal poster rails for Continue Watching and Trending.",
+  "risk": "Indistinguishable from the competition by design.",
+  "html": ".impeccable/mocks/decision/canon.html"
+ },
+ "steer": true
+}
