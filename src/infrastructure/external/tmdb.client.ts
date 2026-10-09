@@ -82,6 +82,7 @@ export interface TMDBTVDetails extends TMDBTVShow {
   number_of_episodes: number;
   genres: TMDBGenre[];
   episode_run_time: number[];
+  last_episode_to_air?: { runtime: number | null } | null;
   status: string;
   tagline: string;
 }

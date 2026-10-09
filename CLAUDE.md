@@ -53,6 +53,8 @@ ANIME content type always forces `original_language=ja` and `with_genres=16` (An
 
 `generateSmartRecommendation` orders content types by recency to enforce diversity — types not recently recommended come first.
 
+SMART mode never dead-ends on a missing taste profile: the route falls back to whatever onboarding saved so far, then to MOVIE+SERIES / English / rating ≥ 6.5, and returns `profileComplete: false` so the pick screen can nudge toward `/onboarding`. The route also fetches TMDB details for `runtime` (movie minutes, or first `episode_run_time` for series), cached in `detailsCache`.
+
 ### Preference Learning (`src/services/preference-weights.service.ts`)
 
 Like/dislike feedback updates `PreferenceWeightsModel` (per-user genre/language/contentType weights, 0–100, default 50). Boosts: +5 for like, -3 for dislike.

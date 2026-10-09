@@ -26,6 +26,8 @@ export interface Recommendation {
   voteCount?: number;
   originalLanguage?: string;
   genreIds?: number[];
+  runtime?: number | null;
+  profileComplete?: boolean;
   trailerUrl?: string | null;
   explanation?: { title: string; description: string } | null;
   watchProviders?: {
@@ -45,11 +47,17 @@ interface Filters {
 
 const LANGUAGE_NAME = Object.fromEntries(Object.values(LANGUAGES).map((l) => [l.code, l.name]));
 
+function fmtRuntime(min: number) {
+  const h = Math.floor(min / 60);
+  return h ? `${h}h ${min % 60}m` : `${min}m`;
+}
+
 function metaLine(r: Recommendation) {
   const parts: string[] = [];
   if (r.releaseDate) parts.push(String(new Date(r.releaseDate).getFullYear()));
   if (r.originalLanguage) parts.push(LANGUAGE_NAME[r.originalLanguage] ?? r.originalLanguage.toUpperCase());
   if (r.contentType !== 'MOVIE') parts.push(r.contentType === 'ANIME' ? 'Anime' : 'Series');
+  if (r.runtime) parts.push(r.contentType === 'MOVIE' ? fmtRuntime(r.runtime) : `${r.runtime}m episodes`);
   if (typeof r.rating === 'number') parts.push(r.rating.toFixed(1));
   return parts.join(' · ');
 }
@@ -243,18 +251,7 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
           )}
 
           <div className="order-1 lg:order-0 lg:mt-16">
-            {error && /onboarding/i.test(error) ? (
-              <div className="max-w-130">
-                <h1 className="font-display text-3xl font-semibold tracking-[-0.02em] sm:text-4xl">Tell it what you like first.</h1>
-                <p className="mt-4 text-lg text-muted-foreground">A one-minute taste profile. After that, a pick is waiting every time you open this page.</p>
-                <div className="mt-6 flex flex-wrap gap-3">
-                  <Link href="/onboarding" className="inline-flex h-12 items-center rounded-md bg-accent px-5 text-[15px] font-medium text-accent-foreground hover:bg-accent/90">
-                    Set up your taste
-                  </Link>
-                  <Button variant="ghost" onClick={() => setRefineOpen(true)}>Pick with filters instead</Button>
-                </div>
-              </div>
-            ) : error ? (
+            {error ? (
               <div className="max-w-130">
                 <h1 className="font-display text-3xl font-semibold tracking-[-0.02em] sm:text-4xl">Nothing landed.</h1>
                 <p className="mt-4 text-lg text-muted-foreground">{error}</p>
@@ -283,6 +280,11 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
                 <p className="mt-3 max-w-130 text-pretty text-base leading-relaxed text-foreground/85 sm:text-xl lg:mt-5">
                   {pick.explanation?.description || pick.overview}
                 </p>
+                {pick.profileComplete === false && (
+                  <p className="mt-3 text-sm text-muted-foreground">
+                    <Link href="/onboarding" className="underline underline-offset-4 hover:text-foreground">Set up your taste</Link> for picks that are yours, not everyone&apos;s.
+                  </p>
+                )}
 
                 <div className="mt-6 flex flex-wrap gap-3 lg:mt-8">
                   <Button variant="play" className="w-40" onClick={play} disabled={isLoading}>Play</Button>

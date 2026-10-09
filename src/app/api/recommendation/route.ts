@@ -5,11 +5,13 @@
 
 import { buildExplanation } from "@/config/genre-names";
 import { getTMDBImageUrl } from "@/config/url.config";
+import { ContentType } from "@/dtos/common.dto";
 import { GenerateRecommendationReqSchema } from "@/dtos/request/generate-recommendation.req.dto";
 import { connectToDatabase } from "@/infrastructure/db";
 import { TasteProfileModel, UserModel } from "@/infrastructure/db/models";
 import { tmdbClient } from "@/infrastructure/external/tmdb.client";
 import { auth } from "@/lib/auth";
+import { CACHE_TTL, detailsCache } from "@/lib/cache";
 import { loggers } from "@/lib/logger";
 import { HistoryService } from "@/services/history.service";
 import { RecommendationService } from "@/services/recommendation.service";
@@ -37,37 +39,41 @@ export async function POST(req: NextRequest) {
     }
 
     let recommendation;
+    let profileComplete = true;
 
     // Load blacklist for user
     const blacklist = await HistoryService.getBlacklist(user._id.toString());
 
     if (validated.mode === "SMART") {
-      // Load taste profile for smart mode
-      const profile = await TasteProfileModel.findOne({ userId: user._id });
-
-      if (!profile || !profile.complete) {
-        return NextResponse.json(
-          { error: "Please complete onboarding first" },
-          { status: 400 }
-        );
-      }
+      // Load taste profile for smart mode. Without a finished one, fall back to
+      // whatever onboarding captured so far, then to broad well-rated defaults,
+      // so the page always opens on a pick instead of a dead end.
+      const saved = await TasteProfileModel.findOne({ userId: user._id });
+      profileComplete = Boolean(saved?.complete);
+      const profile = {
+        contentTypes: (saved?.contentTypes?.length ? saved.contentTypes : ["MOVIE", "SERIES"]) as ContentType[],
+        genres: (saved?.genres ?? []) as string[],
+        languages: (saved?.languages?.length ? saved.languages : ["en"]) as string[],
+        minRating: saved?.minRating ?? (profileComplete ? undefined : 6.5),
+      };
 
       // Get recent content types for diversity tracking
       const recentContentTypes = await HistoryService.getRecentContentTypes(
         user._id.toString(),
         3
       );
-      
+
       // Prioritize content types not recently recommended
       const prioritizedTypes = profile.contentTypes.filter(
-        (type: string) => !recentContentTypes.includes(type)
+        (type) => !recentContentTypes.includes(type)
       );
       const orderedContentTypes = prioritizedTypes.length > 0
-        ? [...prioritizedTypes, ...profile.contentTypes.filter((type: string) => !prioritizedTypes.includes(type))]
+        ? [...prioritizedTypes, ...profile.contentTypes.filter((type) => !prioritizedTypes.includes(type))]
         : profile.contentTypes;
 
       // Debug profile data (only shows in development)
       log.debug('Smart mode profile', {
+        profileComplete,
         contentTypes: profile.contentTypes,
         languages: profile.languages,
         orderedContentTypes,
@@ -110,15 +116,38 @@ export async function POST(req: NextRequest) {
       // Continue without trailer - it's not critical
     }
 
-    // Build "Why This Pick?" explanation
-    const explanation = recommendation.strategyName 
-      ? buildExplanation({
-          strategyName: recommendation.strategyName,
-          genres: recommendation.strategyGenres || [],
-          languages: recommendation.strategyLanguages || [],
-          contentType: recommendation.contentType,
-        })
-      : null;
+    // Runtime: movies carry it directly, series expose a per-episode length.
+    let runtime: number | null = null;
+    try {
+      const key = `${recommendation.contentType}:${recommendation.tmdbId}`;
+      runtime = await detailsCache.getOrSet(
+        key,
+        async () =>
+          recommendation.contentType === 'MOVIE'
+            ? (await tmdbClient.getMovieDetails(recommendation.tmdbId)).runtime || null
+            : await tmdbClient.getTVDetails(recommendation.tmdbId).then((d) => d.episode_run_time?.[0] || d.last_episode_to_air?.runtime || null),
+        CACHE_TTL.DETAILS
+      ) as number | null;
+    } catch (error) {
+      console.error("Failed to fetch runtime:", error);
+    }
+
+    // Build "Why This Pick?" explanation. Strategy copy speaks of "your taste",
+    // which is false until onboarding is done.
+    const explanation = !profileComplete
+      ? {
+          title: 'Popular right now',
+          description:
+            'No taste profile yet, so this is a well-rated pick from what people are watching.',
+        }
+      : recommendation.strategyName
+        ? buildExplanation({
+            strategyName: recommendation.strategyName,
+            genres: recommendation.strategyGenres || [],
+            languages: recommendation.strategyLanguages || [],
+            contentType: recommendation.contentType,
+          })
+        : null;
 
     // Fetch watch providers (streaming availability)
     let watchProviders: {
@@ -171,9 +200,11 @@ export async function POST(req: NextRequest) {
       voteCount: recommendation.voteCount,
       genreIds: recommendation.genreIds,
       originalLanguage: recommendation.originalLanguage,
+      runtime,
       trailerUrl,
       explanation,
       watchProviders,
+      profileComplete,
     };
 
     return NextResponse.json(response);
