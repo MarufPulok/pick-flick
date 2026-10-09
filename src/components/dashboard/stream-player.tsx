@@ -1,12 +1,11 @@
-/**
- * StreamPlayer Component
- * Embedded streaming player using RiveStream
- */
-
 'use client';
 
 import { ContentType } from '@/dtos/common.dto';
-import { buildRiveStreamUrl } from '@/lib/rivestream';
+import {
+  DEFAULT_EMBED_PROVIDER,
+  EMBED_PROVIDERS,
+  buildEmbedUrl,
+} from '@/lib/embed-providers';
 import { setStreamOpen } from '@/lib/watching-state';
 import { ExternalLink, Maximize2, Minimize2, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
@@ -15,6 +14,8 @@ interface StreamPlayerProps {
   tmdbId: number;
   contentType: ContentType;
   title: string;
+  season?: number;
+  episode?: number;
   onClose: () => void;
 }
 
@@ -22,19 +23,22 @@ export function StreamPlayer({
   tmdbId,
   contentType,
   title,
+  season,
+  episode,
   onClose,
 }: StreamPlayerProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const streamUrl = buildRiveStreamUrl(tmdbId, contentType);
+  const [providerId, setProviderId] = useState(DEFAULT_EMBED_PROVIDER.id);
 
-  // Mark stream as open when mounted, clear when unmounted
+  const streamUrl = buildEmbedUrl(providerId, tmdbId, contentType, season, episode);
+
   useEffect(() => {
     setStreamOpen(true);
     return () => setStreamOpen(false);
   }, []);
 
   const toggleFullscreen = useCallback(() => {
-    setIsFullscreen(prev => !prev);
+    setIsFullscreen((prev) => !prev);
   }, []);
 
   const openExternal = useCallback(() => {
@@ -50,13 +54,35 @@ export function StreamPlayer({
       {/* Header */}
       <div
         className={`flex items-center justify-between gap-4 ${
-          isFullscreen ? 'absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/80 to-transparent z-10' : 'mb-4'
+          isFullscreen
+            ? 'absolute top-0 left-0 right-0 p-4 bg-linear-to-b from-black/80 to-transparent z-10'
+            : 'mb-4'
         }`}
       >
-        <h2 className="text-lg font-semibold text-white truncate">
-          {title}
-        </h2>
-        <div className="flex items-center gap-2">
+        {/* Title + provider picker */}
+        <div className="flex items-center gap-3 min-w-0">
+          <h2 className="text-lg font-semibold text-white truncate">{title}</h2>
+
+          {/* Provider tabs */}
+          <div className="flex items-center gap-1 shrink-0">
+            {EMBED_PROVIDERS.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => setProviderId(p.id)}
+                className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                  providerId === p.id
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-white/10 text-white/70 hover:bg-white/20 hover:text-white'
+                }`}
+              >
+                {p.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={openExternal}
             className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
@@ -85,9 +111,10 @@ export function StreamPlayer({
         </div>
       </div>
 
-      {/* Player iframe */}
+      {/* Player — key forces iframe reload on provider change */}
       <div className={`flex-1 ${isFullscreen ? '' : 'rounded-xl overflow-hidden'}`}>
         <iframe
+          key={`${providerId}-${tmdbId}`}
           src={streamUrl}
           title={`Stream ${title}`}
           className="w-full h-full border-0"
@@ -97,10 +124,9 @@ export function StreamPlayer({
         />
       </div>
 
-      {/* Footer hint */}
       {!isFullscreen && (
         <p className="mt-3 text-center text-xs text-white/50">
-          Content provided by RiveStream • Press ESC or click X to close
+          Streaming via {EMBED_PROVIDERS.find((p) => p.id === providerId)?.name} • Press ESC or click X to close
         </p>
       )}
     </div>

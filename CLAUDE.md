@@ -19,8 +19,9 @@ Copy `.env.example` to `.env.local`. Required variables:
 - `MONGODB_URI` — MongoDB Atlas connection string
 - `TMDB_API_KEY` + `TMDB_ACCESS_TOKEN` — from themoviedb.org
 - `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` — for OAuth
-- `BETTER_AUTH_SECRET` — random secret for session signing
+- `BETTER_AUTH_SECRET` — random secret for session signing (name is historical; auth is NextAuth, not BetterAuth)
 - `BYTEZ_API_KEY` — optional; disables AI mood analysis if absent
+- `NEXT_PUBLIC_EMBED_PROVIDER` — optional; default in-app player (`vidsrc` | `embedsu` | `2embed` | `autoembed`)
 
 ## Architecture
 
@@ -34,7 +35,7 @@ Copy `.env.example` to `.env.local`. Required variables:
 | Infrastructure | `src/infrastructure/db/` | Mongoose models + connection. `src/infrastructure/external/` has the TMDB and Bytez HTTP clients. |
 | Services | `src/services/` | All business logic. API routes delegate here. |
 | DTOs | `src/dtos/` | Zod schemas for request/response validation. Import from `@/dtos`. |
-| Lib | `src/lib/` | Auth config, TTL cache, mood analysis, free-streaming URL builders, time-context logic. |
+| Lib | `src/lib/` | Auth config, TTL cache, mood analysis, streaming URL builders, time-context logic, client-side state helpers. |
 | Hooks | `src/hooks/` | React Query wrappers over the internal API routes. |
 | Components | `src/components/` | Feature-grouped (`dashboard/`, `search/`, `onboarding/`) plus shadcn/ui primitives in `ui/`. |
 
@@ -58,6 +59,8 @@ In-memory `TTLCache` instances (not Redis). Global singletons: `discoverCache`, 
 
 NextAuth v5 beta with Google OAuth + `MongoDBAdapter`. Sessions stored in DB (30-day expiry). After OAuth callback, redirects to `/onboarding` if `TasteProfile` is missing or `complete: false`.
 
+There is **no middleware**. Protection is per-route: user-scoped API routes (`history`, `profile`, `recommendation`, `stats`, `watchlist`) call `await auth()` and 401 on no session; `search`, `trending`, `similar`, `mood-analyze` are public. Pages gate client-side with `useSession()`. `/search` and `/watch` work for anonymous users.
+
 ### MongoDB Models (`src/infrastructure/db/models/`)
 
 - `UserModel` — NextAuth user record
@@ -67,17 +70,24 @@ NextAuth v5 beta with Google OAuth + `MongoDBAdapter`. Sessions stored in DB (30
 - `WatchlistModel` — saved content
 - `BlacklistModel` — explicitly excluded content
 
+### Streaming
+
+Two separate mechanisms, both client-side only:
+
+- **In-app embed player** — `src/lib/embed-providers.ts` lists iframe providers (VidSrc, EmbedSu, 2Embed, AutoEmbed) with per-provider URL builders keyed by TMDB id, content type, and optional season/episode. `StreamPlayer` (`src/components/dashboard/stream-player.tsx`) lets the user switch provider at runtime; `NEXT_PUBLIC_EMBED_PROVIDER` picks the default. `/watch?id=&type=` renders it standalone. `src/lib/rivestream.ts` is the superseded predecessor and has no importers.
+- **External deep links** — `src/lib/free-streaming.ts` + `src/config/free-streaming.config.ts` build outbound URLs (MovieBox, Cineb, SyncPlay, HiAnime). Each platform toggled via `NEXT_PUBLIC_ENABLE_*`; base URLs via `NEXT_PUBLIC_*_BASE_URL`.
+
+### Client-side state (`src/lib/`)
+
+Browser-only, not persisted to MongoDB: `storage.ts` (localStorage wrapper with in-memory fallback), `watching-state.ts` (currently-watching tracker + open-stream flag, drives `currently-watching-banner`), `service-status.ts` / `service-usage.ts` / `service-feedback.ts` (per-platform health, usage counts, thumbs). Treat these as ephemeral.
+
 ### API Docs
 
 Swagger UI at `/api-docs`. Spec generated via `next-swagger-doc` from JSDoc `@swagger` annotations in route files.
 
-### Free Streaming Links
-
-`src/lib/free-streaming.ts` and `src/config/free-streaming.config.ts` build deep-link URLs to external platforms (MovieBox, Cineb, SyncPlay, HiAnime). Each platform can be toggled via `NEXT_PUBLIC_ENABLE_*` env vars. These are client-side only — no server auth required.
-
 ## Key Conventions
 
-- All environment variables accessed through `src/config/env.config.ts` (`serverEnv` for server-only, `clientEnv` for public).
+- All environment variables accessed through `src/config/env.config.ts` (`serverEnv` for server-only, `clientEnv` for public). Exception: `embed-providers.ts` reads `NEXT_PUBLIC_EMBED_PROVIDER` directly.
 - API routes validate input with Zod schemas from `src/dtos/` before calling services.
 - TMDB genre IDs are stored as strings in MongoDB.
 - `src/domain/` directory exists but is currently empty — reserved for future domain layer.
