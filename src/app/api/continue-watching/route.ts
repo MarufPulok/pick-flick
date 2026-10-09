@@ -17,6 +17,10 @@ const RecordViewingSchema = z.object({
   contentType: z.enum(['MOVIE', 'SERIES', 'ANIME']),
   title: z.string(),
   posterPath: z.string().nullable().optional(),
+  season: z.number().int().positive().nullable().optional(),
+  episode: z.number().int().positive().nullable().optional(),
+  positionSeconds: z.number().min(0).optional(),
+  durationSeconds: z.number().min(0).optional(),
 });
 
 const RemoveViewingSchema = z.object({
@@ -55,6 +59,10 @@ export async function GET() {
         contentType: item.contentType,
         title: item.title,
         posterPath: item.posterPath,
+        season: item.season,
+        episode: item.episode,
+        positionSeconds: item.positionSeconds,
+        durationSeconds: item.durationSeconds,
         lastWatchedAt: item.lastWatchedAt.toISOString(),
         watchCount: item.watchCount,
       })),

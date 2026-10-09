@@ -8,17 +8,16 @@
 
 import { ContentType } from '@/dtos/common.dto';
 import { Button } from '@/components/ui/button';
-import { useRecordViewing } from '@/hooks/use-continue-watching';
-import {
-  DEFAULT_EMBED_PROVIDER,
-  EMBED_PROVIDERS,
-  buildEmbedUrl,
-} from '@/lib/embed-providers';
+import { postViewingProgress, useRecordViewing } from '@/hooks/use-continue-watching';
+import { DEFAULT_EMBED_PROVIDER, EMBED_PROVIDERS, type RankedProvider, getEmbedProvider, rankProviders } from '@/lib/embed-providers';
 import { getFreeStreamingOptions } from '@/lib/free-streaming';
 import { setStreamOpen } from '@/lib/watching-state';
 import { ExternalLink, Maximize2, Minimize2, X } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+
+const PROGRESS_PING_MS = 15_000;
 
 interface StreamPlayerProps {
   tmdbId: number;
@@ -26,8 +25,18 @@ interface StreamPlayerProps {
   title: string;
   season?: number;
   episode?: number;
+  /** Resume position in seconds. */
+  startAt?: number;
   posterPath?: string | null;
   onClose: () => void;
+}
+
+interface Progress {
+  position: number;
+  duration: number;
+  season?: number;
+  episode?: number;
+  sentAt: number;
 }
 
 export function StreamPlayer({
@@ -36,14 +45,34 @@ export function StreamPlayer({
   title,
   season,
   episode,
+  startAt,
   posterPath,
   onClose,
 }: StreamPlayerProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [providerId, setProviderId] = useState(DEFAULT_EMBED_PROVIDER.id);
+  const [ranked, setRanked] = useState<RankedProvider[] | null>(null);
   const recordViewing = useRecordViewing();
+  const queryClient = useQueryClient();
+  const progress = useRef<Progress | null>(null);
 
-  const streamUrl = buildEmbedUrl(providerId, tmdbId, contentType, season, episode);
+  const provider = getEmbedProvider(providerId);
+  const streamUrl = provider.buildUrl({ tmdbId, contentType, season, episode, startAt });
+
+  // Probe providers from this browser, sort by latency, start on the fastest.
+  useEffect(() => {
+    let live = true;
+    rankProviders().then((r) => {
+      if (!live) return;
+      setRanked(r);
+      if (r[0]?.ms !== null) setProviderId(r[0].provider.id);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const sources = ranked ?? EMBED_PROVIDERS.map((provider) => ({ provider, ms: null as number | null }));
 
   // Mark stream as open and record viewing when mounted
   useEffect(() => {
@@ -55,10 +84,66 @@ export function StreamPlayer({
       contentType,
       title,
       posterPath: posterPath || null,
+      season,
+      episode,
     });
 
     return () => setStreamOpen(false);
   }, [tmdbId, contentType, title, posterPath]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Progress tracking: providers with eventOrigin emit PLAYER_EVENT postMessages
+  // ({ event, currentTime, duration, season?, episode? }). Throttled to one ping per
+  // PROGRESS_PING_MS, flushed on pause/seek/end, tab hide, and unmount.
+  // ponytail: only VidLink speaks this dialect; other providers get no position tracking.
+  useEffect(() => {
+    const origin = provider.eventOrigin;
+    if (!origin) return;
+    progress.current = null;
+
+    const flush = () => {
+      const p = progress.current;
+      if (!p || p.duration <= 0) return;
+      p.sentAt = Date.now();
+      postViewingProgress({
+        tmdbId,
+        contentType,
+        title,
+        posterPath: posterPath || null,
+        season: p.season ?? null,
+        episode: p.episode ?? null,
+        positionSeconds: Math.floor(p.position),
+        durationSeconds: Math.floor(p.duration),
+      });
+    };
+
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== origin || e.data?.type !== 'PLAYER_EVENT') return;
+      const d = e.data.data ?? {};
+      if (typeof d.currentTime !== 'number') return;
+      const prev = progress.current;
+      progress.current = {
+        position: d.currentTime,
+        duration: typeof d.duration === 'number' ? d.duration : (prev?.duration ?? 0),
+        season: d.season ?? prev?.season,
+        episode: d.episode ?? prev?.episode,
+        sentAt: prev?.sentAt ?? 0,
+      };
+      const force = d.event === 'pause' || d.event === 'ended' || d.event === 'seeked';
+      if (force || Date.now() - progress.current.sentAt > PROGRESS_PING_MS) flush();
+    };
+    const onHide = () => {
+      if (document.visibilityState === 'hidden') flush();
+    };
+
+    window.addEventListener('message', onMessage);
+    document.addEventListener('visibilitychange', onHide);
+    return () => {
+      window.removeEventListener('message', onMessage);
+      document.removeEventListener('visibilitychange', onHide);
+      flush();
+      queryClient.invalidateQueries({ queryKey: ['continue-watching'] });
+    };
+  }, [provider.eventOrigin, tmdbId, contentType, title, posterPath, queryClient]);
 
   const toggleFullscreen = useCallback(() => {
     setIsFullscreen((prev) => !prev);
@@ -86,19 +171,23 @@ export function StreamPlayer({
           <div role="group" aria-label="Source" className="flex min-w-0 items-center gap-2">
             <span className="hidden text-xs text-muted-foreground sm:inline">Source</span>
             <div className="scrollbar-hide flex min-w-0 gap-1 overflow-x-auto rounded-md border border-border p-1">
-              {EMBED_PROVIDERS.map((p) => (
+              {sources.map(({ provider: p, ms }) => (
                 <button
                   key={p.id}
                   type="button"
                   onClick={() => setProviderId(p.id)}
                   aria-pressed={providerId === p.id}
+                  title={ms === null ? (ranked ? 'Unreachable' : 'Checking…') : `${ms} ms`}
                   className={`h-7 shrink-0 cursor-pointer rounded-sm px-3 text-xs ${
                     providerId === p.id
                       ? 'bg-foreground/10 text-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
+                      : ranked && ms === null
+                        ? 'text-muted-foreground/40 hover:text-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   {p.name}
+                  {ms !== null && <span className="ml-1 tabular-nums opacity-50">{ms}</span>}
                 </button>
               ))}
             </div>
@@ -118,15 +207,21 @@ export function StreamPlayer({
 
       {/* key forces iframe reload on provider change */}
       <div className={`min-h-0 flex-1 overflow-hidden ${isFullscreen ? '' : 'mx-4 rounded-md border border-border'}`}>
-        <iframe
-          key={`${providerId}-${tmdbId}`}
-          src={streamUrl}
-          title={`Stream ${title}`}
-          className="h-full w-full border-0"
-          allowFullScreen
-          allow="autoplay; fullscreen; picture-in-picture"
-          referrerPolicy="no-referrer"
-        />
+        {ranked === null ? (
+          <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground" aria-busy="true">
+            Finding fastest source…
+          </div>
+        ) : (
+          <iframe
+            key={`${providerId}-${tmdbId}`}
+            src={streamUrl}
+            title={`Stream ${title}`}
+            className="h-full w-full border-0"
+            allowFullScreen
+            allow="autoplay; fullscreen; picture-in-picture"
+            referrerPolicy="no-referrer"
+          />
+        )}
       </div>
 
       {!isFullscreen && (

@@ -14,8 +14,36 @@ interface ContinueWatchingItem {
   contentType: ContentType;
   title: string;
   posterPath: string | null;
+  season: number | null;
+  episode: number | null;
+  positionSeconds: number;
+  durationSeconds: number;
   lastWatchedAt: string;
   watchCount: number;
+}
+
+export interface ViewingPing {
+  tmdbId: number;
+  contentType: ContentType;
+  title: string;
+  posterPath?: string | null;
+  season?: number | null;
+  episode?: number | null;
+  positionSeconds?: number;
+  durationSeconds?: number;
+}
+
+/**
+ * Fire-and-forget progress ping. keepalive lets it survive tab close / unmount.
+ * Anonymous users get 401; ignored on purpose.
+ */
+export function postViewingProgress(data: ViewingPing): void {
+  fetch('/api/continue-watching', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    keepalive: true,
+  }).catch(() => {});
 }
 
 interface ContinueWatchingResponse {
@@ -55,12 +83,7 @@ export function useRecordViewing() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (data: {
-      tmdbId: number;
-      contentType: ContentType;
-      title: string;
-      posterPath?: string | null;
-    }) => {
+    mutationFn: async (data: ViewingPing) => {
       const response = await fetch('/api/continue-watching', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

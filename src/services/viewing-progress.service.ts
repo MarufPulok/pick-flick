@@ -12,48 +12,83 @@ interface RecordViewingRequest {
   contentType: ContentType;
   title: string;
   posterPath?: string | null;
+  season?: number | null;
+  episode?: number | null;
+  positionSeconds?: number;
+  durationSeconds?: number;
 }
 
-interface ContinueWatchingItem {
+export interface ContinueWatchingItem {
   _id: string;
   tmdbId: number;
   contentType: ContentType;
   title: string;
   posterPath: string | null;
+  season: number | null;
+  episode: number | null;
+  positionSeconds: number;
+  durationSeconds: number;
   lastWatchedAt: Date;
   watchCount: number;
 }
 
+function toItem(d: {
+  _id: { toString(): string };
+  tmdbId: number;
+  contentType: ContentType;
+  title: string;
+  posterPath: string | null;
+  season?: number | null;
+  episode?: number | null;
+  positionSeconds?: number;
+  durationSeconds?: number;
+  lastWatchedAt: Date;
+  watchCount: number;
+}): ContinueWatchingItem {
+  return {
+    _id: d._id.toString(),
+    tmdbId: d.tmdbId,
+    contentType: d.contentType,
+    title: d.title,
+    posterPath: d.posterPath,
+    season: d.season ?? null,
+    episode: d.episode ?? null,
+    positionSeconds: d.positionSeconds ?? 0,
+    durationSeconds: d.durationSeconds ?? 0,
+    lastWatchedAt: d.lastWatchedAt,
+    watchCount: d.watchCount,
+  };
+}
+
 export class ViewingProgressService {
   /**
-   * Record or update a viewing session
+   * Record or update a viewing session.
+   * A call without positionSeconds is "player opened" and bumps watchCount;
+   * calls with it are progress pings and only move the position.
    */
   static async recordViewing(request: RecordViewingRequest): Promise<ContinueWatchingItem> {
-    const { userId, tmdbId, contentType, title, posterPath } = request;
+    const { userId, tmdbId, contentType, title, posterPath, season, episode, positionSeconds, durationSeconds } = request;
+    const isProgressPing = positionSeconds !== undefined;
+
+    const set: Record<string, unknown> = { title, posterPath: posterPath || null, lastWatchedAt: new Date() };
+    if (season !== undefined) set.season = season;
+    if (episode !== undefined) set.episode = episode;
+    if (isProgressPing) {
+      set.positionSeconds = positionSeconds;
+      if (durationSeconds) set.durationSeconds = durationSeconds;
+    }
 
     const progress = await ViewingProgressModel.findOneAndUpdate(
       { userId, tmdbId, contentType },
       {
-        userId,
-        tmdbId,
-        contentType,
-        title,
-        posterPath: posterPath || null,
-        lastWatchedAt: new Date(),
-        $inc: { watchCount: 1 },
+        $set: set,
+        $setOnInsert: { userId, tmdbId, contentType },
+        ...(isProgressPing ? {} : { $inc: { watchCount: 1 } }),
       },
       { upsert: true, new: true }
     );
 
-    return {
-      _id: progress._id.toString(),
-      tmdbId: progress.tmdbId,
-      contentType: progress.contentType,
-      title: progress.title,
-      posterPath: progress.posterPath,
-      lastWatchedAt: progress.lastWatchedAt,
-      watchCount: progress.watchCount,
-    };
+    return toItem(progress);
   }
 
   /**
@@ -68,15 +103,7 @@ export class ViewingProgressService {
       .limit(limit)
       .lean();
 
-    return items.map((item) => ({
-      _id: item._id.toString(),
-      tmdbId: item.tmdbId,
-      contentType: item.contentType,
-      title: item.title,
-      posterPath: item.posterPath,
-      lastWatchedAt: item.lastWatchedAt,
-      watchCount: item.watchCount,
-    }));
+    return items.map((item) => toItem(item as Parameters<typeof toItem>[0]));
   }
 
   /**

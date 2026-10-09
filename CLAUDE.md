@@ -27,7 +27,6 @@ Required variables:
 - `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` — for OAuth
 - `BETTER_AUTH_SECRET` — random secret for session signing (name is historical; auth is NextAuth, not BetterAuth)
 - `BYTEZ_API_KEY` — optional; disables AI mood analysis if absent
-- `NEXT_PUBLIC_EMBED_PROVIDER` — optional; default in-app player (`vidsrc` | `embedsu` | `2embed` | `autoembed`)
 
 ## Architecture
 
@@ -83,7 +82,7 @@ There is **no middleware**. Protection is per-route: user-scoped API routes (`hi
 
 Two separate mechanisms, both client-side only:
 
-- **In-app embed player** — `src/lib/embed-providers.ts` lists iframe providers (VidSrc, EmbedSu, 2Embed, AutoEmbed) with per-provider URL builders keyed by TMDB id, content type, and optional season/episode. `StreamPlayer` (`src/components/dashboard/stream-player.tsx`) lets the user switch provider at runtime; `NEXT_PUBLIC_EMBED_PROVIDER` picks the default. `/watch?id=&type=` renders it standalone. `src/lib/rivestream.ts` is the superseded predecessor and has no importers.
+- **In-app embed player** — `src/lib/embed-providers.ts` lists 12 iframe providers with per-provider URL builders keyed by TMDB id, content type, optional season/episode, and `startAt` seconds. On open, `rankProviders()` probes every provider from the browser (`no-cors` fetch, 4s timeout, cached 5 min), sorts by latency with a 300ms bonus for providers that report progress, and the player starts on the fastest. VidLink is the only one that emits `PLAYER_EVENT` postMessages; `StreamPlayer` listens and posts throttled progress (position, duration, season, episode) to `/api/continue-watching`, which the continue-watching cards use to resume via `?watch=&type=&s=&e=&t=`. `StreamPlayer` (`src/components/dashboard/stream-player.tsx`) lets the user switch provider at runtime. `/watch?id=&type=` renders it standalone. `src/lib/rivestream.ts` is the superseded predecessor and has no importers.
 - **External deep links** — `src/lib/free-streaming.ts` + `src/config/free-streaming.config.ts` build outbound URLs (MovieBox, Cineb, SyncPlay, HiAnime). Each platform toggled via `NEXT_PUBLIC_ENABLE_*`; base URLs via `NEXT_PUBLIC_*_BASE_URL`.
 
 ### Client-side state (`src/lib/`)
@@ -100,7 +99,7 @@ Swagger UI at `/api-docs`. Spec generated via `next-swagger-doc` from JSDoc `@sw
 
 ## Key Conventions
 
-- All environment variables accessed through `src/config/env.config.ts` (`serverEnv` for server-only, `clientEnv` for public). Exception: `embed-providers.ts` reads `NEXT_PUBLIC_EMBED_PROVIDER` directly.
+- All environment variables accessed through `src/config/env.config.ts` (`serverEnv` for server-only, `clientEnv` for public).
 - API routes validate input with Zod schemas from `src/dtos/` before calling services.
 - TMDB genre IDs are stored as strings in MongoDB.
 - `src/domain/` directory exists but is currently empty — reserved for future domain layer.

@@ -18,6 +18,14 @@ interface WatchContent {
   contentType: ContentType;
   title: string;
   posterPath?: string;
+  season?: number;
+  episode?: number;
+  startAt?: number;
+}
+
+function num(v: string | null): number | undefined {
+  const n = v ? parseInt(v, 10) : NaN;
+  return Number.isFinite(n) && n > 0 ? n : undefined;
 }
 
 function WatchContent() {
@@ -54,6 +62,9 @@ function WatchContent() {
       contentType: type,
       title: decodeURIComponent(title),
       posterPath,
+      season: num(searchParams.get('s')),
+      episode: num(searchParams.get('e')),
+      startAt: num(searchParams.get('t')),
     });
   }, [searchParams]);
 
@@ -82,6 +93,10 @@ function WatchContent() {
       tmdbId={content.tmdbId}
       contentType={content.contentType}
       title={content.title}
+      posterPath={content.posterPath}
+      season={content.season}
+      episode={content.episode}
+      startAt={content.startAt}
       onClose={handleClose}
     />
   );

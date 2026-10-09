@@ -12,6 +12,10 @@ export interface IViewingProgress extends Document {
   contentType: ContentType;
   title: string;
   posterPath: string | null;
+  season: number | null;
+  episode: number | null;
+  positionSeconds: number;
+  durationSeconds: number;
   lastWatchedAt: Date;
   watchCount: number;
   createdAt: Date;
@@ -43,6 +47,10 @@ const ViewingProgressSchema = new Schema<IViewingProgress>(
       type: String,
       default: null,
     },
+    season: { type: Number, default: null },
+    episode: { type: Number, default: null },
+    positionSeconds: { type: Number, default: 0 },
+    durationSeconds: { type: Number, default: 0 },
     lastWatchedAt: {
       type: Date,
       default: Date.now,
