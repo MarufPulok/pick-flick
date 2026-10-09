@@ -1,6 +1,13 @@
+/**
+ * StreamPlayer Component
+ * Embedded streaming player with switchable embed providers
+ * Tracks viewing for "Continue Watching" feature
+ */
+
 'use client';
 
 import { ContentType } from '@/dtos/common.dto';
+import { useRecordViewing } from '@/hooks/use-continue-watching';
 import {
   DEFAULT_EMBED_PROVIDER,
   EMBED_PROVIDERS,
@@ -16,6 +23,7 @@ interface StreamPlayerProps {
   title: string;
   season?: number;
   episode?: number;
+  posterPath?: string | null;
   onClose: () => void;
 }
 
@@ -25,17 +33,29 @@ export function StreamPlayer({
   title,
   season,
   episode,
+  posterPath,
   onClose,
 }: StreamPlayerProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [providerId, setProviderId] = useState(DEFAULT_EMBED_PROVIDER.id);
+  const recordViewing = useRecordViewing();
 
   const streamUrl = buildEmbedUrl(providerId, tmdbId, contentType, season, episode);
 
+  // Mark stream as open and record viewing when mounted
   useEffect(() => {
     setStreamOpen(true);
+    
+    // Record this viewing for "Continue Watching"
+    recordViewing.mutate({
+      tmdbId,
+      contentType,
+      title,
+      posterPath: posterPath || null,
+    });
+
     return () => setStreamOpen(false);
-  }, []);
+  }, [tmdbId, contentType, title, posterPath]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleFullscreen = useCallback(() => {
     setIsFullscreen((prev) => !prev);

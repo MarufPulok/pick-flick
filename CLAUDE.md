@@ -1,21 +1,27 @@
-# CLAUDE.md
+# Pick Flick
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Movie and TV recommendation app. Users complete an onboarding taste profile, then get personalized picks powered by TMDB. Supports mood-based prompts, watchlist, history, and deep-links to free streaming platforms.
+
+**Stack:** Next.js 16 App Router · TypeScript · MongoDB (Mongoose) · NextAuth v5 · React Query · Zod · shadcn/ui · Tailwind v4
 
 ## Commands
 
 ```bash
-npm run dev       # Start dev server (localhost:3000)
-npm run build     # Production build
-npm run start     # Start production server
-npm run lint      # Run ESLint
+npm run dev    # localhost:3000
+npm run build
+npm run lint
 ```
 
-No test suite is configured. There is no single-test command.
+No test suite. Copy `.env.example` → `.env.local`.
 
-## Environment Setup
+## Docs
 
-Copy `.env.example` to `.env.local`. Required variables:
+- Architecture & conventions: `docs/code-of-conduct/coding-standards.md`
+- Planning guidelines: `docs/code-of-conduct/planning-guidelines.md`
+
+## Environment
+
+Required variables:
 - `MONGODB_URI` — MongoDB Atlas connection string
 - `TMDB_API_KEY` + `TMDB_ACCESS_TOKEN` — from themoviedb.org
 - `GOOGLE_CLIENT_ID` + `GOOGLE_CLIENT_SECRET` — for OAuth
@@ -69,6 +75,7 @@ There is **no middleware**. Protection is per-route: user-scoped API routes (`hi
 - `RecommendationHistoryModel` — past recommendations; used as blacklist
 - `WatchlistModel` — saved content
 - `BlacklistModel` — explicitly excluded content
+- `ViewingProgressModel` — per-user viewing records; backs "Continue Watching" (`/api/continue-watching`)
 
 ### Streaming
 
