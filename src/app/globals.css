@@ -145,6 +145,27 @@
   .reel-swap-late {
     animation: reel-in 480ms 120ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
+
+  /* Poster tiles: the bone skeleton is the surface, the image fades over it once decoded. */
+  .poster-img {
+    opacity: 0;
+    transition: opacity 300ms ease-out;
+  }
+
+  .poster-img.is-loaded {
+    opacity: 1;
+  }
+
+  /* Rails: snap to tiles, keep the page from rubber-banding sideways. */
+  .rail {
+    scroll-snap-type: x proximity;
+    overscroll-behavior-x: contain;
+    scroll-padding-inline: 1rem;
+  }
+
+  .rail > * {
+    scroll-snap-align: start;
+  }
 }
 
 @keyframes reel-in {
@@ -164,6 +185,10 @@
   .reel-swap,
   .reel-swap-late {
     animation: none;
+  }
+
+  .poster-img {
+    transition: none;
   }
 }
 

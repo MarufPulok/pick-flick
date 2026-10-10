@@ -3,7 +3,7 @@
 import { useContinueWatching, useRemoveFromContinue } from '@/hooks/use-continue-watching';
 import { cn } from '@/lib/utils';
 import { X } from 'lucide-react';
-import Image from 'next/image';
+import { Poster } from '@/components/ui/poster';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -33,7 +33,7 @@ export function ContinueWatchingSection() {
   return (
     <section>
       <h2 className="font-display text-lg font-semibold">Continue watching</h2>
-      <ul className="scrollbar-hide mt-4 flex gap-4 overflow-x-auto">
+      <ul className="rail scrollbar-hide mt-4 flex gap-4 overflow-x-auto">
         {shown.map((item) => {
           const removing = removingId === item.id;
           const pct = item.durationSeconds ? Math.min(100, Math.round((item.positionSeconds / item.durationSeconds) * 100)) : 0;
@@ -46,18 +46,18 @@ export function ContinueWatchingSection() {
                 disabled={removing}
                 className="block w-full cursor-pointer text-left"
               >
-                <div className="relative aspect-2/3 overflow-hidden rounded-md border border-border bg-surface transition-[border-color] group-hover:border-foreground/40">
-                  {item.posterPath ? (
-                    <Image src={`https://image.tmdb.org/t/p/w342${item.posterPath}`} alt="" fill sizes="130px" className="object-cover" />
-                  ) : (
-                    <span className="font-display absolute inset-0 flex items-end p-2 text-sm font-semibold leading-tight">{item.title}</span>
-                  )}
+                <Poster
+                  src={item.posterPath}
+                  sizes="130px"
+                  className="transition-[border-color] group-hover:border-foreground/40"
+                  fallback={<span className="font-display absolute inset-0 flex items-end p-2 text-sm font-semibold leading-tight">{item.title}</span>}
+                >
                   {pct > 0 && (
                     <div className="absolute inset-x-0 bottom-0 h-1 bg-background/60" aria-hidden>
                       <div className="h-full bg-accent" style={{ width: `${pct}%` }} />
                     </div>
                   )}
-                </div>
+                </Poster>
                 <p className="mt-2 line-clamp-2 text-sm leading-tight">{item.title}</p>
                 {label && <p className="text-xs text-muted-foreground">{label}</p>}
               </button>

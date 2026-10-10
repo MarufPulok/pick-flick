@@ -3,10 +3,11 @@
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { ANIME_GENRES, CONTENT_TYPES, GENRES, LANGUAGES, RATING_TIERS } from '@/config/app.config';
-import { GENRE_NAMES } from '@/config/genre-names';
+import { Poster } from '@/components/ui/poster';
+import { useMoodChips } from '@/hooks/use-feed';
 import { useHistoryActions } from '@/hooks/use-history-actions';
 import { useIsInWatchlist, useWatchlist } from '@/hooks/use-watchlist';
-import { MOOD_CHIPS, moodTextToGenres } from '@/lib/mood-chips';
+import { BASE_CHIPS, SURPRISE_CHIP, type MoodChip } from '@/lib/mood-chips';
 import { cn } from '@/lib/utils';
 import { markAsWatching } from '@/lib/watching-state';
 import { Ban, Bookmark, BookmarkCheck, Eye, ThumbsDown, ThumbsUp } from 'lucide-react';
@@ -67,9 +68,9 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
   const [mode, setMode] = useState<Mode>('SMART');
   const [filters, setFilters] = useState<Filters>({ contentType: 'MOVIE', genre: '', language: 'en', rating: 'ANY' });
   const [refineOpen, setRefineOpen] = useState(false);
-  const [moodText, setMoodText] = useState('');
   const [activeChip, setActiveChip] = useState<string | null>(null);
-  const [moodHint, setMoodHint] = useState<string | null>(null);
+  const { data: chipData } = useMoodChips();
+  const chips = chipData?.chips ?? [...BASE_CHIPS, SURPRISE_CHIP];
   const [pick, setPick] = useState<Recommendation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -92,14 +93,14 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
   };
 
   const generate = useCallback(
-    async (opts: { genres?: string[]; mode?: Mode } = {}) => {
+    async (opts: { genres?: string[]; languages?: string[]; mode?: Mode } = {}) => {
       const id = ++requestId.current;
       setIsLoading(true);
       setError(null);
       const activeMode = opts.mode ?? mode;
       const useFilters = activeMode === 'FILTERED' && !opts.genres;
-      // Mood chips and free text go through the taste pipeline (languages,
-      // content types, exclusions, learned weights) with the mood genres on top.
+      // Mood chips go through the taste pipeline (content types, exclusions,
+      // learned weights) with the chip's genres or language on top.
       const body = JSON.stringify(
         useFilters
           ? {
@@ -109,7 +110,7 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
               language: filters.language,
               minRating: RATING_TIERS[filters.rating].min,
             }
-          : { mode: 'SMART', genres: opts.genres }
+          : { mode: 'SMART', genres: opts.genres, languages: opts.languages }
       );
       try {
         const ready = next.current;
@@ -142,21 +143,9 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const pickFromChip = (chipId: string, genres: string[]) => {
-    setActiveChip(chipId);
-    setMoodText('');
-    setMoodHint(null);
-    generate({ genres });
-  };
-
-  const pickFromText = (e: React.FormEvent) => {
-    e.preventDefault();
-    setActiveChip(null);
-    const genres = moodTextToGenres(moodText);
-    setMoodHint(
-      !moodText.trim() ? null : genres.length ? `Reading that as ${genres.map((g) => GENRE_NAMES[g]).join(' + ')}.` : 'No genre in that, so this is from your taste.'
-    );
-    generate({ genres });
+  const pickFromChip = (chip: MoodChip) => {
+    setActiveChip(chip.id);
+    generate({ genres: chip.genres, languages: chip.languages });
   };
 
   const act = (action: 'LIKED' | 'DISLIKED' | 'BLACKLISTED' | 'WATCHED' | 'SKIPPED') => {
@@ -206,29 +195,20 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
 
       <div className="mx-auto grid max-w-330 gap-8 px-4 pb-10 pt-18 sm:px-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-16 lg:px-15 lg:pb-16 lg:pt-30">
         <div className="flex min-w-0 max-w-155 flex-col lg:block">
-          <form onSubmit={pickFromText} className="order-2 mt-6 flex gap-2 lg:order-0 lg:mt-0">
-            <input
-              value={moodText}
-              onChange={(e) => setMoodText(e.target.value)}
-              placeholder="What's the vibe tonight?"
-              aria-label="Mood"
-              className="h-12 w-full rounded-md border border-border bg-transparent px-4 text-foreground placeholder:text-muted-foreground focus-visible:border-accent focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-accent/35"
-            />
-            <Button type="submit" variant="play" size="md" className="px-4" disabled={isLoading || !moodText.trim()}>
-              Pick
-            </Button>
-            <Button type="button" variant="quiet" size="md" className="px-3" onClick={() => setRefineOpen((o) => !o)} aria-expanded={refineOpen}>
+          <div className="order-2 mt-6 flex items-center justify-between gap-2 lg:order-0 lg:mt-0">
+            <p className="text-sm text-muted-foreground">Tonight I want</p>
+            <Button type="button" variant="quiet" size="sm" className="px-3" onClick={() => setRefineOpen((o) => !o)} aria-expanded={refineOpen}>
               Refine
             </Button>
-          </form>
-          {moodHint && <p className="order-2 mt-2 text-sm text-muted-foreground lg:order-0">{moodHint}</p>}
+          </div>
 
-          <div className="scrollbar-hide order-3 -mx-4 mt-2 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:px-0 lg:order-0 lg:mt-4 lg:flex-wrap">
-            {MOOD_CHIPS.map((chip) => (
+          <div className="scrollbar-hide order-3 -mx-4 mt-2 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:px-0 lg:order-0 lg:flex-wrap" role="group" aria-label="Tonight I want">
+            {chips.map((chip) => (
               <button
                 key={chip.id}
                 type="button"
-                onClick={() => pickFromChip(chip.id, chip.genres)}
+                onClick={() => pickFromChip(chip)}
+                aria-pressed={activeChip === chip.id}
                 className={cn(
                   'h-9 shrink-0 cursor-pointer rounded-full border px-4 text-sm transition-colors',
                   activeChip === chip.id
@@ -348,14 +328,13 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
 
         <div className="order-first mx-auto w-[min(34vw,140px)] lg:order-0 lg:mx-0 lg:w-90 lg:pt-7.5">
           {pick?.posterUrl ? (
-            <Image
+            <Poster
               key={pick.tmdbId}
               src={pick.posterUrl}
               alt={`${pick.title} poster`}
-              width={360}
-              height={540}
-              unoptimized
-              className={cn('reel-swap aspect-2/3 w-full rounded-md object-cover shadow-poster', isLoading && 'opacity-60')}
+              sizes="(min-width: 1024px) 360px, 34vw"
+              priority
+              className={cn('reel-swap w-full border-0 shadow-poster', isLoading && 'opacity-60')}
             />
           ) : (
             !error && <div className="aspect-2/3 w-full rounded-md bg-foreground/10" aria-hidden />

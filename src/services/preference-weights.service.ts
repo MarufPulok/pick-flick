@@ -100,7 +100,7 @@ export class PreferenceWeightsService {
    * Learn from a play on any screen (pick, search, trending, continue watching).
    * The player only knows the TMDB id, so genres and language come from details.
    */
-  static async learnFromPlay(userId: string, tmdbId: number, contentType: string): Promise<void> {
+  static async learnFromPlay(userId: string, tmdbId: number, contentType: string) {
     const details =
       contentType === 'MOVIE' ? await tmdbClient.getMovieDetails(tmdbId) : await tmdbClient.getTVDetails(tmdbId);
     await this.updateWeights({
@@ -110,6 +110,7 @@ export class PreferenceWeightsService {
       contentType,
       language: details.original_language,
     });
+    return details;
   }
 
   /**

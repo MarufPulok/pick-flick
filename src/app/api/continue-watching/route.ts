@@ -105,12 +105,17 @@ export async function POST(req: NextRequest) {
       ...validated,
     });
 
-    // A play from any screen (search, trending, pick) teaches the recommender.
-    // Progress pings carry positionSeconds; only the "player opened" call learns.
+    // A play from any screen (search, trending, pick) teaches the recommender,
+    // and backfills the poster when the link that opened the player had none.
+    // Progress pings carry positionSeconds; only the "player opened" call does this.
     if (validated.positionSeconds === undefined) {
-      PreferenceWeightsService.learnFromPlay(user._id.toString(), validated.tmdbId, validated.contentType).catch(
-        (err) => console.error('Failed to learn from play:', err)
-      );
+      PreferenceWeightsService.learnFromPlay(user._id.toString(), validated.tmdbId, validated.contentType)
+        .then((details) =>
+          !validated.posterPath && details.poster_path
+            ? ViewingProgressService.setPoster(user._id.toString(), validated.tmdbId, validated.contentType, details.poster_path)
+            : undefined
+        )
+        .catch((err) => console.error('Failed to learn from play:', err));
     }
 
     return NextResponse.json({

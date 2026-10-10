@@ -27,6 +27,11 @@ export const GenerateRecommendationReqSchema = z.object({
    * Optional for SMART mode, uses profile preferences
    */
   genres: z.array(z.string()).optional(),
+
+  /**
+   * SMART mode only: mood languages that replace the profile languages for this pick
+   */
+  languages: z.array(z.string().min(2).max(5)).optional(),
   
   /**
    * Minimum TMDB rating (0-10)

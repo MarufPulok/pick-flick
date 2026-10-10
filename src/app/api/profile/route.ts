@@ -80,9 +80,9 @@ export async function POST(req: NextRequest) {
       { userId: user._id },
       {
         userId: user._id,
-        contentTypes: validated.contentTypes,
-        genres: validated.genres,
-        languages: validated.languages,
+        contentTypes: [...new Set(validated.contentTypes)],
+        genres: [...new Set(validated.genres)],
+        languages: [...new Set(validated.languages)],
         animeAutoLanguage: validated.animeAutoLanguage,
         minRating: validated.minRating,
         complete: true, // Mark onboarding as complete

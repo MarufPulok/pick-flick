@@ -157,7 +157,7 @@ Motion is a single gesture, the **reel swap**. When a new pick arrives, its back
 - Bricolage Grotesque display at weight 600, -0.02em tracking. Geist for UI. Geist Mono for metadata.
 - Hairlines instead of fills or shadows. One poster shadow.
 - 8px corners on controls and posters, 6px on small inputs, full radius on chips and icon toggles.
-- One entrance animation (the reel swap), switched off under reduced motion.
+- One entrance animation (the reel swap), switched off under reduced motion. Poster images additionally fade in over their bone skeleton in 300ms once decoded; this is loading feedback, not an entrance, and is also off under reduced motion.
 
 ## Colors
 

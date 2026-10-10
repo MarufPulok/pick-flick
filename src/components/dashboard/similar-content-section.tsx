@@ -7,7 +7,7 @@
 
 import { ContentType } from '@/dtos/common.dto';
 import { useSimilar } from '@/hooks/use-similar';
-import Image from 'next/image';
+import { Poster } from '@/components/ui/poster';
 import Link from 'next/link';
 
 interface SimilarContentSectionProps {
@@ -29,7 +29,7 @@ export function SimilarContentSection({ tmdbId, contentType }: SimilarContentSec
   return (
     <div className="mt-8" aria-busy={isLoading}>
       <h2 className="font-display text-lg font-semibold tracking-[-0.02em]">More like this</h2>
-      <div className="scrollbar-hide mt-4 flex gap-4 overflow-x-auto">
+      <div className="rail scrollbar-hide mt-4 flex gap-4 overflow-x-auto">
         {isLoading
           ? Array.from({ length: 6 }, (_, i) => (
               <div key={i} className="w-36 shrink-0">
@@ -42,14 +42,10 @@ export function SimilarContentSection({ tmdbId, contentType }: SimilarContentSec
               return (
                 <Link
                   key={item.tmdbId}
-                  href={`/dashboard?watch=${item.tmdbId}&type=${item.contentType}&title=${encodeURIComponent(item.title)}`}
-                  className="w-36 shrink-0"
+                  href={`/dashboard?watch=${item.tmdbId}&type=${item.contentType}&title=${encodeURIComponent(item.title)}${item.posterPath ? `&poster=${encodeURIComponent(item.posterPath)}` : ''}`}
+                  className="group w-36 shrink-0"
                 >
-                  <div className="relative aspect-2/3 overflow-hidden rounded-md border border-border bg-surface">
-                    {item.posterUrl && (
-                      <Image src={item.posterUrl} alt="" fill sizes="144px" className="object-cover" />
-                    )}
-                  </div>
+                  <Poster src={item.posterUrl} sizes="144px" className="transition-[border-color] group-hover:border-foreground/40" />
                   <p className="mt-2 line-clamp-2 text-sm leading-tight">{item.title}</p>
                   {year && <p className="tabular font-mono text-sm text-muted-foreground">{year}</p>}
                 </Link>

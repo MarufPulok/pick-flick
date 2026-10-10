@@ -2,7 +2,7 @@
 
 import { useTrending } from '@/hooks/use-trending';
 import { cn } from '@/lib/utils';
-import Image from 'next/image';
+import { Poster } from '@/components/ui/poster';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -43,19 +43,15 @@ export function TrendingSection({ limit = 12 }: { limit?: number }) {
       {error ? (
         <p className="mt-4 text-sm text-muted-foreground">Trending is unavailable right now.</p>
       ) : (
-        <ul className="scrollbar-hide mt-4 flex gap-4 overflow-x-auto" aria-busy={isLoading}>
+        <ul className="rail scrollbar-hide mt-4 flex gap-4 overflow-x-auto" aria-busy={isLoading}>
           {(isLoading ? Array.from({ length: 8 }) : items).map((item, i) => (
             <li key={item ? (item as { tmdbId: number }).tmdbId : i} className="w-27.5 shrink-0 sm:w-32.5">
               {item ? (
                 <Link
-                  href={`/dashboard?watch=${(item as { tmdbId: number }).tmdbId}&type=${(item as { contentType: string }).contentType}&title=${encodeURIComponent((item as { title: string }).title)}`}
+                  href={`/dashboard?watch=${(item as { tmdbId: number }).tmdbId}&type=${(item as { contentType: string }).contentType}&title=${encodeURIComponent((item as { title: string }).title)}${(item as { posterPath: string | null }).posterPath ? `&poster=${encodeURIComponent((item as { posterPath: string }).posterPath)}` : ''}`}
                   className="group block"
                 >
-                  <div className="relative aspect-2/3 overflow-hidden rounded-md border border-border bg-surface transition-[border-color] group-hover:border-foreground/40">
-                    {(item as { posterUrl: string | null }).posterUrl && (
-                      <Image src={(item as { posterUrl: string }).posterUrl} alt="" fill sizes="130px" className="object-cover" />
-                    )}
-                  </div>
+                  <Poster src={(item as { posterUrl: string | null }).posterUrl} sizes="130px" className="transition-[border-color] group-hover:border-foreground/40" />
                   <p className="mt-2 line-clamp-2 text-sm leading-tight">{(item as { title: string }).title}</p>
                   {(item as { rating: number }).rating > 0 && (
                     <p className="tabular mt-0.5 font-mono text-xs text-muted-foreground">{(item as { rating: number }).rating.toFixed(1)}</p>

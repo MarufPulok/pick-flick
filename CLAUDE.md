@@ -57,7 +57,9 @@ Two modes.
 4. *Score within type*: profile genre match + learned genre weights, language weight, rating. Seed pool wins 40% of nights when it holds at least 5 candidates.
 5. *Sample*: softmax over the top 20. The route also excludes picks served to that user in the last 6 hours (`servedCache`, in-memory).
 
-Mood genres (`genres` on a SMART request) replace profile genres and skip seeds. SMART never dead-ends on a missing taste profile: the route falls back to whatever onboarding saved, then MOVIE+SERIES / English / rating ≥ 6.5, returning `profileComplete: false`. The route also fetches TMDB details for `runtime`, cached in `detailsCache`. The pick screen prefetches the next pick so "Not tonight" is instant.
+Mood chips (`genres` and/or `languages` on a SMART request) replace profile genres/languages and skip seeds. The chip row itself comes from `GET /api/mood-chips?hour=&day=` (`src/lib/mood-chips.ts`): three base moods, one chip for the hour, up to two learned chips ("More Thriller", "Korean night") from weights of 60 or more (three positive signals), rotating daily through the top three, then Surprise me. There is no free-text mood input.
+
+`loadSmartContext` (`src/services/smart-context.service.ts`) loads profile, exclusions, recent types, weights and seeds once; both the hero route and `GET /api/feed` use it. The feed (`generateSmartFeed`) returns 12 picks, lanes per content type interleaved, seeds capped at 40% per lane; rendered by `ForYouSection` on the dashboard. SMART never dead-ends on a missing taste profile: the route falls back to whatever onboarding saved, then MOVIE+SERIES / English / rating ≥ 6.5, returning `profileComplete: false`. The route also fetches TMDB details for `runtime`, cached in `detailsCache`. The pick screen prefetches the next pick so "Not tonight" is instant.
 
 ### Preference Learning (`src/services/preference-weights.service.ts`)
 
@@ -93,6 +95,10 @@ Two separate mechanisms, both client-side only:
 ### Client-side state (`src/lib/`)
 
 Browser-only, not persisted to MongoDB: `storage.ts` (localStorage wrapper with in-memory fallback), `watching-state.ts` (currently-watching tracker + open-stream flag, drives `currently-watching-banner`). Treat these as ephemeral.
+
+### Images
+
+`src/components/ui/poster.tsx` is the one poster tile: 2:3, 10% bone skeleton as the surface, next/image fades in over it on decode (`.poster-img` / `.is-loaded`, off under reduced motion). Rails use it with `sizes="130px"`; the hero uses it with `priority`. Rail lists carry `.rail` for scroll snapping. The hero backdrop is served at TMDB `w1280`, never `original`. Every `?watch=` link passes `&poster=` so Continue Watching has art; when a link has none, the continue-watching POST backfills it from TMDB details.
 
 ### Visual system
 

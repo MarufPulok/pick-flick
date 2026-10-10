@@ -71,8 +71,9 @@ export default function OnboardingPage() {
       const isAdding = !prev.includes(type);
       const newTypes = isAdding ? [...prev, type] : prev.filter((t) => t !== type);
 
-      if (type === 'ANIME' && isAdding && !selectedLanguages.includes('ja')) {
-        setSelectedLanguages((langs) => [...langs, 'ja']);
+      if (type === 'ANIME' && isAdding) {
+        // Check inside the updater: the closed-over list can be stale and add 'ja' twice.
+        setSelectedLanguages((langs) => (langs.includes('ja') ? langs : [...langs, 'ja']));
       }
 
       return newTypes;

@@ -85,6 +85,8 @@ interface SmartRequest {
   recentTypes?: string[];
   /** Explicit mood genres: replace profile genres and skip seeds. */
   moodGenres?: string[];
+  /** Explicit mood languages (a "Korean night" chip): replace profile languages. */
+  moodLanguages?: string[];
 }
 
 interface QueryStrategy {
@@ -121,6 +123,26 @@ function pickGenres(genres: string[], k: number, weights: Weights = {}): string[
     out.push(pool.splice(i === -1 ? pool.length - 1 : i, 1)[0].g);
   }
   return out;
+}
+
+interface Scored {
+  c: Candidate;
+  score: number;
+  matched: string[];
+}
+
+/** Learned weight as a multiplier: 50 → 1, 100 → 2, 0 → 0. */
+function neutral(map: Weights | undefined, key: string): number {
+  return (map?.[key] ?? NEUTRAL) / NEUTRAL;
+}
+
+function toPick({ c, matched }: Scored): Pick {
+  return {
+    ...c,
+    strategyName: c.seed ? 'Because you watched' : matched.length >= 2 ? 'All genres' : matched.length === 1 ? 'Single genre' : 'No genres',
+    strategyGenres: matched,
+    strategyLanguages: [c.originalLanguage],
+  };
 }
 
 function isAnime(item: TMDBTVShow): boolean {
@@ -441,8 +463,72 @@ export class RecommendationService {
   // ===========================================================================
 
   static async generateSmartRecommendation(request: SmartRequest): Promise<Pick | null> {
+    const { scored, types, mood } = await this.rankCandidates(request);
+    if (scored.length === 0) return null;
+
+    // 3. Pick the content type first so every type the user chose gets an
+    // equal share of nights, bent only by learning and a diversity penalty.
+    // Scoring across types would let TV's higher TMDB ratings bury movies.
+    const weights = request.weights ?? {};
+    const recent = (request.recentTypes ?? []).slice(0, 2);
+    const typePool = types.filter((t) => scored.some((s) => s.c.contentType === t));
+    const typeWeights = typePool.map((t) => neutral(weights.contentTypes, t) * (recent.includes(t) ? 0.6 : 1));
+    let rt = Math.random() * typeWeights.reduce((a, b) => a + b, 0);
+    const type = typePool.find((_, i) => (rt -= typeWeights[i]) < 0) ?? typePool[0];
+    const ofType = scored.filter((s) => s.c.contentType === type);
+
+    // Seed recommendations are dense and well-rated, so left in one pool they
+    // would win every time. Seeds get 40% of nights, and only when the seed
+    // pool is wide enough that it will not repeat the same title.
+    const seeded = ofType.filter((s) => s.c.seed);
+    const discovered = ofType.filter((s) => !s.c.seed);
+    const useSeeds = seeded.length >= 5 && (discovered.length === 0 || Math.random() < 0.4);
+    const pool = useSeeds ? seeded : discovered.length > 0 ? discovered : seeded;
+
+    // 4. Sample from the top with a softmax so the same pick does not repeat.
+    const top = pool.slice(0, 20);
+    const temperature = 1;
+    const max = top[0].score;
+    const probs = top.map((s) => Math.exp((s.score - max) / temperature));
+    let r = Math.random() * probs.reduce((a, b) => a + b, 0);
+    const chosen = top.find((_, i) => (r -= probs[i]) < 0) ?? top[0];
+
+    log.debug('Smart pick', { candidates: scored.length, type, pool: useSeeds ? 'seeds' : 'discover', score: chosen.score, mood: !!mood });
+    return toPick(chosen);
+  }
+
+  /**
+   * A ranked rail for the dashboard: the best of every content type, interleaved
+   * so movies, series and anime share the row, seeds capped at ~40%.
+   */
+  static async generateSmartFeed(request: SmartRequest, limit = 12): Promise<Pick[]> {
+    const { scored, types } = await this.rankCandidates(request);
+    const lanes = types
+      .map((t) => {
+        const ofType = scored.filter((s) => s.c.contentType === t);
+        const seeded = ofType.filter((s) => s.c.seed);
+        const discovered = ofType.filter((s) => !s.c.seed);
+        const lane: Scored[] = [];
+        while (lane.length < limit && (seeded.length || discovered.length)) {
+          const wantSeed = seeded.length > 0 && (discovered.length === 0 || lane.filter((s) => s.c.seed).length < 0.4 * (lane.length + 1));
+          lane.push((wantSeed ? seeded : discovered).shift()!);
+        }
+        return lane;
+      })
+      .filter((lane) => lane.length > 0);
+
+    const out: Pick[] = [];
+    for (let i = 0; out.length < limit && lanes.some((l) => l[i]); i++) {
+      for (const lane of lanes) if (lane[i] && out.length < limit) out.push(toPick(lane[i]));
+    }
+    return out;
+  }
+
+  /** Steps 1–2 of the pipeline plus scoring: everything the hero and the feed share. */
+  private static async rankCandidates(request: SmartRequest) {
     const minRating = request.minRating ?? 6;
-    const languages = request.languages.length > 0 ? [...new Set(request.languages)] : ['en'];
+    const langSource = request.moodLanguages?.length ? request.moodLanguages : request.languages;
+    const languages = langSource.length > 0 ? [...new Set(langSource)] : ['en'];
     const mood = request.moodGenres?.length ? request.moodGenres : null;
     const genres = mood ?? request.genres;
     const weights = request.weights ?? {};
@@ -471,62 +557,24 @@ export class RecommendationService {
       return c.contentType === 'ANIME' || !!c.seed || allowedLang.has(c.originalLanguage);
     });
 
-    if (candidates.length === 0) {
-      log.debug('Smart pipeline produced no candidates', { types, genres, languages });
-      return null;
-    }
-
-    // 3. Pick the content type first so every type the user chose gets an
-    // equal share of nights, bent only by learning and a diversity penalty.
-    // Scoring across types would let TV's higher TMDB ratings bury movies.
-    const n = (map: Weights | undefined, k: string) => (map?.[k] ?? NEUTRAL) / NEUTRAL; // 1 = neutral
-    const recent = (request.recentTypes ?? []).slice(0, 2);
-    const typePool = types.filter((t) => candidates.some((c) => c.contentType === t));
-    const typeWeights = typePool.map((t) => n(weights.contentTypes, t) * (recent.includes(t) ? 0.6 : 1));
-    let rt = Math.random() * typeWeights.reduce((a, b) => a + b, 0);
-    const type = typePool.find((_, i) => (rt -= typeWeights[i]) < 0) ?? typePool[0];
-    const ofType = candidates.filter((c) => c.contentType === type);
-
-    // Seed recommendations are dense and well-rated, so left in one pool they
-    // would win every time. Seeds get 40% of nights, and only when the seed
-    // pool is wide enough that it will not repeat the same title.
-    const seeded = ofType.filter((c) => c.seed);
-    const discovered = ofType.filter((c) => !c.seed);
-    const useSeeds = seeded.length >= 5 && (discovered.length === 0 || Math.random() < 0.4);
-    const pool2 = useSeeds ? seeded : discovered.length > 0 ? discovered : seeded;
-
-    // 4. Score within the type.
+    // Score within type: profile genre match + learned genre weights, language weight, rating.
     const numeric = genres.filter((g) => !isNaN(Number(g)));
     const liked = new Set([...numeric, ...toTvGenres(numeric)]);
-    const scored = pool2.map((c) => {
-      const ids = c.genreIds.map(String);
-      const genreScore =
-        ids.reduce((s, g) => s + (liked.has(g) ? 1 : 0) + (n(weights.genres, g) - 1), 0) /
-        Math.max(1, Math.min(3, ids.length));
-      const langScore = n(weights.languages, c.originalLanguage);
-      const ratingScore = (c.rating - 6) / 2;
-      const score = genreScore * (mood ? 2 : 1) + langScore * 0.4 + ratingScore * 0.6;
-      return { c, score, matched: ids.filter((g) => liked.has(g)) };
-    });
+    const scored: Scored[] = candidates
+      .map((c) => {
+        const ids = c.genreIds.map(String);
+        const genreScore =
+          ids.reduce((s, g) => s + (liked.has(g) ? 1 : 0) + (neutral(weights.genres, g) - 1), 0) /
+          Math.max(1, Math.min(3, ids.length));
+        const langScore = neutral(weights.languages, c.originalLanguage);
+        const ratingScore = (c.rating - 6) / 2;
+        const score = genreScore * (mood ? 2 : 1) + langScore * 0.4 + ratingScore * 0.6;
+        return { c, score, matched: ids.filter((g) => liked.has(g)) };
+      })
+      .sort((a, b) => b.score - a.score);
 
-    // 5. Sample from the top with a softmax so the same pick does not repeat.
-    scored.sort((a, b) => b.score - a.score);
-    const top = scored.slice(0, 20);
-    const temperature = 1;
-    const max = top[0].score;
-    const probs = top.map((s) => Math.exp((s.score - max) / temperature));
-    let r = Math.random() * probs.reduce((a, b) => a + b, 0);
-    const chosen = top.find((_, i) => (r -= probs[i]) < 0) ?? top[0];
-
-    log.debug('Smart pick', { candidates: candidates.length, type, pool: useSeeds ? 'seeds' : 'discover', score: chosen.score });
-
-    const { c, matched } = chosen;
-    return {
-      ...c,
-      strategyName: c.seed ? 'Because you watched' : matched.length >= 2 ? 'All genres' : matched.length === 1 ? 'Single genre' : 'No genres',
-      strategyGenres: matched,
-      strategyLanguages: [c.originalLanguage],
-    };
+    if (scored.length === 0) log.debug('Smart pipeline produced no candidates', { types, genres, languages });
+    return { scored, types, mood };
   }
 
   /** One popularity-sorted discover page for a content type. Relaxes to no genres when thin. */

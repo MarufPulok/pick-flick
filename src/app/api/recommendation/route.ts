@@ -8,14 +8,15 @@ import { getTMDBImageUrl } from "@/config/url.config";
 import { ContentType } from "@/dtos/common.dto";
 import { GenerateRecommendationReqSchema } from "@/dtos/request/generate-recommendation.req.dto";
 import { connectToDatabase } from "@/infrastructure/db";
-import { TasteProfileModel, UserModel } from "@/infrastructure/db/models";
+import { UserModel } from "@/infrastructure/db/models";
 import { tmdbClient } from "@/infrastructure/external/tmdb.client";
 import { auth } from "@/lib/auth";
-import { CACHE_TTL, detailsCache, servedCache } from "@/lib/cache";
+import { CACHE_TTL, detailsCache } from "@/lib/cache";
 import { loggers } from "@/lib/logger";
 import { HistoryService, seenKey } from "@/services/history.service";
 import { PreferenceWeightsService } from "@/services/preference-weights.service";
 import { RecommendationService } from "@/services/recommendation.service";
+import { loadSmartContext, markServed } from "@/services/smart-context.service";
 import { NextRequest, NextResponse } from "next/server";
 
 const log = loggers.recommendation;
@@ -43,42 +44,17 @@ export async function POST(req: NextRequest) {
     let profileComplete = true;
 
     const userId = user._id.toString();
-    // Everything already seen, played, or saved: never shown again. Plus
-    // whatever this server served in the last 6 hours, so a reload rotates.
-    const excluded = await HistoryService.getExcluded(userId);
-    const served = servedCache.get(userId) ?? new Set<string>();
-    served.forEach((k) => excluded.add(k));
+    let served = new Set<string>();
 
     if (validated.mode === "SMART") {
-      // Load taste profile for smart mode. Without a finished one, fall back to
-      // whatever onboarding captured so far, then to broad well-rated defaults,
-      // so the page always opens on a pick instead of a dead end.
-      const saved = await TasteProfileModel.findOne({ userId: user._id });
-      profileComplete = Boolean(saved?.complete);
-      const profile = {
-        contentTypes: (saved?.contentTypes?.length ? saved.contentTypes : ["MOVIE", "SERIES"]) as ContentType[],
-        genres: (saved?.genres ?? []) as string[],
-        languages: (saved?.languages?.length ? saved.languages : ["en"]) as string[],
-        minRating: saved?.minRating ?? (profileComplete ? undefined : 6.5),
-      };
-
-      const [recentTypes, weights, seeds] = await Promise.all([
-        HistoryService.getRecentContentTypes(userId, 3),
-        PreferenceWeightsService.getWeights(userId),
-        HistoryService.getSeeds(userId, 3),
-      ]);
-
-      log.debug('Smart mode profile', { profileComplete, profile, recentTypes, seeds, moodGenres: validated.genres });
-
+      const ctx = await loadSmartContext(userId);
+      profileComplete = ctx.profileComplete;
+      served = ctx.served;
+      log.debug('Smart mode', { profileComplete, moodGenres: validated.genres, moodLanguages: validated.languages });
       recommendation = await RecommendationService.generateSmartRecommendation({
-        ...profile,
-        excluded,
-        recentTypes,
-        seeds,
+        ...ctx.request,
         moodGenres: validated.genres,
-        weights: weights
-          ? { genres: weights.genreWeights, contentTypes: weights.contentTypeWeights, languages: weights.languageWeights }
-          : undefined,
+        moodLanguages: validated.languages,
       });
     } else {
       // Filtered mode - use request filters
@@ -87,7 +63,7 @@ export async function POST(req: NextRequest) {
         genres: validated.genres || [],
         languages: validated.language ? [validated.language] : ["en"],
         minRating: validated.minRating || 0,
-        blacklist: excluded,
+        blacklist: await HistoryService.getExcluded(userId),
         genreWeights: (await PreferenceWeightsService.getWeights(userId))?.genreWeights,
       });
     }
@@ -100,8 +76,7 @@ export async function POST(req: NextRequest) {
     }
 
     const { tmdbId, contentType } = recommendation;
-    served.add(seenKey(tmdbId, contentType));
-    servedCache.set(userId, served, 6 * 60 * 60 * 1000);
+    markServed(userId, served, seenKey(tmdbId, contentType));
     const isMovie = contentType === 'MOVIE';
     const detailsKey = `${contentType}:${tmdbId}`;
 
@@ -179,7 +154,7 @@ export async function POST(req: NextRequest) {
         ? getTMDBImageUrl(recommendation.posterPath, "LARGE")
         : null,
       backdropUrl: recommendation.backdropPath
-        ? getTMDBImageUrl(recommendation.backdropPath, "ORIGINAL")
+        ? getTMDBImageUrl(recommendation.backdropPath, "LARGE")
         : null,
       releaseDate: recommendation.releaseDate,
       rating: recommendation.rating,

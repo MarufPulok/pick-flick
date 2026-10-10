@@ -91,6 +91,11 @@ export class ViewingProgressService {
     return toItem(progress);
   }
 
+  /** Backfill a poster for a record created from a link that carried none. */
+  static async setPoster(userId: string, tmdbId: number, contentType: ContentType, posterPath: string): Promise<void> {
+    await ViewingProgressModel.updateOne({ userId, tmdbId, contentType, posterPath: null }, { $set: { posterPath } });
+  }
+
   /**
    * Get user's continue watching list
    */
