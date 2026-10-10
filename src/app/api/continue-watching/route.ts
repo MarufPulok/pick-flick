@@ -8,6 +8,7 @@
 import { connectToDatabase } from '@/infrastructure/db';
 import { UserModel } from '@/infrastructure/db/models';
 import { auth } from '@/lib/auth';
+import { PreferenceWeightsService } from '@/services/preference-weights.service';
 import { ViewingProgressService } from '@/services/viewing-progress.service';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -103,6 +104,14 @@ export async function POST(req: NextRequest) {
       userId: user._id.toString(),
       ...validated,
     });
+
+    // A play from any screen (search, trending, pick) teaches the recommender.
+    // Progress pings carry positionSeconds; only the "player opened" call learns.
+    if (validated.positionSeconds === undefined) {
+      PreferenceWeightsService.learnFromPlay(user._id.toString(), validated.tmdbId, validated.contentType).catch(
+        (err) => console.error('Failed to learn from play:', err)
+      );
+    }
 
     return NextResponse.json({
       success: true,

@@ -3,12 +3,13 @@
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { ANIME_GENRES, CONTENT_TYPES, GENRES, LANGUAGES, RATING_TIERS } from '@/config/app.config';
+import { GENRE_NAMES } from '@/config/genre-names';
 import { useHistoryActions } from '@/hooks/use-history-actions';
 import { useIsInWatchlist, useWatchlist } from '@/hooks/use-watchlist';
 import { MOOD_CHIPS, moodTextToGenres } from '@/lib/mood-chips';
 import { cn } from '@/lib/utils';
 import { markAsWatching } from '@/lib/watching-state';
-import { Ban, Bookmark, BookmarkCheck, ThumbsDown, ThumbsUp } from 'lucide-react';
+import { Ban, Bookmark, BookmarkCheck, Eye, ThumbsDown, ThumbsUp } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -68,16 +69,27 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
   const [refineOpen, setRefineOpen] = useState(false);
   const [moodText, setMoodText] = useState('');
   const [activeChip, setActiveChip] = useState<string | null>(null);
+  const [moodHint, setMoodHint] = useState<string | null>(null);
   const [pick, setPick] = useState<Recommendation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showStream, setShowStream] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
+  const [showSeen, setShowSeen] = useState(false);
 
   const { recordAction, isRecording } = useHistoryActions();
   const { toggleWatchlist, isPending: savePending } = useWatchlist();
   const saved = useIsInWatchlist(pick?.tmdbId ?? 0, pick?.contentType ?? 'MOVIE');
   const requestId = useRef(0);
+  // Next pick, fetched in the background so "Not tonight" lands instantly.
+  const next = useRef<{ body: string; data: Recommendation } | null>(null);
+
+  const fetchPick = async (body: string): Promise<Recommendation> => {
+    const res = await fetch('/api/recommendation', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not find a pick');
+    return data;
+  };
 
   const generate = useCallback(
     async (opts: { genres?: string[]; mode?: Mode } = {}) => {
@@ -86,28 +98,32 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
       setError(null);
       const activeMode = opts.mode ?? mode;
       const useFilters = activeMode === 'FILTERED' && !opts.genres;
-      const genres = opts.genres ?? (filters.genre ? [filters.genre] : []);
-      const body =
-        !useFilters && genres.length === 0
-          ? { mode: 'SMART' }
-          : {
+      // Mood chips and free text go through the taste pipeline (languages,
+      // content types, exclusions, learned weights) with the mood genres on top.
+      const body = JSON.stringify(
+        useFilters
+          ? {
               mode: 'FILTERED',
-              contentType: useFilters ? filters.contentType : 'MOVIE',
-              genres,
-              language: useFilters ? filters.language : 'en',
-              minRating: useFilters ? RATING_TIERS[filters.rating].min : 0,
-            };
+              contentType: filters.contentType,
+              genres: filters.genre ? [filters.genre] : [],
+              language: filters.language,
+              minRating: RATING_TIERS[filters.rating].min,
+            }
+          : { mode: 'SMART', genres: opts.genres }
+      );
       try {
-        const res = await fetch('/api/recommendation', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-        const data = await res.json();
+        const ready = next.current;
+        next.current = null;
+        const data =
+          ready && ready.body === body && ready.data.tmdbId !== pick?.tmdbId ? ready.data : await fetchPick(body);
         if (id !== requestId.current) return;
-        if (!res.ok) throw new Error(data.error || 'Could not find a pick');
         setPick(data);
         onPick?.(data);
+        fetchPick(body)
+          .then((d) => {
+            if (d.tmdbId !== data.tmdbId) next.current = { body, data: d };
+          })
+          .catch(() => {});
       } catch (err) {
         if (id !== requestId.current) return;
         setError(err instanceof Error ? err.message : 'Could not find a pick');
@@ -115,7 +131,8 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
         if (id === requestId.current) setIsLoading(false);
       }
     },
-    [mode, filters]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [mode, filters, pick?.tmdbId]
   );
 
   useEffect(() => {
@@ -128,17 +145,23 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
   const pickFromChip = (chipId: string, genres: string[]) => {
     setActiveChip(chipId);
     setMoodText('');
+    setMoodHint(null);
     generate({ genres });
   };
 
   const pickFromText = (e: React.FormEvent) => {
     e.preventDefault();
     setActiveChip(null);
-    generate({ genres: moodTextToGenres(moodText) });
+    const genres = moodTextToGenres(moodText);
+    setMoodHint(
+      !moodText.trim() ? null : genres.length ? `Reading that as ${genres.map((g) => GENRE_NAMES[g]).join(' + ')}.` : 'No genre in that, so this is from your taste.'
+    );
+    generate({ genres });
   };
 
-  const act = (action: 'LIKED' | 'DISLIKED' | 'BLACKLISTED' | 'WATCHED') => {
+  const act = (action: 'LIKED' | 'DISLIKED' | 'BLACKLISTED' | 'WATCHED' | 'SKIPPED') => {
     if (!pick || isRecording) return;
+    setShowSeen(false);
     recordAction({
       tmdbId: pick.tmdbId,
       contentType: pick.contentType,
@@ -151,7 +174,7 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
       genreIds: pick.genreIds,
       originalLanguage: pick.originalLanguage,
     });
-    if (action === 'BLACKLISTED' || action === 'DISLIKED') generate();
+    if (action !== 'LIKED') generate();
   };
 
   const play = () => {
@@ -191,10 +214,14 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
               aria-label="Mood"
               className="h-12 w-full rounded-md border border-border bg-transparent px-4 text-foreground placeholder:text-muted-foreground focus-visible:border-accent focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-accent/35"
             />
+            <Button type="submit" variant="play" size="md" className="px-4" disabled={isLoading || !moodText.trim()}>
+              Pick
+            </Button>
             <Button type="button" variant="quiet" size="md" className="px-3" onClick={() => setRefineOpen((o) => !o)} aria-expanded={refineOpen}>
               Refine
             </Button>
           </form>
+          {moodHint && <p className="order-2 mt-2 text-sm text-muted-foreground lg:order-0">{moodHint}</p>}
 
           <div className="scrollbar-hide order-3 -mx-4 mt-2 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:px-0 lg:order-0 lg:mt-4 lg:flex-wrap">
             {MOOD_CHIPS.map((chip) => (
@@ -288,7 +315,7 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
 
                 <div className="mt-6 flex flex-wrap gap-3 lg:mt-8">
                   <Button variant="play" className="w-40" onClick={play} disabled={isLoading}>Play</Button>
-                  <Button variant="ghost" className="w-40" onClick={() => generate()} disabled={isLoading}>Not tonight</Button>
+                  <Button variant="ghost" className="w-40" onClick={() => act('SKIPPED')} disabled={isLoading || isRecording}>Not tonight</Button>
                 </div>
 
                 <div className="mt-5 flex items-center gap-3 lg:mt-6">
@@ -304,6 +331,9 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
                   </Button>
                   <Button variant="icon" aria-label="Never show this again" disabled={isRecording} onClick={() => act('BLACKLISTED')}>
                     <Ban className="size-4" strokeWidth={1.5} />
+                  </Button>
+                  <Button variant="icon" aria-label="Already seen it" disabled={isRecording} onClick={() => setShowSeen(true)}>
+                    <Eye className="size-4" strokeWidth={1.5} />
                   </Button>
                   {pick.watchProviders?.flatrate?.length ? (
                     <a href={pick.watchProviders.link} target="_blank" rel="noopener noreferrer" className="ml-2 text-sm text-muted-foreground underline decoration-border underline-offset-4 hover:text-foreground">
@@ -342,6 +372,20 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
               <iframe src={`${pick.trailerUrl}?autoplay=1`} title={`${pick.title} trailer`} className="h-full w-full" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showSeen} onOpenChange={setShowSeen}>
+        <DialogContent className="max-w-sm">
+          <DialogTitle className="font-display text-xl font-semibold">Seen it. How was it?</DialogTitle>
+          <p className="text-sm text-muted-foreground">Your answer shapes what comes next.</p>
+          <div className="mt-2 flex gap-3">
+            <Button variant="play" className="flex-1" onClick={() => { act('LIKED'); generate(); }}>Loved it</Button>
+            <Button variant="ghost" className="flex-1" onClick={() => act('DISLIKED')}>Not for me</Button>
+          </div>
+          <button type="button" onClick={() => act('WATCHED')} className="mt-1 cursor-pointer text-sm text-muted-foreground underline decoration-border underline-offset-4 hover:text-foreground">
+            Just mark as seen
+          </button>
         </DialogContent>
       </Dialog>
 

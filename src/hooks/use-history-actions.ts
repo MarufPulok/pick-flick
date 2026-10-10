@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 interface RecordActionParams {
   tmdbId: number;
   contentType: 'MOVIE' | 'SERIES' | 'ANIME';
-  action: 'WATCHED' | 'LIKED' | 'DISLIKED' | 'BLACKLISTED';
+  action: 'WATCHED' | 'LIKED' | 'DISLIKED' | 'BLACKLISTED' | 'SKIPPED';
   title: string;
   posterPath?: string;
   rating?: number;
@@ -44,14 +44,15 @@ export function useHistoryActions() {
       queryClient.invalidateQueries({ queryKey: ['stats'] });
 
       // Show toast based on action
-      const actionMessages = {
-        WATCHED: '✅ Added to watch history',
+      const actionMessages: Partial<Record<RecordActionParams['action'], string>> = {
+        WATCHED: '✅ Marked as seen',
         LIKED: '👍 Liked!',
         DISLIKED: '👎 Disliked',
-        BLACKLISTED: '🚫 Blacklisted - generating new recommendation',
+        BLACKLISTED: '🚫 Never again',
       };
 
-      toast.success(actionMessages[variables.action]);
+      const message = actionMessages[variables.action];
+      if (message) toast.success(message);
     },
     onError: (error) => {
       toast.error('Failed to record action');

@@ -84,9 +84,12 @@ export class TrendingService {
     const { limit = 20, timeWindow = 'day' } = options;
 
     try {
-      const response = await tmdbClient.getTrendingAll(timeWindow);
-      
-      return response.results.slice(0, limit).map((item) => {
+      const [response, anime] = await Promise.all([
+        tmdbClient.getTrendingAll(timeWindow),
+        this.getTrendingAnime({ limit: Math.ceil(limit / 4) }),
+      ]);
+
+      const items = response.results.slice(0, limit).map((item) => {
         // Mixed response - need to check media_type
         const mediaType = (item as TMDBMovie & { media_type?: string }).media_type;
         
@@ -96,8 +99,29 @@ export class TrendingService {
           return this.transformTVShow(item as TMDBTVShow);
         }
       });
+
+      // TMDB's trending list almost never surfaces anime; seat one every fourth slot.
+      const ids = new Set(items.map((i) => i.tmdbId));
+      anime
+        .filter((a) => !ids.has(a.tmdbId))
+        .forEach((a, i) => items.splice(Math.min(items.length, 3 + i * 4), 0, a));
+      return items.slice(0, limit);
     } catch (error) {
       console.error('[TrendingService] Error fetching trending all:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Anime has no trending endpoint; most popular Japanese animation stands in.
+   */
+  static async getTrendingAnime(options: GetTrendingOptions = {}): Promise<TrendingContentItem[]> {
+    const { limit = 20 } = options;
+    try {
+      const response = await tmdbClient.discoverAnime({ sort_by: 'popularity.desc', 'vote_count.gte': 50 });
+      return response.results.slice(0, limit).map((show) => this.transformTVShow(show));
+    } catch (error) {
+      console.error('[TrendingService] Error fetching trending anime:', error);
       return [];
     }
   }
@@ -113,8 +137,9 @@ export class TrendingService {
       case 'MOVIE':
         return this.getTrendingMovies(options);
       case 'SERIES':
-      case 'ANIME':
         return this.getTrendingTV(options);
+      case 'ANIME':
+        return this.getTrendingAnime(options);
       case 'ALL':
       default:
         return this.getTrendingAll(options);

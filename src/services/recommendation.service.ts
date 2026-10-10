@@ -1,17 +1,68 @@
 /**
  * Recommendation Service
- * Core logic for generating content recommendations with cascading fallback
- * Language preference is ALWAYS preserved (sacred)
+ *
+ * FILTERED mode: cascading fallback over TMDB discover. Language is sacred.
+ * SMART mode: a small candidate pipeline. Source candidates from every content
+ * type the user chose (equal budget, so anime is never starved) plus TMDB
+ * recommendations seeded by what they actually watched or liked; drop
+ * everything they have already seen; score against the taste profile and the
+ * learned weights; sample from the top so picks stay fresh.
  */
 
 import { ContentType } from '@/config/app.config';
 import {
   tmdbClient,
   type TMDBDiscoverParams,
+  type TMDBMovie,
+  type TMDBTVShow,
 } from '@/infrastructure/external/tmdb.client';
 import { loggers } from '@/lib/logger';
+import { seenKey } from '@/services/history.service';
 
 const log = loggers.recommendation;
+
+/** Movie genre ids with no TV counterpart map to the closest TV genre (null = drop). */
+const MOVIE_TO_TV_GENRE: Record<string, string | null> = {
+  '28': '10759', '12': '10759', '14': '10765', '878': '10765', '10752': '10768',
+  '53': '9648', '27': '9648', '36': '10768', '10402': null, '10749': null, '10770': null,
+};
+
+/** Onboarding anime tags → TMDB keyword names, resolved to ids at query time. */
+const ANIME_TAG_KEYWORD: Record<string, string> = {
+  shonen: 'shounen', shojo: 'shoujo', seinen: 'seinen', josei: 'josei',
+  isekai: 'isekai', mecha: 'mecha', 'slice-of-life': 'slice of life', sports: 'sports',
+};
+
+export type Weights = Record<string, number>;
+const NEUTRAL = 50;
+
+export interface Seed {
+  tmdbId: number;
+  contentType: ContentType;
+  title: string;
+}
+
+export interface Candidate {
+  tmdbId: number;
+  contentType: ContentType;
+  title: string;
+  overview: string | null;
+  posterPath: string | null;
+  backdropPath: string | null;
+  releaseDate: string;
+  rating: number;
+  voteCount: number;
+  genreIds: number[];
+  originalLanguage: string;
+  popularity: number;
+  seed?: Seed;
+}
+
+export interface Pick extends Candidate {
+  strategyName: string;
+  strategyGenres: string[];
+  strategyLanguages: string[];
+}
 
 interface RecommendationRequest {
   contentType: ContentType;
@@ -19,6 +70,21 @@ interface RecommendationRequest {
   languages: string[];
   minRating?: number;
   blacklist?: Set<string>;
+  genreWeights?: Weights;
+}
+
+interface SmartRequest {
+  contentTypes: ContentType[];
+  genres: string[];
+  languages: string[];
+  minRating?: number;
+  excluded?: Set<string>;
+  weights?: { genres?: Weights; contentTypes?: Weights; languages?: Weights };
+  seeds?: Seed[];
+  /** Content types of the last few picks; they get a diversity penalty. */
+  recentTypes?: string[];
+  /** Explicit mood genres: replace profile genres and skip seeds. */
+  moodGenres?: string[];
 }
 
 interface QueryStrategy {
@@ -28,35 +94,91 @@ interface QueryStrategy {
   minRating: number;
   sortBy?: string;
   voteCountGte?: number;
+  keywords?: string;
   tryMultiplePages?: boolean;
 }
 
+function toTvGenres(genres: string[]): string[] {
+  return [...new Set(genres.map((g) => (g in MOVIE_TO_TV_GENRE ? MOVIE_TO_TV_GENRE[g] : g)))].filter(
+    (g): g is string => !!g
+  );
+}
+
+/** Numeric genres usable for this content type (TV genre space for series/anime). */
+function genresFor(contentType: ContentType, genres: string[]): string[] {
+  const numeric = genres.filter((g) => !isNaN(Number(g)));
+  if (contentType === 'MOVIE') return numeric;
+  return toTvGenres(numeric).filter((g) => contentType !== 'ANIME' || g !== '16');
+}
+
+/** Weighted sample of k distinct genres. Weight 50 is neutral, 100 double, 0 almost never. */
+function pickGenres(genres: string[], k: number, weights: Weights = {}): string[] {
+  const pool = genres.map((g) => ({ g, w: Math.max(1, weights[g] ?? NEUTRAL) }));
+  const out: string[] = [];
+  while (pool.length && out.length < k) {
+    let r = Math.random() * pool.reduce((s, p) => s + p.w, 0);
+    const i = pool.findIndex((p) => (r -= p.w) < 0);
+    out.push(pool.splice(i === -1 ? pool.length - 1 : i, 1)[0].g);
+  }
+  return out;
+}
+
+function isAnime(item: TMDBTVShow): boolean {
+  return item.original_language === 'ja' && item.genre_ids.includes(16);
+}
+
+function toCandidate(item: TMDBMovie | TMDBTVShow, contentType: ContentType, seed?: Seed): Candidate {
+  return {
+    tmdbId: item.id,
+    contentType,
+    title: 'title' in item ? item.title : item.name,
+    overview: item.overview,
+    posterPath: item.poster_path,
+    backdropPath: item.backdrop_path,
+    releaseDate: 'release_date' in item ? item.release_date : item.first_air_date,
+    rating: item.vote_average,
+    voteCount: item.vote_count,
+    genreIds: item.genre_ids,
+    originalLanguage: item.original_language,
+    popularity: item.popularity,
+    seed,
+  };
+}
+
 export class RecommendationService {
+  // ===========================================================================
+  // FILTERED mode: cascading fallback
+  // ===========================================================================
+
   /**
    * Generate a single recommendation based on filters with cascading fallback
    * Language is ALWAYS preserved (sacred)
    */
-  static async generateRecommendation(request: RecommendationRequest) {
-    const { contentType, genres, languages, minRating = 0, blacklist } = request;
+  static async generateRecommendation(request: RecommendationRequest): Promise<Pick | null> {
+    const { contentType, genres, languages, minRating = 0, blacklist, genreWeights } = request;
 
     // Ensure we have at least one language (fallback to 'en' if empty)
     const sacredLanguages = languages.length > 0 ? languages : ['en'];
 
-    // Build strategy list - language is ALWAYS included
-    const strategies = this.buildStrategies(genres, sacredLanguages, minRating);
+    const strategies = this.buildStrategies(genresFor(contentType, genres), sacredLanguages, minRating);
 
-    // Try each strategy in order
+    // Anime tags (shōnen, isekai, …) are TMDB keywords, not genres.
+    const keyword = contentType === 'ANIME' ? await this.animeKeyword(genres) : null;
+    if (keyword) {
+      strategies.unshift({
+        name: 'Anime tag',
+        genres: [],
+        languages: sacredLanguages,
+        minRating,
+        keywords: String(keyword),
+        tryMultiplePages: true,
+      });
+    }
+
     for (const strategy of strategies) {
-      
-      const result = await this.tryGenerateWithStrategy(
-        contentType,
-        strategy,
-        blacklist
-      );
-      
+      const result = await this.tryGenerateWithStrategy(contentType, strategy, blacklist, genreWeights);
       if (result) {
         log.debug(`Success with strategy: ${strategy.name}`);
-        // Include strategy info for "Why This Pick?" explanation
         return {
           ...result,
           strategyName: strategy.name,
@@ -66,8 +188,6 @@ export class RecommendationService {
       }
     }
 
-    // No fallback to other content types - let the caller (generateSmartRecommendation) 
-    // handle content type iteration based on user's actual preferences
     return null;
   }
 
@@ -130,21 +250,18 @@ export class RecommendationService {
     }
 
     // Strategy 5: Single random genre (try each one)
-    if (numericGenres.length > 0) {
-      // Try each genre individually
-      for (const genre of numericGenres) {
-        strategies.push({
-          name: `Single genre: ${genre}`,
-          genres: [genre],
-          languages,
-          minRating,
-          tryMultiplePages: true,
-        });
-      }
+    for (const genre of numericGenres) {
+      strategies.push({
+        name: `Single genre: ${genre}`,
+        genres: [genre],
+        languages,
+        minRating,
+        tryMultiplePages: true,
+      });
     }
 
     // Strategy 6: Single genre with lower rating
-    if (numericGenres.length > 0 && minRating > 5) {
+    if (minRating > 5) {
       for (const genre of numericGenres) {
         strategies.push({
           name: `Single genre ${genre}, lower rating`,
@@ -243,23 +360,13 @@ export class RecommendationService {
   private static async tryGenerateWithStrategy(
     contentType: ContentType,
     strategy: QueryStrategy,
-    blacklist?: Set<string>
-  ) {
-    const { genres, languages, minRating, sortBy, voteCountGte, tryMultiplePages } = strategy;
-
-    // Determine how many pages to try
-    const pagesToTry = tryMultiplePages ? [1, 2, 3, 4, 5] : [Math.floor(Math.random() * 5) + 1];
+    blacklist?: Set<string>,
+    genreWeights?: Weights
+  ): Promise<Candidate | null> {
+    const pagesToTry = strategy.tryMultiplePages ? [1, 2, 3, 4, 5] : [Math.floor(Math.random() * 5) + 1];
 
     for (const page of pagesToTry) {
-      const queryParams = this.buildQueryParams(
-        contentType,
-        genres,
-        languages,
-        minRating,
-        sortBy,
-        voteCountGte,
-        page
-      );
+      const queryParams = this.buildQueryParams(contentType, strategy, page, genreWeights);
 
       log.debug('TMDB Query', { page, params: queryParams });
 
@@ -269,44 +376,14 @@ export class RecommendationService {
             ? await tmdbClient.discoverTV(queryParams)
             : await tmdbClient.discoverMovies(queryParams);
 
-        log.debug('TMDB Response', { page, total: response.total_results, results: response.results?.length || 0 });
+        const results = (response.results ?? []).filter(
+          (item) => !blacklist?.has(seenKey(item.id, contentType))
+        );
 
-        if (!response.results || response.results.length === 0) {
-          continue; // Try next page
-        }
+        if (results.length === 0) continue; // Try next page
 
-        // Filter out blacklisted items
-        const results =
-          blacklist && blacklist.size > 0
-            ? response.results.filter((item) => {
-                const key = `${item.id}:${contentType}`;
-                return !blacklist.has(key);
-              })
-            : response.results;
-
-        if (results.length === 0) {
-          log.debug(`All results on page ${page} were blacklisted`);
-          continue; // Try next page
-        }
-
-        // Get random item from results
-        const randomIndex = Math.floor(Math.random() * Math.min(results.length, 20));
-        const item = results[randomIndex];
-
-        // Map to our format
-        return {
-          tmdbId: item.id,
-          contentType,
-          title: 'title' in item ? item.title : item.name,
-          overview: item.overview,
-          posterPath: item.poster_path,
-          backdropPath: item.backdrop_path,
-          releaseDate: 'release_date' in item ? item.release_date : item.first_air_date,
-          rating: item.vote_average,
-          voteCount: item.vote_count,
-          genreIds: item.genre_ids,
-          originalLanguage: item.original_language,
-        };
+        const item = results[Math.floor(Math.random() * Math.min(results.length, 20))];
+        return toCandidate(item, contentType);
       } catch (error) {
         console.error(`Error querying TMDB (Page ${page}):`, error);
         continue; // Try next page
@@ -321,97 +398,200 @@ export class RecommendationService {
    */
   private static buildQueryParams(
     contentType: ContentType,
-    genres: string[],
-    languages: string[],
-    minRating: number,
-    sortBy?: string,
-    voteCountGte?: number,
-    page: number = 1
+    strategy: QueryStrategy,
+    page: number,
+    genreWeights?: Weights
   ): TMDBDiscoverParams {
+    const { genres, languages, minRating, sortBy, voteCountGte, keywords } = strategy;
     const queryParams: TMDBDiscoverParams = {
       sort_by: sortBy || 'popularity.desc',
       page,
     };
 
-    // Special handling for ANIME - must have Japanese language and Animation genre
+    // Pick 1-2 genres (weighted by what the user has liked) to avoid over-filtering
+    const numericGenres = genres.filter((g) => !isNaN(Number(g)) && g !== '16');
+    const selected = pickGenres(numericGenres, Math.random() > 0.5 ? 2 : 1, genreWeights);
+
     if (contentType === 'ANIME') {
+      // ANIME must be Japanese animation regardless of the user's languages
       queryParams.with_original_language = 'ja';
-      queryParams.with_genres = '16'; // Animation genre ID
-
-      // Combine with provided genres if available
-      if (genres.length > 0) {
-        const numericGenres = genres.filter((g) => !isNaN(Number(g)) && g !== '16');
-        if (numericGenres.length > 0) {
-          const selectedCount = Math.min(numericGenres.length, Math.random() > 0.5 ? 2 : 1);
-          const shuffled = numericGenres.sort(() => Math.random() - 0.5);
-          const selected = shuffled.slice(0, selectedCount);
-          queryParams.with_genres = `16,${selected.join(',')}`;
-        }
-      }
+      queryParams.with_genres = ['16', ...selected].join(',');
     } else {
-      // For non-anime content types
-      // Add genres (pick 1-2 random to avoid over-filtering)
-      if (genres.length > 0) {
-        const numericGenres = genres.filter((g) => !isNaN(Number(g)));
-        if (numericGenres.length > 0) {
-          const selectedCount = Math.min(numericGenres.length, Math.random() > 0.5 ? 2 : 1);
-          const shuffled = numericGenres.sort(() => Math.random() - 0.5);
-          const selected = shuffled.slice(0, selectedCount);
-          queryParams.with_genres = selected.join(',');
-        }
-      }
-
+      if (selected.length > 0) queryParams.with_genres = selected.join(',');
       // ALWAYS add language (sacred)
-      if (languages.length > 0) {
-        queryParams.with_original_language = languages[0];
-      }
+      if (languages.length > 0) queryParams.with_original_language = languages[0];
     }
 
-    // Add minimum rating
-    if (minRating > 0) {
-      queryParams['vote_average.gte'] = minRating;
-    }
-
-    // Add vote count threshold (if specified, otherwise use TMDB client default)
-    if (voteCountGte !== undefined) {
-      queryParams['vote_count.gte'] = voteCountGte;
-    }
+    if (keywords) queryParams.with_keywords = keywords;
+    if (minRating > 0) queryParams['vote_average.gte'] = minRating;
+    if (voteCountGte !== undefined) queryParams['vote_count.gte'] = voteCountGte;
 
     return queryParams;
   }
 
-  /**
-   * Generate recommendation using user's taste profile
-   * Tries content types in the order provided (priority-based from diversity tracking)
-   * NOTE: Content types come pre-ordered based on recent history for diversity
-   */
-  static async generateSmartRecommendation(profile: {
-    contentTypes: ContentType[];
-    genres: string[];
-    languages: string[];
-    minRating?: number;
-    blacklist?: Set<string>;
-  }) {
-    // DON'T shuffle - content types are already prioritized by diversity tracking
-    // Types not recently recommended come first
-    const orderedTypes = profile.contentTypes;
+  /** Resolve one random anime tag from the user's genres to a TMDB keyword id. */
+  private static async animeKeyword(genres: string[]): Promise<number | null> {
+    const tags = genres.filter((g) => g in ANIME_TAG_KEYWORD);
+    if (tags.length === 0) return null;
+    return tmdbClient.getKeywordId(ANIME_TAG_KEYWORD[tags[Math.floor(Math.random() * tags.length)]]);
+  }
 
-    // Try each content type until one succeeds
-    for (const contentType of orderedTypes) {
-      const result = await this.generateRecommendation({
-        contentType,
-        genres: profile.genres,
-        languages: profile.languages,
-        minRating: profile.minRating || 6,
-        blacklist: profile.blacklist,
-      });
-      
-      if (result) {
-        return result;
-      }
+  // ===========================================================================
+  // SMART mode: source → filter → score → sample
+  // ===========================================================================
+
+  static async generateSmartRecommendation(request: SmartRequest): Promise<Pick | null> {
+    const minRating = request.minRating ?? 6;
+    const languages = request.languages.length > 0 ? [...new Set(request.languages)] : ['en'];
+    const mood = request.moodGenres?.length ? request.moodGenres : null;
+    const genres = mood ?? request.genres;
+    const weights = request.weights ?? {};
+    const types = request.contentTypes;
+
+    // 1. Source: one discover query per content type (equal budget) + seeds.
+    const seeds = mood ? [] : (request.seeds ?? []).slice(0, 3);
+    const pool = (
+      await Promise.all([
+        ...types.map((t) => this.discoverCandidates(t, genres, languages, minRating, weights.genres)),
+        ...seeds.map((s) => this.seedCandidates(s)),
+      ])
+    ).flat();
+
+    // 2. Filter: already seen, wrong type, quality floor, language.
+    // Seed-sourced candidates may be in any language: the seed proves the user
+    // watches it.
+    const seen = new Set<string>();
+    const allowedLang = new Set(languages);
+    const candidates = pool.filter((c) => {
+      const key = seenKey(c.tmdbId, c.contentType);
+      if (seen.has(key) || request.excluded?.has(key)) return false;
+      seen.add(key);
+      if (!types.includes(c.contentType)) return false;
+      if (c.voteCount < 50 || c.rating < minRating - 0.5) return false;
+      return c.contentType === 'ANIME' || !!c.seed || allowedLang.has(c.originalLanguage);
+    });
+
+    if (candidates.length === 0) {
+      log.debug('Smart pipeline produced no candidates', { types, genres, languages });
+      return null;
     }
 
-    // All content types failed
-    return null;
+    // 3. Pick the content type first so every type the user chose gets an
+    // equal share of nights, bent only by learning and a diversity penalty.
+    // Scoring across types would let TV's higher TMDB ratings bury movies.
+    const n = (map: Weights | undefined, k: string) => (map?.[k] ?? NEUTRAL) / NEUTRAL; // 1 = neutral
+    const recent = (request.recentTypes ?? []).slice(0, 2);
+    const typePool = types.filter((t) => candidates.some((c) => c.contentType === t));
+    const typeWeights = typePool.map((t) => n(weights.contentTypes, t) * (recent.includes(t) ? 0.6 : 1));
+    let rt = Math.random() * typeWeights.reduce((a, b) => a + b, 0);
+    const type = typePool.find((_, i) => (rt -= typeWeights[i]) < 0) ?? typePool[0];
+    const ofType = candidates.filter((c) => c.contentType === type);
+
+    // Seed recommendations are dense and well-rated, so left in one pool they
+    // would win every time. Seeds get 40% of nights, and only when the seed
+    // pool is wide enough that it will not repeat the same title.
+    const seeded = ofType.filter((c) => c.seed);
+    const discovered = ofType.filter((c) => !c.seed);
+    const useSeeds = seeded.length >= 5 && (discovered.length === 0 || Math.random() < 0.4);
+    const pool2 = useSeeds ? seeded : discovered.length > 0 ? discovered : seeded;
+
+    // 4. Score within the type.
+    const numeric = genres.filter((g) => !isNaN(Number(g)));
+    const liked = new Set([...numeric, ...toTvGenres(numeric)]);
+    const scored = pool2.map((c) => {
+      const ids = c.genreIds.map(String);
+      const genreScore =
+        ids.reduce((s, g) => s + (liked.has(g) ? 1 : 0) + (n(weights.genres, g) - 1), 0) /
+        Math.max(1, Math.min(3, ids.length));
+      const langScore = n(weights.languages, c.originalLanguage);
+      const ratingScore = (c.rating - 6) / 2;
+      const score = genreScore * (mood ? 2 : 1) + langScore * 0.4 + ratingScore * 0.6;
+      return { c, score, matched: ids.filter((g) => liked.has(g)) };
+    });
+
+    // 5. Sample from the top with a softmax so the same pick does not repeat.
+    scored.sort((a, b) => b.score - a.score);
+    const top = scored.slice(0, 20);
+    const temperature = 1;
+    const max = top[0].score;
+    const probs = top.map((s) => Math.exp((s.score - max) / temperature));
+    let r = Math.random() * probs.reduce((a, b) => a + b, 0);
+    const chosen = top.find((_, i) => (r -= probs[i]) < 0) ?? top[0];
+
+    log.debug('Smart pick', { candidates: candidates.length, type, pool: useSeeds ? 'seeds' : 'discover', score: chosen.score });
+
+    const { c, matched } = chosen;
+    return {
+      ...c,
+      strategyName: c.seed ? 'Because you watched' : matched.length >= 2 ? 'All genres' : matched.length === 1 ? 'Single genre' : 'No genres',
+      strategyGenres: matched,
+      strategyLanguages: [c.originalLanguage],
+    };
+  }
+
+  /** One popularity-sorted discover page for a content type. Relaxes to no genres when thin. */
+  private static async discoverCandidates(
+    contentType: ContentType,
+    genres: string[],
+    languages: string[],
+    minRating: number,
+    genreWeights?: Weights
+  ): Promise<Candidate[]> {
+    const usable = genresFor(contentType, genres);
+    const picked = pickGenres(usable, usable.length >= 2 && Math.random() > 0.5 ? 2 : 1, genreWeights);
+    const base: TMDBDiscoverParams = {
+      sort_by: 'popularity.desc',
+      page: 1 + Math.floor(Math.random() * 3),
+      'vote_average.gte': Math.max(0, minRating - 0.5),
+      'vote_count.gte': 50,
+    };
+
+    const params: TMDBDiscoverParams = { ...base };
+    if (contentType === 'ANIME') {
+      params.with_original_language = 'ja';
+      params.with_genres = '16';
+      const keyword = Math.random() > 0.5 ? await this.animeKeyword(genres) : null;
+      if (keyword) params.with_keywords = String(keyword);
+      else if (picked[0]) params.with_genres = `16,${picked[0]}`;
+    } else {
+      // Rotate through the user's languages so every preference gets a turn.
+      params.with_original_language = languages[Math.floor(Math.random() * languages.length)];
+      if (picked.length) params.with_genres = picked.join('|');
+    }
+
+    const fetch = async (p: TMDBDiscoverParams): Promise<Candidate[]> => {
+      try {
+        if (contentType === 'MOVIE') {
+          return (await tmdbClient.discoverMovies(p)).results.map((m) => toCandidate(m, 'MOVIE'));
+        }
+        return (await tmdbClient.discoverTV(p)).results.map((s) =>
+          toCandidate(s, contentType === 'ANIME' || isAnime(s) ? 'ANIME' : 'SERIES')
+        );
+      } catch (error) {
+        console.error('[Recommendation] discover failed', error);
+        return [];
+      }
+    };
+
+    const results = await fetch(params);
+    if (results.length >= 5) return results;
+    const relaxed: TMDBDiscoverParams = { ...base, with_original_language: params.with_original_language };
+    if (contentType === 'ANIME') relaxed.with_genres = '16';
+    return [...results, ...(await fetch(relaxed))];
+  }
+
+  /** TMDB "recommendations" for something the user watched: collaborative filtering for free. */
+  private static async seedCandidates(seed: Seed): Promise<Candidate[]> {
+    try {
+      if (seed.contentType === 'MOVIE') {
+        const r = await tmdbClient.getMovieRecommendations(seed.tmdbId);
+        return r.results.map((m) => toCandidate(m, 'MOVIE', seed));
+      }
+      const r = await tmdbClient.getTVRecommendations(seed.tmdbId);
+      return r.results.map((s) => toCandidate(s, isAnime(s) ? 'ANIME' : 'SERIES', seed));
+    } catch (error) {
+      console.error('[Recommendation] seed recommendations failed', seed, error);
+      return [];
+    }
   }
 }

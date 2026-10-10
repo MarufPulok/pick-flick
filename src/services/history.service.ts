@@ -4,7 +4,23 @@
  */
 
 import { ContentType } from '@/config/app.config';
-import { RecommendationHistoryModel } from '@/infrastructure/db/models';
+import { RecommendationHistoryModel, WatchlistModel } from '@/infrastructure/db/models';
+import { ViewingProgressModel } from '@/infrastructure/db/models/viewing-progress.model';
+
+/**
+ * Identity of a title for "already seen" checks. TMDB movie and TV ids share
+ * numbers, and the same show can be filed as SERIES or ANIME depending on the
+ * source, so the key is the TMDB media namespace, not our content type.
+ */
+export function seenKey(tmdbId: number, contentType: ContentType | string): string {
+  return `${tmdbId}:${contentType === 'MOVIE' ? 'movie' : 'tv'}`;
+}
+
+export interface Seed {
+  tmdbId: number;
+  contentType: ContentType;
+  title: string;
+}
 
 interface RecordActionRequest {
   userId: string;
@@ -116,20 +132,61 @@ export class HistoryService {
   }
 
   /**
-   * Get list of blacklisted TMDB IDs for a user
+   * Everything the recommender must not show again: every title the user has
+   * acted on (skips expire after 30 days), played in-app from any screen, or
+   * saved to the watchlist. Keys from seenKey().
    */
-  static async getBlacklist(userId: string): Promise<Set<string>> {
-    const blacklisted = await RecommendationHistoryModel.find({
-      userId,
-      action: 'BLACKLISTED',
-    })
-      .select('tmdbId contentType')
-      .lean();
+  static async getExcluded(userId: string): Promise<Set<string>> {
+    const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const [history, played, saved] = await Promise.all([
+      RecommendationHistoryModel.find({
+        userId,
+        $or: [{ action: { $ne: 'SKIPPED' } }, { updatedAt: { $gte: monthAgo } }],
+      })
+        .select('tmdbId contentType')
+        .lean(),
+      ViewingProgressModel.find({ userId }).select('tmdbId contentType').lean(),
+      WatchlistModel.find({ userId }).select('tmdbId contentType').lean(),
+    ]);
 
-    // Return set of "tmdbId:contentType" strings for quick lookup
     return new Set(
-      blacklisted.map((item) => `${item.tmdbId}:${item.contentType}`)
+      [...history, ...played, ...saved].map((item) => seenKey(item.tmdbId as number, item.contentType as string))
     );
+  }
+
+  /**
+   * Most recent titles the user liked, marked watched, or played (any screen:
+   * pick, search, trending). Seeds for TMDB's recommendation graph.
+   */
+  static async getSeeds(userId: string, limit = 3): Promise<Seed[]> {
+    const [history, played] = await Promise.all([
+      RecommendationHistoryModel.find({ userId, action: { $in: ['LIKED', 'WATCHED'] } })
+        .sort({ updatedAt: -1 })
+        .limit(limit)
+        .select('tmdbId contentType title updatedAt')
+        .lean(),
+      ViewingProgressModel.find({ userId })
+        .sort({ lastWatchedAt: -1 })
+        .limit(limit)
+        .select('tmdbId contentType title lastWatchedAt')
+        .lean(),
+    ]);
+
+    const all = [
+      ...history.map((h) => ({ ...h, at: new Date(h.updatedAt as Date) })),
+      ...played.map((p) => ({ ...p, at: new Date(p.lastWatchedAt as Date) })),
+    ].sort((a, b) => b.at.getTime() - a.at.getTime());
+
+    const seen = new Set<string>();
+    const seeds: Seed[] = [];
+    for (const s of all) {
+      const key = seenKey(s.tmdbId as number, s.contentType as string);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      seeds.push({ tmdbId: s.tmdbId as number, contentType: s.contentType as ContentType, title: s.title as string });
+      if (seeds.length >= limit) break;
+    }
+    return seeds;
   }
 
   /**
@@ -203,11 +260,8 @@ export class HistoryService {
    * Used for diversity tracking to avoid consecutive same-type recommendations
    */
   static async getRecentContentTypes(userId: string, limit: number = 3): Promise<string[]> {
-    const items = await RecommendationHistoryModel.find({
-      userId,
-      action: { $in: ['WATCHED', 'LIKED', 'DISLIKED', 'BLACKLISTED'] },
-    })
-      .sort({ createdAt: -1 })
+    const items = await RecommendationHistoryModel.find({ userId })
+      .sort({ updatedAt: -1 })
       .limit(limit)
       .select('contentType')
       .lean();

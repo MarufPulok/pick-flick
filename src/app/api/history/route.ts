@@ -103,8 +103,8 @@ export async function POST(req: NextRequest) {
       ...validated,
     });
 
-    // Update preference weights on likes/dislikes (async, don't block response)
-    if (validated.action === 'LIKED' || validated.action === 'DISLIKED') {
+    // Every action teaches the recommender (async, don't block response)
+    {
       const { PreferenceWeightsService } = await import('@/services/preference-weights.service');
       PreferenceWeightsService.updateWeights({
         userId: user._id.toString(),

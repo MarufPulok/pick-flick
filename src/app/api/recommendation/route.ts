@@ -11,9 +11,10 @@ import { connectToDatabase } from "@/infrastructure/db";
 import { TasteProfileModel, UserModel } from "@/infrastructure/db/models";
 import { tmdbClient } from "@/infrastructure/external/tmdb.client";
 import { auth } from "@/lib/auth";
-import { CACHE_TTL, detailsCache } from "@/lib/cache";
+import { CACHE_TTL, detailsCache, servedCache } from "@/lib/cache";
 import { loggers } from "@/lib/logger";
-import { HistoryService } from "@/services/history.service";
+import { HistoryService, seenKey } from "@/services/history.service";
+import { PreferenceWeightsService } from "@/services/preference-weights.service";
 import { RecommendationService } from "@/services/recommendation.service";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -41,8 +42,12 @@ export async function POST(req: NextRequest) {
     let recommendation;
     let profileComplete = true;
 
-    // Load blacklist for user
-    const blacklist = await HistoryService.getBlacklist(user._id.toString());
+    const userId = user._id.toString();
+    // Everything already seen, played, or saved: never shown again. Plus
+    // whatever this server served in the last 6 hours, so a reload rotates.
+    const excluded = await HistoryService.getExcluded(userId);
+    const served = servedCache.get(userId) ?? new Set<string>();
+    served.forEach((k) => excluded.add(k));
 
     if (validated.mode === "SMART") {
       // Load taste profile for smart mode. Without a finished one, fall back to
@@ -57,34 +62,23 @@ export async function POST(req: NextRequest) {
         minRating: saved?.minRating ?? (profileComplete ? undefined : 6.5),
       };
 
-      // Get recent content types for diversity tracking
-      const recentContentTypes = await HistoryService.getRecentContentTypes(
-        user._id.toString(),
-        3
-      );
+      const [recentTypes, weights, seeds] = await Promise.all([
+        HistoryService.getRecentContentTypes(userId, 3),
+        PreferenceWeightsService.getWeights(userId),
+        HistoryService.getSeeds(userId, 3),
+      ]);
 
-      // Prioritize content types not recently recommended
-      const prioritizedTypes = profile.contentTypes.filter(
-        (type) => !recentContentTypes.includes(type)
-      );
-      const orderedContentTypes = prioritizedTypes.length > 0
-        ? [...prioritizedTypes, ...profile.contentTypes.filter((type) => !prioritizedTypes.includes(type))]
-        : profile.contentTypes;
-
-      // Debug profile data (only shows in development)
-      log.debug('Smart mode profile', {
-        profileComplete,
-        contentTypes: profile.contentTypes,
-        languages: profile.languages,
-        orderedContentTypes,
-      });
+      log.debug('Smart mode profile', { profileComplete, profile, recentTypes, seeds, moodGenres: validated.genres });
 
       recommendation = await RecommendationService.generateSmartRecommendation({
-        contentTypes: orderedContentTypes,
-        genres: profile.genres,
-        languages: profile.languages,
-        minRating: profile.minRating,
-        blacklist,
+        ...profile,
+        excluded,
+        recentTypes,
+        seeds,
+        moodGenres: validated.genres,
+        weights: weights
+          ? { genres: weights.genreWeights, contentTypes: weights.contentTypeWeights, languages: weights.languageWeights }
+          : undefined,
       });
     } else {
       // Filtered mode - use request filters
@@ -93,7 +87,8 @@ export async function POST(req: NextRequest) {
         genres: validated.genres || [],
         languages: validated.language ? [validated.language] : ["en"],
         minRating: validated.minRating || 0,
-        blacklist,
+        blacklist: excluded,
+        genreWeights: (await PreferenceWeightsService.getWeights(userId))?.genreWeights,
       });
     }
 
@@ -104,37 +99,61 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Fetch trailer for the recommendation
-    let trailerUrl: string | null = null;
-    try {
-      const videos = recommendation.contentType === 'MOVIE' 
-        ? await tmdbClient.getMovieVideos(recommendation.tmdbId)
-        : await tmdbClient.getTVVideos(recommendation.tmdbId);
-      trailerUrl = tmdbClient.getTrailerUrl(videos);
-    } catch (error) {
-      console.error("Failed to fetch trailer:", error);
-      // Continue without trailer - it's not critical
-    }
+    const { tmdbId, contentType } = recommendation;
+    served.add(seenKey(tmdbId, contentType));
+    servedCache.set(userId, served, 6 * 60 * 60 * 1000);
+    const isMovie = contentType === 'MOVIE';
+    const detailsKey = `${contentType}:${tmdbId}`;
 
-    // Runtime: movies carry it directly, series expose a per-episode length.
-    let runtime: number | null = null;
-    try {
-      const key = `${recommendation.contentType}:${recommendation.tmdbId}`;
-      runtime = await detailsCache.getOrSet(
-        key,
-        async () =>
-          recommendation.contentType === 'MOVIE'
-            ? (await tmdbClient.getMovieDetails(recommendation.tmdbId)).runtime || null
-            : await tmdbClient.getTVDetails(recommendation.tmdbId).then((d) => d.episode_run_time?.[0] || d.last_episode_to_air?.runtime || null),
-        CACHE_TTL.DETAILS
-      ) as number | null;
-    } catch (error) {
-      console.error("Failed to fetch runtime:", error);
+    // Trailer, runtime and providers are independent TMDB calls; none is critical.
+    const [trailerUrl, runtime, providers] = await Promise.all([
+      (isMovie ? tmdbClient.getMovieVideos(tmdbId) : tmdbClient.getTVVideos(tmdbId))
+        .then((videos) => tmdbClient.getTrailerUrl(videos))
+        .catch((error) => (console.error('Failed to fetch trailer:', error), null)),
+      // Runtime: movies carry it directly, series expose a per-episode length.
+      detailsCache
+        .getOrSet(
+          detailsKey,
+          async () =>
+            isMovie
+              ? (await tmdbClient.getMovieDetails(tmdbId)).runtime || null
+              : await tmdbClient
+                  .getTVDetails(tmdbId)
+                  .then((d) => d.episode_run_time?.[0] || d.last_episode_to_air?.runtime || null),
+          CACHE_TTL.DETAILS
+        )
+        .then((r) => r as number | null)
+        .catch((error) => (console.error('Failed to fetch runtime:', error), null)),
+      (isMovie ? tmdbClient.getMovieWatchProviders(tmdbId) : tmdbClient.getTVWatchProviders(tmdbId)).catch(
+        (error) => (console.error('Failed to fetch watch providers:', error), null)
+      ),
+    ]);
+
+    // Streaming availability
+    let watchProviders: {
+      flatrate?: Array<{ name: string; logoUrl: string; providerId: number }>;
+      link?: string;
+    } | null = null;
+    const allProviders = [...(providers?.flatrate || []), ...(providers?.free || []), ...(providers?.ads || [])];
+    if (providers && allProviders.length > 0) {
+      watchProviders = {
+        flatrate: allProviders.slice(0, 5).map((p) => ({
+          name: p.provider_name,
+          logoUrl: tmdbClient.getProviderLogoUrl(p.logo_path),
+          providerId: p.provider_id,
+        })),
+        link: providers.link,
+      };
     }
 
     // Build "Why This Pick?" explanation. Strategy copy speaks of "your taste",
     // which is false until onboarding is done.
-    const explanation = !profileComplete
+    const explanation = recommendation.seed
+      ? {
+          title: 'Because you watched',
+          description: `People who watched ${recommendation.seed.title} also watched this.`,
+        }
+      : !profileComplete
       ? {
           title: 'Popular right now',
           description:
@@ -148,39 +167,6 @@ export async function POST(req: NextRequest) {
             contentType: recommendation.contentType,
           })
         : null;
-
-    // Fetch watch providers (streaming availability)
-    let watchProviders: {
-      flatrate?: Array<{ name: string; logoUrl: string; providerId: number }>;
-      link?: string;
-    } | null = null;
-    try {
-      const providers = recommendation.contentType === 'MOVIE'
-        ? await tmdbClient.getMovieWatchProviders(recommendation.tmdbId)
-        : await tmdbClient.getTVWatchProviders(recommendation.tmdbId);
-      
-      if (providers) {
-        const allProviders = [
-          ...(providers.flatrate || []),
-          ...(providers.free || []),
-          ...(providers.ads || []),
-        ];
-        
-        if (allProviders.length > 0) {
-          watchProviders = {
-            flatrate: allProviders.slice(0, 5).map(p => ({
-              name: p.provider_name,
-              logoUrl: tmdbClient.getProviderLogoUrl(p.logo_path),
-              providerId: p.provider_id,
-            })),
-            link: providers.link,
-          };
-        }
-      }
-    } catch (error) {
-      console.error("Failed to fetch watch providers:", error);
-      // Continue without providers - it's not critical
-    }
 
     // Format response with full image URLs
     const response = {

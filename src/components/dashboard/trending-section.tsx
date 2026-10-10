@@ -10,6 +10,7 @@ const TYPES = [
   { id: 'ALL', label: 'All' },
   { id: 'MOVIE', label: 'Movies' },
   { id: 'SERIES', label: 'Series' },
+  { id: 'ANIME', label: 'Anime' },
 ] as const;
 
 export function TrendingSection({ limit = 12 }: { limit?: number }) {

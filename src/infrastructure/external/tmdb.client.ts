@@ -138,6 +138,7 @@ export interface TMDBWatchProvidersResponse {
 export interface TMDBDiscoverParams {
   with_genres?: string;
   with_original_language?: string;
+  with_keywords?: string;
   'vote_average.gte'?: number;
   'vote_count.gte'?: number;
   'primary_release_date.gte'?: string;
@@ -292,6 +293,25 @@ class TMDBClient {
       with_genres: '16', // Animation genre ID
       ...params,
     });
+  }
+
+  /**
+   * Resolve a keyword name to its TMDB keyword id (for discover with_keywords).
+   * Ids never change, so the module-level map is the cache.
+   */
+  private keywordIds = new Map<string, number | null>();
+  async getKeywordId(name: string): Promise<number | null> {
+    const cached = this.keywordIds.get(name);
+    if (cached !== undefined) return cached;
+    const id = await this.rateLimiter.throttle(async () => {
+      const response = await this.client.get<{ results: { id: number; name: string }[] }>('/search/keyword', {
+        params: { query: name },
+      });
+      const exact = response.data.results.find((k) => k.name.toLowerCase() === name.toLowerCase());
+      return (exact ?? response.data.results[0])?.id ?? null;
+    }).catch(() => null);
+    this.keywordIds.set(name, id);
+    return id;
   }
 
   /**

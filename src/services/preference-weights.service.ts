@@ -4,18 +4,26 @@
  */
 
 import { PreferenceWeightsModel } from '@/infrastructure/db/models';
+import { tmdbClient } from '@/infrastructure/external/tmdb.client';
 import { logger } from '@/lib/logger';
 
-// Weight adjustment constants
-const LIKE_BOOST = 5;      // Points added for a like
-const DISLIKE_PENALTY = 3; // Points subtracted for a dislike
+export type LearnAction = 'LIKED' | 'WATCHED' | 'DISLIKED' | 'BLACKLISTED' | 'SKIPPED';
+
+/** Points per signal. Playing something is almost as strong as a like. */
+const DELTA: Record<LearnAction, number> = {
+  LIKED: 5,
+  WATCHED: 4,
+  DISLIKED: -3,
+  BLACKLISTED: -5,
+  SKIPPED: -1,
+};
 const MIN_WEIGHT = 0;      // Minimum weight value
 const MAX_WEIGHT = 100;    // Maximum weight value
 const DEFAULT_WEIGHT = 50; // Starting weight for new items
 
 interface UpdateWeightsParams {
   userId: string;
-  action: 'LIKED' | 'DISLIKED';
+  action: LearnAction;
   genreIds: number[];
   contentType: string;
   language: string;
@@ -29,7 +37,7 @@ export class PreferenceWeightsService {
    */
   static async updateWeights(params: UpdateWeightsParams): Promise<void> {
     const { userId, action, genreIds, contentType, language } = params;
-    const isLike = action === 'LIKED';
+    const delta = DELTA[action];
 
     // Find or create weights document for user
     let weights = await PreferenceWeightsModel.findOne({ userId });
@@ -53,30 +61,27 @@ export class PreferenceWeightsService {
     for (const genreId of genreIds) {
       const genreKey = String(genreId);
       const currentWeight = weights.genreWeights.get(genreKey) ?? DEFAULT_WEIGHT;
-      const newWeight = this.calculateNewWeight(currentWeight, isLike);
+      const newWeight = this.calculateNewWeight(currentWeight, delta);
       weights.genreWeights.set(genreKey, newWeight);
     }
 
     // Update content type weight
     if (contentType) {
       const currentTypeWeight = weights.contentTypeWeights.get(contentType) ?? DEFAULT_WEIGHT;
-      const newTypeWeight = this.calculateNewWeight(currentTypeWeight, isLike);
+      const newTypeWeight = this.calculateNewWeight(currentTypeWeight, delta);
       weights.contentTypeWeights.set(contentType, newTypeWeight);
     }
 
     // Update language weight
     if (language) {
       const currentLangWeight = weights.languageWeights.get(language) ?? DEFAULT_WEIGHT;
-      const newLangWeight = this.calculateNewWeight(currentLangWeight, isLike);
+      const newLangWeight = this.calculateNewWeight(currentLangWeight, delta);
       weights.languageWeights.set(language, newLangWeight);
     }
 
     // Update totals
-    if (isLike) {
-      weights.totalLikes = (weights.totalLikes || 0) + 1;
-    } else {
-      weights.totalDislikes = (weights.totalDislikes || 0) + 1;
-    }
+    if (action === 'LIKED') weights.totalLikes = (weights.totalLikes || 0) + 1;
+    if (action === 'DISLIKED' || action === 'BLACKLISTED') weights.totalDislikes = (weights.totalDislikes || 0) + 1;
 
     await weights.save();
     
@@ -87,10 +92,24 @@ export class PreferenceWeightsService {
    * Calculate new weight after adjustment
    * Clamps result between MIN_WEIGHT and MAX_WEIGHT
    */
-  private static calculateNewWeight(currentWeight: number, isLike: boolean): number {
-    const adjustment = isLike ? LIKE_BOOST : -DISLIKE_PENALTY;
-    const newWeight = currentWeight + adjustment;
-    return Math.max(MIN_WEIGHT, Math.min(MAX_WEIGHT, newWeight));
+  private static calculateNewWeight(currentWeight: number, delta: number): number {
+    return Math.max(MIN_WEIGHT, Math.min(MAX_WEIGHT, currentWeight + delta));
+  }
+
+  /**
+   * Learn from a play on any screen (pick, search, trending, continue watching).
+   * The player only knows the TMDB id, so genres and language come from details.
+   */
+  static async learnFromPlay(userId: string, tmdbId: number, contentType: string): Promise<void> {
+    const details =
+      contentType === 'MOVIE' ? await tmdbClient.getMovieDetails(tmdbId) : await tmdbClient.getTVDetails(tmdbId);
+    await this.updateWeights({
+      userId,
+      action: 'WATCHED',
+      genreIds: details.genres.map((g) => g.id),
+      contentType,
+      language: details.original_language,
+    });
   }
 
   /**
@@ -103,10 +122,14 @@ export class PreferenceWeightsService {
       return null;
     }
 
+    // lean() hands Map fields back as plain objects; hydrated docs give real Maps.
+    const toObject = (m: unknown): Record<string, number> =>
+      m instanceof Map ? Object.fromEntries(m) : ((m as Record<string, number> | undefined) ?? {});
+
     return {
-      genreWeights: weights.genreWeights ? Object.fromEntries(weights.genreWeights) : {},
-      contentTypeWeights: weights.contentTypeWeights ? Object.fromEntries(weights.contentTypeWeights) : {},
-      languageWeights: weights.languageWeights ? Object.fromEntries(weights.languageWeights) : {},
+      genreWeights: toObject(weights.genreWeights),
+      contentTypeWeights: toObject(weights.contentTypeWeights),
+      languageWeights: toObject(weights.languageWeights),
       totalLikes: weights.totalLikes || 0,
       totalDislikes: weights.totalDislikes || 0,
     };

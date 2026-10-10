@@ -46,21 +46,26 @@ Required variables:
 
 ### Recommendation Engine (`src/services/recommendation.service.ts`)
 
-Core algorithm uses **cascading fallback strategies** (13 defined). Each strategy relaxes constraints progressively (all genres → 2 random genres → 1 genre → no genres → lower rating threshold). Language is treated as **sacred** — it is never dropped across any strategy.
+Two modes.
 
-ANIME content type always forces `original_language=ja` and `with_genres=16` (Animation), regardless of the user's language preferences.
+**FILTERED** (Refine panel): cascading fallback over TMDB discover (13 strategies, relaxing genres then rating). Language is **sacred** and never dropped. Movie genre ids are translated to TV ids for SERIES/ANIME (`MOVIE_TO_TV_GENRE`); anime tags from onboarding (`shonen`, `isekai`, …) resolve to TMDB keyword ids via `tmdbClient.getKeywordId` and run as `with_keywords`. ANIME always forces `original_language=ja` + genre 16.
 
-`generateSmartRecommendation` orders content types by recency to enforce diversity — types not recently recommended come first.
+**SMART** (default, and mood chips/free text): a candidate pipeline, not a cascade.
+1. *Source*, in parallel: one discover page per content type in the profile (equal budget), a random language from the profile per call, 1–2 genres sampled with learned weights; plus TMDB `/recommendations` for the last 3 seeds from `HistoryService.getSeeds` (liked, marked seen, or played on any screen).
+2. *Filter*: `HistoryService.getExcluded` (every history action, plays, watchlist; skips expire after 30 days), vote/rating floor, profile languages (seed-sourced candidates may be any language). Keys use `seenKey()` (TMDB media namespace, so SERIES/ANIME never collide).
+3. *Choose content type first*: weighted random over types with candidates (learned weight × 0.6 if in the last 2 picks). This is what keeps movies, series and anime at equal share; scoring across types would let TV's higher ratings bury movies.
+4. *Score within type*: profile genre match + learned genre weights, language weight, rating. Seed pool wins 40% of nights when it holds at least 5 candidates.
+5. *Sample*: softmax over the top 20. The route also excludes picks served to that user in the last 6 hours (`servedCache`, in-memory).
 
-SMART mode never dead-ends on a missing taste profile: the route falls back to whatever onboarding saved so far, then to MOVIE+SERIES / English / rating ≥ 6.5, and returns `profileComplete: false` so the pick screen can nudge toward `/onboarding`. The route also fetches TMDB details for `runtime` (movie minutes, or first `episode_run_time` for series), cached in `detailsCache`.
+Mood genres (`genres` on a SMART request) replace profile genres and skip seeds. SMART never dead-ends on a missing taste profile: the route falls back to whatever onboarding saved, then MOVIE+SERIES / English / rating ≥ 6.5, returning `profileComplete: false`. The route also fetches TMDB details for `runtime`, cached in `detailsCache`. The pick screen prefetches the next pick so "Not tonight" is instant.
 
 ### Preference Learning (`src/services/preference-weights.service.ts`)
 
-Like/dislike feedback updates `PreferenceWeightsModel` (per-user genre/language/contentType weights, 0–100, default 50). Boosts: +5 for like, -3 for dislike.
+Every signal updates `PreferenceWeightsModel` (per-user genre/language/contentType weights, 0–100, default 50): like +5, seen +4, dislike −3, never again −5, not tonight −1. A play from any screen (pick, search, trending, `/watch`) hits `/api/continue-watching` on player open, which calls `learnFromPlay` (TMDB details → +4). "Seen it" on the pick opens a modal: Loved it → LIKED, Not for me → DISLIKED, otherwise WATCHED.
 
 ### Caching (`src/lib/cache.ts`)
 
-In-memory `TTLCache` instances (not Redis). Global singletons: `discoverCache`, `detailsCache`, `videosCache`, `providersCache`, `similarCache`, `searchCache`, `trendingCache`, `recommendationsCache`. Cache performance is exposed at `/api/cache-stats`. Cache resets on server restart.
+In-memory `TTLCache` instances (not Redis). Global singletons: `discoverCache`, `detailsCache`, `videosCache`, `providersCache`, `similarCache`, `searchCache`, `trendingCache`, `recommendationsCache`, `servedCache`. Cache performance is exposed at `/api/cache-stats`. Cache resets on server restart.
 
 ### Auth (`src/lib/auth.ts`)
 
@@ -73,10 +78,10 @@ There is **no middleware**. Protection is per-route: user-scoped API routes (`hi
 - `UserModel` — NextAuth user record
 - `TasteProfileModel` — onboarding preferences (contentTypes, genres, languages, minRating)
 - `PreferenceWeightsModel` — learned weights from feedback
-- `RecommendationHistoryModel` — past recommendations; used as blacklist
+- `RecommendationHistoryModel` — every action on a pick (WATCHED/SKIPPED/LIKED/DISLIKED/BLACKLISTED); feeds exclusions and seeds
 - `WatchlistModel` — saved content
 - `BlacklistModel` — explicitly excluded content
-- `ViewingProgressModel` — per-user viewing records; backs "Continue Watching" (`/api/continue-watching`)
+- `ViewingProgressModel` — per-user viewing records; backs "Continue Watching" (`/api/continue-watching`), exclusions and seeds
 
 ### Streaming
 
