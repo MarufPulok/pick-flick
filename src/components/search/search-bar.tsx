@@ -31,6 +31,8 @@ interface SearchBarProps {
   autoFocus?: boolean;
   className?: string;
   showAutocomplete?: boolean;
+  /** "/" focuses the input, Escape clears it */
+  hotkey?: boolean;
 }
 
 export function SearchBar({
@@ -41,6 +43,7 @@ export function SearchBar({
   autoFocus = false,
   className = "",
   showAutocomplete = true,
+  hotkey = false,
 }: SearchBarProps) {
   const router = useRouter();
   const [query, setQuery] = useState(defaultValue);
@@ -74,9 +77,30 @@ export function SearchBar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // "/" focuses the input (unless typing elsewhere)
+  useEffect(() => {
+    if (!hotkey) return;
+    function onKey(e: KeyboardEvent) {
+      const el = e.target as HTMLElement;
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (el.closest("input, textarea, select, [contenteditable]")) return;
+      e.preventDefault();
+      inputRef.current?.focus();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [hotkey]);
+
   // Handle keyboard navigation
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      if (hotkey && e.key === "Escape" && query) {
+        setQuery("");
+        setIsFocused(false);
+        setSelectedIndex(-1);
+        onChange?.("");
+        return;
+      }
       if (!showSuggestionsDropdown || !suggestions?.length) return;
 
       switch (e.key) {
@@ -104,7 +128,7 @@ export function SearchBar({
           break;
       }
     },
-    [showSuggestionsDropdown, suggestions, selectedIndex, query],
+    [showSuggestionsDropdown, suggestions, selectedIndex, query, hotkey, onChange],
   );
 
   // Handle search submit

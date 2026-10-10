@@ -7,10 +7,23 @@
 
 import { SearchBar, SearchResultsGrid } from '@/components/search';
 import { useSearch } from '@/hooks/use-search';
+import { TrendingSection } from '@/components/dashboard/trending-section';
 import { Button } from '@/components/ui/button';
+import { storage } from '@/lib/storage';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useState } from 'react';
+
+const RECENT_KEY = 'recent-searches';
+const readRecent = () => storage.get<string[]>(RECENT_KEY) ?? [];
+
+function pushRecent(q: string) {
+  const t = q.trim();
+  if (t.length < 2) return;
+  const next = [t, ...readRecent().filter((r) => r.toLowerCase() !== t.toLowerCase())].slice(0, 8);
+  storage.set(RECENT_KEY, next);
+}
 
 /**
  * Search Content - Separated for Suspense boundary
@@ -22,7 +35,15 @@ function SearchContent() {
   
   const [query, setQuery] = useState(initialQuery);
   const [page, setPage] = useState(1);
+  const [recent, setRecent] = useState<string[]>([]);
   const [filterTypes, setFilterTypes] = useState<('movie' | 'tv' | 'person')[]>([]);
+
+  useEffect(() => {
+    pushRecent(initialQuery);
+    // localStorage is client-only; read after mount to avoid hydration mismatch
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRecent(readRecent());
+  }, []);
 
   // Update query when URL changes
   useEffect(() => {
@@ -42,6 +63,8 @@ function SearchContent() {
   const handleSearch = useCallback((newQuery: string) => {
     setQuery(newQuery);
     setPage(1);
+    pushRecent(newQuery);
+    setRecent(readRecent());
     router.push(`/search?q=${encodeURIComponent(newQuery)}`, { scroll: false });
   }, [router]);
 
@@ -69,6 +92,7 @@ function SearchContent() {
         }}
         onSearch={handleSearch}
         autoFocus
+        hotkey
         showAutocomplete={false}
       />
 
@@ -96,7 +120,34 @@ function SearchContent() {
 
       <div className="mt-8">
         {query.length < 2 ? (
-          <p className="text-sm text-muted-foreground">Search for a title, a show, or a person.</p>
+          <div className="space-y-10">
+            {recent.length > 0 && (
+              <section aria-label="Recent searches">
+                <div className="flex items-center justify-between gap-4">
+                  <h2 className="font-display text-lg font-semibold">Recent</h2>
+                  <button
+                    onClick={() => { storage.remove(RECENT_KEY); setRecent([]); }}
+                    className="cursor-pointer text-xs text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    Clear
+                  </button>
+                </div>
+                <ul className="mt-3 flex flex-wrap gap-2">
+                  {recent.map((r) => (
+                    <li key={r}>
+                      <Link
+                        href={`/search?q=${encodeURIComponent(r)}`}
+                        className="inline-flex h-8 items-center rounded-full border border-border px-3 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        {r}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+            <TrendingSection />
+          </div>
         ) : isLoading ? (
           <ul className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6" aria-busy="true">
             {Array.from({ length: 12 }).map((_, i) => (
