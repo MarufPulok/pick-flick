@@ -7,6 +7,7 @@
 
 import { ContentType } from '@/dtos/common.dto';
 import { useSimilar } from '@/hooks/use-similar';
+import { LinkBody } from '@/components/ui/link-body';
 import { Poster } from '@/components/ui/poster';
 import Link from 'next/link';
 
@@ -29,12 +30,12 @@ export function SimilarContentSection({ tmdbId, contentType }: SimilarContentSec
   return (
     <div className="mt-8" aria-busy={isLoading}>
       <h2 className="font-display text-lg font-semibold tracking-[-0.02em]">More like this</h2>
-      <div className="rail scrollbar-hide mt-4 flex gap-4 overflow-x-auto">
+      <div className="rail stagger scrollbar-hide mt-4 flex gap-4 overflow-x-auto">
         {isLoading
           ? Array.from({ length: 6 }, (_, i) => (
               <div key={i} className="w-36 shrink-0">
-                <div className="aspect-2/3 rounded-md bg-foreground/10" />
-                <div className="mt-2 h-4 w-24 rounded-sm bg-foreground/10" />
+                <div className="aspect-2/3 skeleton rounded-md" />
+                <div className="mt-2 h-4 w-24 skeleton rounded-sm" />
               </div>
             ))
           : items.map((item) => {
@@ -45,9 +46,11 @@ export function SimilarContentSection({ tmdbId, contentType }: SimilarContentSec
                   href={`/dashboard?watch=${item.tmdbId}&type=${item.contentType}&title=${encodeURIComponent(item.title)}${item.posterPath ? `&poster=${encodeURIComponent(item.posterPath)}` : ''}`}
                   className="group w-36 shrink-0"
                 >
-                  <Poster src={item.posterUrl} sizes="144px" className="transition-[border-color] group-hover:border-foreground/40" />
-                  <p className="mt-2 line-clamp-2 text-sm leading-tight">{item.title}</p>
-                  {year && <p className="tabular font-mono text-sm text-muted-foreground">{year}</p>}
+                  <LinkBody>
+                    <Poster src={item.posterUrl} sizes="144px" className="group-hover:border-foreground/40" />
+                    <p className="mt-2 line-clamp-2 text-sm leading-tight">{item.title}</p>
+                    {year && <p className="tabular font-mono text-sm text-muted-foreground">{year}</p>}
+                  </LinkBody>
                 </Link>
               );
             })}

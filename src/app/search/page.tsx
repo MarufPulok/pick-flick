@@ -82,7 +82,7 @@ function SearchContent() {
   const totalPages = data?.totalPages ?? 0;
 
   return (
-    <div className="mx-auto max-w-330 px-4 pb-24 pt-24 sm:px-6 lg:px-15">
+    <div className="mx-auto max-w-330 px-4 pb-24 pt-24 transition-opacity duration-300 starting:opacity-0 sm:px-6 lg:px-15">
       <SearchBar
         placeholder="What are you looking for?"
         defaultValue={initialQuery}
@@ -152,8 +152,8 @@ function SearchContent() {
           <ul className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6" aria-busy="true">
             {Array.from({ length: 12 }).map((_, i) => (
               <li key={i}>
-                <div className="aspect-2/3 rounded-md bg-foreground/10" />
-                <div className="mt-2 h-4 rounded-md bg-foreground/10" />
+                <div className="aspect-2/3 skeleton rounded-md" />
+                <div className="mt-2 h-4 skeleton rounded-md" />
               </li>
             ))}
           </ul>
@@ -165,7 +165,7 @@ function SearchContent() {
             </p>
           </div>
         ) : (
-          <div aria-busy={isFetching}>
+          <div className="transition-opacity duration-200 aria-busy:opacity-60" aria-busy={isFetching}>
             <p className="tabular mb-4 font-mono text-sm text-muted-foreground">
               {totalResults.toLocaleString()} result{totalResults !== 1 ? 's' : ''}
             </p>

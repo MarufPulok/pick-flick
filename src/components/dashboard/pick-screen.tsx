@@ -77,6 +77,10 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
   const [showStream, setShowStream] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
   const [showSeen, setShowSeen] = useState(false);
+  // The outgoing backdrop stays under the incoming one, so the room never goes bare between picks.
+  const [prevBackdrop, setPrevBackdrop] = useState<string | null>(null);
+  // Which icon toggle was just pressed, scoped to the pick so a swap never replays it.
+  const [stamp, setStamp] = useState<string | null>(null);
 
   const { recordAction, isRecording } = useHistoryActions();
   const { toggleWatchlist, isPending: savePending } = useWatchlist();
@@ -118,6 +122,7 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
         const fromPrefetch = !!ready && ready.body === body && ready.data.tmdbId !== pick?.tmdbId;
         const data = fromPrefetch ? ready.data : await fetchPick(body);
         if (id !== requestId.current) return;
+        setPrevBackdrop(pick?.backdropUrl ?? null);
         setPick(data);
         onPick?.(data);
         // The prefetch isn't an impression until shown; report it with the next prefetch.
@@ -147,14 +152,22 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const pickFromChip = (chip: MoodChip) => {
+  const chipOpts = (id: string | null) => {
+    const chip = id ? chips.find((c) => c.id === id) : undefined;
+    return chip ? { genres: chip.genres, languages: chip.languages } : {};
+  };
+
+  const pickFromChip = (chip: MoodChip, el: HTMLElement) => {
     setActiveChip(chip.id);
-    generate({ genres: chip.genres, languages: chip.languages });
+    setMode('SMART');
+    el.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+    generate(chipOpts(chip.id));
   };
 
   const act = (action: 'LIKED' | 'DISLIKED' | 'BLACKLISTED' | 'WATCHED' | 'SKIPPED') => {
     if (!pick || isRecording) return;
     setShowSeen(false);
+    setStamp(`${pick.tmdbId}:${action}`);
     recordAction({
       tmdbId: pick.tmdbId,
       contentType: pick.contentType,
@@ -167,7 +180,7 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
       genreIds: pick.genreIds,
       originalLanguage: pick.originalLanguage,
     });
-    if (action !== 'LIKED') generate();
+    if (action !== 'LIKED') generate(chipOpts(activeChip));
   };
 
   const play = () => {
@@ -182,19 +195,24 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
     <section className="relative isolate min-h-dvh overflow-hidden lg:min-h-[calc(100dvh-6rem)]">
       {/* The room: the pick's backdrop under a warm scrim. */}
       <div className="absolute inset-0 -z-10 bg-background">
-        {pick?.backdropUrl && (
-          <Image
-            key={pick.tmdbId}
-            src={pick.backdropUrl}
-            alt=""
-            fill
-            priority
-            unoptimized
-            sizes="100vw"
-            className={cn('object-cover object-[70%_center] reel-swap', isLoading && 'opacity-60')}
-          />
-        )}
-        <div className="scrim absolute inset-0" />
+        <div className={cn('absolute inset-0 transition-opacity duration-150', isLoading && 'opacity-35')}>
+          {prevBackdrop && prevBackdrop !== pick?.backdropUrl && (
+            <Image key={prevBackdrop} src={prevBackdrop} alt="" fill unoptimized sizes="100vw" className="object-cover object-[70%_center]" />
+          )}
+          {pick?.backdropUrl && (
+            <Image
+              key={pick.tmdbId}
+              src={pick.backdropUrl}
+              alt=""
+              fill
+              priority
+              unoptimized
+              sizes="100vw"
+              className="lights-up object-cover object-[70%_center]"
+            />
+          )}
+          <div className="scrim absolute inset-0" />
+        </div>
       </div>
 
       <div className="mx-auto grid max-w-330 gap-8 px-4 pb-10 pt-18 sm:px-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-16 lg:px-15 lg:pb-16 lg:pt-30">
@@ -211,10 +229,11 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
               <button
                 key={chip.id}
                 type="button"
-                onClick={() => pickFromChip(chip)}
+                onClick={(e) => pickFromChip(chip, e.currentTarget)}
                 aria-pressed={activeChip === chip.id}
+                data-working={activeChip === chip.id && isLoading}
                 className={cn(
-                  'h-9 shrink-0 cursor-pointer rounded-full border px-4 text-sm transition-colors',
+                  'h-9 shrink-0 cursor-pointer rounded-full border px-4 text-sm transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.97] data-[working=true]:animate-lamp',
                   activeChip === chip.id
                     ? 'border-accent bg-accent font-medium text-accent-foreground'
                     : 'border-border text-foreground hover:bg-foreground/6'
@@ -226,7 +245,7 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
           </div>
 
           {refineOpen && (
-            <div className="order-4 mt-5 grid gap-3 rounded-md border border-border p-4 sm:grid-cols-2 lg:order-0">
+            <div className="order-4 mt-5 grid gap-3 rounded-md border border-border p-4 transition-[opacity,translate] duration-200 starting:-translate-y-1 starting:opacity-0 sm:grid-cols-2 lg:order-0">
               <Select label="Type" value={filters.contentType} onChange={(v) => setFilters((f) => ({ ...f, contentType: v, genre: '', language: v === 'ANIME' ? 'ja' : f.language }))}>
                 {CONTENT_TYPES.map((t) => (
                   <option key={t} value={t}>{t === 'MOVIE' ? 'Movie' : t === 'SERIES' ? 'Series' : 'Anime'}</option>
@@ -249,7 +268,7 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
                 ))}
               </Select>
               <div className="flex items-center gap-2 sm:col-span-2">
-                <Button type="button" variant="play" size="sm" onClick={() => { setMode('FILTERED'); setActiveChip(null); setRefineOpen(false); generate({ mode: 'FILTERED' }); }}>
+                <Button type="button" variant="play" size="sm" aria-busy={isLoading && mode === 'FILTERED'} onClick={() => { setMode('FILTERED'); setActiveChip(null); setRefineOpen(false); generate({ mode: 'FILTERED' }); }}>
                   Pick with these
                 </Button>
                 {mode === 'FILTERED' && (
@@ -273,7 +292,8 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
             ) : isLoading && !pick ? (
               <PickSkeleton />
             ) : pick ? (
-              <div key={pick.tmdbId} className={cn('reel-swap-late', isLoading && 'opacity-50 transition-opacity')} aria-busy={isLoading}>
+              <div className={cn('transition-opacity duration-150', isLoading && 'opacity-50')} aria-busy={isLoading}>
+              <div key={pick.tmdbId} className="reel-swap-late">
                 <h1 className={cn('font-display text-balance font-semibold tracking-[-0.02em]', pick.title.length > 22 ? 'text-[clamp(2rem,5.5vw,4.25rem)]' : 'text-[clamp(2.5rem,7vw,5.5rem)]', 'leading-[0.95]')}>
                   {pick.title}
                 </h1>
@@ -299,38 +319,39 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
 
                 <div className="mt-6 flex flex-wrap gap-3 lg:mt-8">
                   <Button variant="play" className="w-40" onClick={play} disabled={isLoading}>Play</Button>
-                  <Button variant="ghost" className="w-40" onClick={() => act('SKIPPED')} disabled={isLoading || isRecording}>Not tonight</Button>
+                  <Button variant="ghost" className="w-40" onClick={() => act('SKIPPED')} aria-busy={isLoading || isRecording}>Not tonight</Button>
                 </div>
 
-                <div className="mt-5 flex items-center gap-3 lg:mt-6">
-                  <Button variant="icon" aria-label={saved ? 'Remove from watchlist' : 'Save to watchlist'} data-on={saved} disabled={savePending}
+                <div className="mt-5 flex flex-wrap items-center gap-3 lg:mt-6">
+                  <Button variant="icon" aria-label={saved ? 'Remove from watchlist' : 'Save to watchlist'} data-on={saved} aria-busy={savePending}
                     onClick={() => toggleWatchlist({ tmdbId: pick.tmdbId, contentType: pick.contentType, title: pick.title, posterPath: pick.posterUrl ?? undefined, rating: pick.rating ?? undefined, releaseDate: pick.releaseDate }, saved)}>
                     {saved ? <BookmarkCheck className="size-4" strokeWidth={1.5} /> : <Bookmark className="size-4" strokeWidth={1.5} />}
                   </Button>
-                  <Button variant="icon" aria-label="Like" disabled={isRecording} onClick={() => act('LIKED')}>
-                    <ThumbsUp className="size-4" strokeWidth={1.5} />
+                  <Button variant="icon" aria-label="Like" aria-busy={isRecording} onClick={() => act('LIKED')}>
+                    <ThumbsUp className={cn('size-4', stamp === `${pick.tmdbId}:LIKED` && 'animate-stamp')} strokeWidth={1.5} onAnimationEnd={() => setStamp(null)} />
                   </Button>
-                  <Button variant="icon" aria-label="Dislike and skip" disabled={isRecording} onClick={() => act('DISLIKED')}>
-                    <ThumbsDown className="size-4" strokeWidth={1.5} />
+                  <Button variant="icon" aria-label="Dislike and skip" aria-busy={isRecording} onClick={() => act('DISLIKED')}>
+                    <ThumbsDown className={cn('size-4', stamp === `${pick.tmdbId}:DISLIKED` && 'animate-stamp')} strokeWidth={1.5} onAnimationEnd={() => setStamp(null)} />
                   </Button>
-                  <Button variant="icon" aria-label="Never show this again" disabled={isRecording} onClick={() => act('BLACKLISTED')}>
-                    <Ban className="size-4" strokeWidth={1.5} />
+                  <Button variant="icon" aria-label="Never show this again" aria-busy={isRecording} onClick={() => act('BLACKLISTED')}>
+                    <Ban className={cn('size-4', stamp === `${pick.tmdbId}:BLACKLISTED` && 'animate-stamp')} strokeWidth={1.5} onAnimationEnd={() => setStamp(null)} />
                   </Button>
                   <Button variant="icon" aria-label="Already seen it" disabled={isRecording} onClick={() => setShowSeen(true)}>
                     <Eye className="size-4" strokeWidth={1.5} />
                   </Button>
                   {pick.watchProviders?.flatrate?.length ? (
-                    <a href={pick.watchProviders.link} target="_blank" rel="noopener noreferrer" className="ml-2 text-sm text-muted-foreground underline decoration-border underline-offset-4 hover:text-foreground">
+                    <a href={pick.watchProviders.link} target="_blank" rel="noopener noreferrer" className="basis-full text-sm text-muted-foreground underline decoration-border underline-offset-4 hover:text-foreground sm:ml-2 sm:basis-auto">
                       Also on {pick.watchProviders.flatrate.slice(0, 2).map((p) => p.name).join(', ')}
                     </a>
                   ) : null}
                 </div>
               </div>
+              </div>
             ) : null}
           </div>
         </div>
 
-        <div className="order-first mx-auto w-[min(34vw,140px)] lg:order-0 lg:mx-0 lg:w-90 lg:pt-7.5">
+        <div className={cn('order-first mx-auto w-[min(34vw,140px)] transition-opacity duration-150 lg:order-0 lg:mx-0 lg:w-90 lg:pt-7.5', isLoading && pick && 'opacity-50')}>
           {pick?.posterUrl ? (
             <Poster
               key={pick.tmdbId}
@@ -338,10 +359,10 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
               alt={`${pick.title} poster`}
               sizes="(min-width: 1024px) 360px, 34vw"
               priority
-              className={cn('reel-swap w-full border-0 shadow-poster', isLoading && 'opacity-60')}
+              className="reel-swap w-full border-0 shadow-poster"
             />
           ) : (
-            !error && <div className="aspect-2/3 w-full rounded-md bg-foreground/10" aria-hidden />
+            !error && <div className="aspect-2/3 w-full skeleton rounded-md" aria-hidden />
           )}
         </div>
       </div>
@@ -393,10 +414,10 @@ function Select({ label, value, onChange, children }: { label: string; value: st
 function PickSkeleton() {
   return (
     <div aria-live="polite" aria-label="Finding tonight's pick">
-      <div className="h-[72px] w-[70%] rounded-md bg-foreground/10 sm:h-[84px]" />
-      <div className="mt-5 h-4 w-40 rounded-sm bg-foreground/10" />
-      <div className="mt-6 h-5 w-[520px] max-w-full rounded-sm bg-foreground/10" />
-      <div className="mt-2 h-5 w-[420px] max-w-full rounded-sm bg-foreground/10" />
+      <div className="h-[72px] w-[70%] skeleton rounded-md sm:h-[84px]" />
+      <div className="mt-5 h-4 w-40 skeleton rounded-sm" />
+      <div className="mt-6 h-5 w-[520px] max-w-full skeleton rounded-sm" />
+      <div className="mt-2 h-5 w-[420px] max-w-full skeleton rounded-sm" />
       <div className="mt-8 flex gap-3">
         <div className="h-12 w-40 rounded-md bg-accent/30" />
         <div className="h-12 w-40 rounded-md border border-border" />

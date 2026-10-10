@@ -6,6 +6,7 @@
 'use client';
 
 import { Button, buttonVariants } from '@/components/ui/button';
+import { LinkBody } from '@/components/ui/link-body';
 import { HistoryFilters, HistoryItem, useHistoryPage } from '@/hooks/use-history-page';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
@@ -143,8 +144,8 @@ export default function HistoryPage() {
           <ul className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6" aria-busy="true">
             {Array.from({ length: 12 }, (_, i) => (
               <li key={i}>
-                <div className="aspect-2/3 rounded-md bg-foreground/10" />
-                <div className="mt-2 h-4 w-3/4 rounded-md bg-foreground/10" />
+                <div className="aspect-2/3 skeleton rounded-md" />
+                <div className="mt-2 h-4 w-3/4 skeleton rounded-md" />
               </li>
             ))}
           </ul>
@@ -158,7 +159,7 @@ export default function HistoryPage() {
           </div>
         ) : (
           <>
-            <ul className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6">
+            <ul className="stagger grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6">
               {items.map((item) => (
                 <HistoryCard key={item.id} item={item} />
               ))}
@@ -218,7 +219,8 @@ function HistoryCard({ item }: { item: HistoryItem }) {
   return (
     <li>
       <Link href={`/dashboard?watch=${item.tmdbId}&type=${item.contentType}`} className="group block">
-        <div className="relative aspect-2/3 overflow-hidden rounded-md border border-border bg-surface transition-[border-color] group-hover:border-foreground/40">
+        <LinkBody>
+        <div className="relative aspect-2/3 overflow-hidden rounded-md border border-border bg-surface transition-[border-color,transform] duration-150 group-hover:border-foreground/40 group-active:scale-[0.98]">
           {item.posterPath && (
             <Image
               src={`https://image.tmdb.org/t/p/w342${item.posterPath}`}
@@ -233,6 +235,7 @@ function HistoryCard({ item }: { item: HistoryItem }) {
         <p className="tabular mt-0.5 font-mono text-sm text-muted-foreground">
           {item.action.toLowerCase()} · {formattedDate}
         </p>
+        </LinkBody>
       </Link>
     </li>
   );

@@ -69,7 +69,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="bg-background">
+    <main className="bg-background transition-opacity duration-300 starting:opacity-0">
       <PickScreen onPick={setCurrent} />
 
       <div className="mx-auto max-w-330 space-y-14 px-4 pb-24 sm:px-6 lg:px-15">

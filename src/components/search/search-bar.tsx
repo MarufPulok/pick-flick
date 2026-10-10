@@ -213,11 +213,11 @@ export function SearchBar({
 
       {/* Suggestions Dropdown */}
       {showSuggestionsDropdown && (
-        <div className="absolute left-0 right-0 top-full z-100 mt-2 overflow-hidden rounded-md border border-border bg-surface">
+        <div className="absolute left-0 right-0 top-full z-100 mt-2 overflow-hidden rounded-md border border-border bg-surface transition-[opacity,translate] duration-150 starting:-translate-y-1 starting:opacity-0">
           {isLoading ? (
             <div className="space-y-2 p-2" aria-busy="true">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-15 rounded-md bg-foreground/10" />
+                <div key={i} className="h-15 skeleton rounded-md" />
               ))}
             </div>
           ) : suggestions && suggestions.length > 0 ? (

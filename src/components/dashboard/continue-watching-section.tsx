@@ -33,13 +33,13 @@ export function ContinueWatchingSection() {
   return (
     <section>
       <h2 className="font-display text-lg font-semibold">Continue watching</h2>
-      <ul className="rail scrollbar-hide mt-4 flex gap-4 overflow-x-auto">
+      <ul className="rail stagger scrollbar-hide mt-4 flex gap-4 overflow-x-auto">
         {shown.map((item) => {
           const removing = removingId === item.id;
           const pct = item.durationSeconds ? Math.min(100, Math.round((item.positionSeconds / item.durationSeconds) * 100)) : 0;
           const label = item.contentType !== 'MOVIE' && item.season && item.episode ? `S${item.season} E${item.episode}` : null;
           return (
-            <li key={item.id} className={cn('group relative w-27.5 shrink-0 sm:w-32.5', removing && 'opacity-50')}>
+            <li key={item.id} className={cn('group relative w-27.5 shrink-0 transition-opacity duration-200 sm:w-32.5', removing && 'opacity-50')}>
               <button
                 type="button"
                 onClick={() => play(item)}
@@ -49,7 +49,7 @@ export function ContinueWatchingSection() {
                 <Poster
                   src={item.posterPath}
                   sizes="130px"
-                  className="transition-[border-color] group-hover:border-foreground/40"
+                  className="group-hover:border-foreground/40"
                   fallback={<span className="font-display absolute inset-0 flex items-end p-2 text-sm font-semibold leading-tight">{item.title}</span>}
                 >
                   {pct > 0 && (

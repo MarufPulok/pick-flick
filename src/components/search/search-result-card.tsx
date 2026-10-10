@@ -9,6 +9,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { ContentType } from "@/dtos/common.dto";
 import { useHistoryActions } from "@/hooks/use-history-actions";
 import { useIsInWatchlist, useWatchlist } from "@/hooks/use-watchlist";
+import { LinkBody } from "@/components/ui/link-body";
 import { cn } from "@/lib/utils";
 import { Check, Eye, Play, Plus } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -90,7 +91,7 @@ export function SearchResultCard({ result }: SearchResultCardProps) {
         href={`/search?q=${encodeURIComponent(result.title)}`}
         className="group block"
       >
-        <div className="relative mx-auto aspect-square w-full overflow-hidden rounded-full border border-border bg-surface transition-[border-color] group-hover:border-foreground/40">
+        <div className="relative mx-auto aspect-square w-full overflow-hidden rounded-full border border-border bg-surface transition-[border-color,transform] duration-150 group-hover:border-foreground/40 group-active:scale-[0.98]">
           {result.profileUrl && (
             <Image
               src={result.profileUrl}
@@ -117,7 +118,8 @@ export function SearchResultCard({ result }: SearchResultCardProps) {
   return (
     <div className="group">
       <Link href={href} className="block">
-        <div className="relative aspect-2/3 overflow-hidden rounded-md border border-border bg-surface transition-[border-color] group-hover:border-foreground/40">
+        <LinkBody>
+        <div className="relative aspect-2/3 overflow-hidden rounded-md border border-border bg-surface transition-[border-color,transform] duration-150 group-hover:border-foreground/40 group-active:scale-[0.98]">
           {result.posterUrl && (
             <Image
               src={result.posterUrl}
@@ -134,6 +136,7 @@ export function SearchResultCard({ result }: SearchResultCardProps) {
             {meta}
           </p>
         )}
+        </LinkBody>
       </Link>
       {/* Hidden until hover/focus on pointer devices; always visible on touch */}
       <div className="mt-2 flex gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100">
@@ -162,7 +165,7 @@ export function SearchResultsGrid({ results }: SearchResultsGridProps) {
   }
 
   return (
-    <ul className="grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6">
+    <ul className="stagger grid grid-cols-2 gap-4 sm:grid-cols-4 lg:grid-cols-6">
       {results.map((result) => (
         <li key={`${result.type}-${result.tmdbId}`}>
           <SearchResultCard result={result} />

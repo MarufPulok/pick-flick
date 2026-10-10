@@ -32,7 +32,8 @@ export function StepNavigation({
         variant="play"
         className="min-w-32"
         onClick={isLastStep ? onSubmit : onNext}
-        disabled={!canProceed || (isLastStep && isSubmitting)}
+        disabled={!canProceed}
+        aria-busy={isLastStep && isSubmitting}
       >
         {isLastStep ? 'Finish' : 'Continue'}
       </Button>

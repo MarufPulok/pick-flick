@@ -36,7 +36,7 @@ export function LanguageStep({
         {hasAnime ? 'Japanese stays on for anime.' : 'Pick all you are happy to watch in.'}
       </p>
 
-      <div className="mt-8 flex flex-wrap gap-2">
+      <div className="stagger mt-8 flex flex-wrap gap-2">
         {Object.values(LANGUAGES).map((lang) => {
           const locked = lang.code === 'ja' && hasAnime;
           const on = selectedLanguages.includes(lang.code);
@@ -48,7 +48,7 @@ export function LanguageStep({
               onClick={() => onToggleLanguage(lang.code)}
               disabled={locked}
               className={cn(
-                'h-10 cursor-pointer rounded-full border px-4 text-sm transition-colors disabled:cursor-default',
+                'h-10 cursor-pointer rounded-full border px-4 text-sm transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.97] disabled:cursor-default',
                 on ? 'border-accent bg-accent font-medium text-accent-foreground' : 'border-border hover:bg-foreground/[0.06]'
               )}
             >
@@ -68,7 +68,7 @@ export function LanguageStep({
               aria-pressed={minRating === option.value}
               onClick={() => onSetMinRating(option.value)}
               className={cn(
-                'h-7 min-w-11 cursor-pointer rounded-sm px-3 text-xs',
+                'h-7 min-w-11 cursor-pointer rounded-sm px-3 text-xs transition-colors',
                 minRating === option.value
                   ? 'bg-foreground/10 text-foreground'
                   : 'text-muted-foreground hover:text-foreground'

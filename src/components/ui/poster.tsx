@@ -27,7 +27,7 @@ export function Poster({ src, alt = '', sizes, priority, fallback, className, ch
   const url = src ? (src.startsWith('/') ? `https://image.tmdb.org/t/p/w342${src}` : src) : null;
 
   return (
-    <div className={cn('relative aspect-2/3 overflow-hidden rounded-md border border-border bg-foreground/10', className)}>
+    <div className={cn('relative aspect-2/3 overflow-hidden rounded-md border border-border bg-foreground/10 transition-[border-color,transform] duration-150 group-active:scale-[0.98]', url && !loaded && 'skeleton', className)}>
       {url ? (
         <Image
           src={url}
@@ -36,6 +36,10 @@ export function Poster({ src, alt = '', sizes, priority, fallback, className, ch
           sizes={sizes}
           priority={priority}
           onLoad={() => setLoaded(true)}
+          // A cached image can be complete before React attaches onLoad; the ref catches it.
+          ref={(el) => {
+            if (el?.complete && el.naturalWidth > 0) setLoaded(true);
+          }}
           className={cn('poster-img object-cover', loaded && 'is-loaded')}
         />
       ) : (

@@ -158,11 +158,11 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-dvh">
+    <div className="min-h-dvh transition-opacity duration-300 starting:opacity-0">
       <div className="mx-auto max-w-[720px] px-4 sm:px-6 pt-24 pb-24">
         <ProgressIndicator currentStep={step} totalSteps={TOTAL_STEPS} />
 
-        <div className="mt-10">
+        <div key={step} className="reel-swap mt-10">
           {step === 1 && <ContentTypeStep selected={contentTypes} onToggle={toggleContentType} />}
 
           {step === 2 && (

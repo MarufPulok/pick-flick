@@ -104,8 +104,8 @@ export default function LandingPage() {
             </div>
           ) : (
             <div className="flex gap-6 sm:gap-8" aria-busy="true">
-              <div className="aspect-2/3 w-40 shrink-0 rounded-md bg-foreground/10 sm:w-50" />
-              <div className="flex-1 space-y-3 pt-2"><div className="h-7 w-3/4 rounded-sm bg-foreground/10" /><div className="h-4 w-24 rounded-sm bg-foreground/10" /><div className="h-4 w-full rounded-sm bg-foreground/10" /></div>
+              <div className="aspect-2/3 w-40 shrink-0 skeleton rounded-md sm:w-50" />
+              <div className="flex-1 space-y-3 pt-2"><div className="h-7 w-3/4 skeleton rounded-sm" /><div className="h-4 w-24 skeleton rounded-sm" /><div className="h-4 w-full skeleton rounded-sm" /></div>
             </div>
           )}
         </div>

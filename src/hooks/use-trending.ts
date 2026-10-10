@@ -6,7 +6,7 @@
 'use client';
 
 import { ContentType } from '@/dtos/common.dto';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
 interface TrendingContentItem {
   tmdbId: number;
@@ -63,6 +63,7 @@ export function useTrending(options: UseTrendingOptions = {}) {
       return response.json();
     },
     enabled,
+    placeholderData: keepPreviousData,
     staleTime: 5 * 60 * 1000, // 5 minutes (trending changes, but not too frequently for UI)
     gcTime: 15 * 60 * 1000, // 15 minutes
   });

@@ -157,7 +157,7 @@ export function StreamPlayer({
 
   // Portal: the pick section is an isolated stacking context, so the overlay must sit on body to cover the nav.
   return createPortal(
-    <div className="fixed inset-0 z-[60] flex flex-col bg-background">
+    <div className="fixed inset-0 z-[60] flex flex-col bg-background transition-opacity duration-200 starting:opacity-0">
       <div className="flex shrink-0 flex-col gap-2 px-4 py-2 sm:h-14 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:py-0">
         <div className="flex min-w-0 items-center justify-between gap-3">
           <h2 className="font-display min-w-0 truncate text-lg font-semibold tracking-[-0.02em]">{title}</h2>
@@ -178,7 +178,7 @@ export function StreamPlayer({
                   onClick={() => setProviderId(p.id)}
                   aria-pressed={providerId === p.id}
                   title={ms === null ? (ranked ? 'Unreachable' : 'Checking…') : `${ms} ms`}
-                  className={`h-7 shrink-0 cursor-pointer rounded-sm px-3 text-xs ${
+                  className={`h-7 shrink-0 cursor-pointer rounded-sm px-3 text-xs transition-colors ${
                     providerId === p.id
                       ? 'bg-foreground/10 text-foreground'
                       : ranked && ms === null
@@ -208,19 +208,11 @@ export function StreamPlayer({
       {/* key forces iframe reload on provider change */}
       <div className={`min-h-0 flex-1 overflow-hidden ${isFullscreen ? '' : 'mx-4 rounded-md border border-border'}`}>
         {ranked === null ? (
-          <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground" aria-busy="true">
+          <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground animate-lamp" aria-busy="true">
             Finding fastest source…
           </div>
         ) : (
-          <iframe
-            key={`${providerId}-${tmdbId}`}
-            src={streamUrl}
-            title={`Stream ${title}`}
-            className="h-full w-full border-0"
-            allowFullScreen
-            allow="autoplay; fullscreen; picture-in-picture"
-            referrerPolicy="no-referrer"
-          />
+          <Frame key={`${providerId}-${tmdbId}`} src={streamUrl} title={`Stream ${title}`} providerName={provider.name} />
         )}
       </div>
 
@@ -242,5 +234,28 @@ export function StreamPlayer({
       )}
     </div>,
     document.body
+  );
+}
+
+/** The embed, with a "Loading <source>…" state until the frame reports load. Keyed by provider so a switch starts clean. */
+function Frame({ src, title, providerName }: { src: string; title: string; providerName: string }) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <div className="relative h-full w-full">
+      {!loaded && (
+        <p className="animate-lamp absolute inset-0 flex items-center justify-center text-sm text-muted-foreground" aria-busy="true">
+          Loading {providerName}…
+        </p>
+      )}
+      <iframe
+        src={src}
+        title={title}
+        onLoad={() => setLoaded(true)}
+        className={`h-full w-full border-0 transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+        allowFullScreen
+        allow="autoplay; fullscreen; picture-in-picture"
+        referrerPolicy="no-referrer"
+      />
+    </div>
   );
 }

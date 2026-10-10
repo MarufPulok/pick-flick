@@ -14,7 +14,7 @@ export function ProgressIndicator({ currentStep, totalSteps }: ProgressIndicator
       aria-valuenow={currentStep}
       className="h-0.5 w-full bg-border"
     >
-      <div className="h-full bg-foreground transition-[width]" style={{ width: `${(currentStep / totalSteps) * 100}%` }} />
+      <div className="h-full bg-foreground transition-[width] duration-400 ease-expo" style={{ width: `${(currentStep / totalSteps) * 100}%` }} />
     </div>
   );
 }

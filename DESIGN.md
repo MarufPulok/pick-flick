@@ -149,7 +149,7 @@ Pick Flick is one lit picture in a dark room. The current pick's backdrop fills 
 
 The world is dark only (`color-scheme: dark`, no light tokens). Surfaces are flat. A 14% bone hairline is what separates things. The one shadow in the system belongs to the large hero poster, so the picture looks lifted off the wall. Density is low. A screen produces one pick or helps you act on one, and secondary rails (Continue watching, Trending) sit below it at a smaller scale.
 
-Motion is a single gesture, the **reel swap**. When a new pick arrives, its backdrop, poster and text come in from a 6px blur and an 8px drop. The animation runs 480ms on an exponential ease-out (`cubic-bezier(0.16, 1, 0.3, 1)`), and the text block follows 120ms behind the image. When `prefers-reduced-motion: reduce` is set, the swap is turned off entirely. Controls get only a 150ms color transition and a 1px press-down.
+Motion is a single gesture, **lights down, lights up**. The moment a chip or Not tonight is pressed, the room dims: the backdrop and scrim drop to 35% and the text and poster to 50% in 150ms, and the pressed chip breathes (`animate-lamp`, a 900ms opacity pulse) until the pick lands. The outgoing backdrop stays in place, and the new one lights up over it from 40% brightness to full in 480ms on an exponential ease-out (`cubic-bezier(0.16, 1, 0.3, 1)`); the poster rises 8px with it and the text follows 120ms behind. No blur. Under `prefers-reduced-motion: reduce` every entrance becomes a 200ms fade, shimmer stops, and the lamp pulse stays because it is feedback. Every button presses down 1px; chips and icon toggles also scale to 97% and 95%; a Like, Dislike or Never again glyph stamps (scales to 130% and back in 260ms). Any control that is waiting on the server carries `aria-busy` and breathes. Lists that arrive as lists (rails, grids, onboarding chips) rise in with a 40ms stagger, capped at 320ms. Skeletons carry a slow light pass (`.skeleton`). Panels, dropdowns, the banner and the player enter with a 150 to 300ms fade from `@starting-style`; exits are instant. A tapped tile or nav link breathes while the route is pending (`LinkBody`, via `useLinkStatus`).
 
 **Key Characteristics:**
 - Warm off-black room, bone text, one amber accent for pressable things.
@@ -157,7 +157,7 @@ Motion is a single gesture, the **reel swap**. When a new pick arrives, its back
 - Bricolage Grotesque display at weight 600, -0.02em tracking. Geist for UI. Geist Mono for metadata.
 - Hairlines instead of fills or shadows. One poster shadow.
 - 8px corners on controls and posters, 6px on small inputs, full radius on chips and icon toggles.
-- One entrance animation (the reel swap), switched off under reduced motion. Poster images additionally fade in over their bone skeleton in 300ms once decoded; this is loading feedback, not an entrance, and is also off under reduced motion.
+- One entrance animation (lights up), reduced to a fade under reduced motion. Poster images fade in over their shimmering bone skeleton in 300ms once decoded; this is loading feedback, not an entrance.
 
 ## Colors
 
@@ -242,12 +242,12 @@ Buttons are solid, low and confident, and there are only four kinds.
 - **Ghost:** a hairline outline with bone text and a transparent fill. Hover adds a 6% bone wash. It is the secondary action, for example "Not tonight" next to Play, where both are 160px wide.
 - **Quiet:** no border, dim bone text that turns bone on hover. Used for tertiary actions such as "Refine" and "Back to my taste".
 - **Icon toggle:** a 40px circle with a hairline border and a 16px glyph at 1.5 stroke. When on, it gets an amber border, a 15% amber fill and an amber glyph (Save, Like, Dislike, Never again).
-- **States:** a 150ms transition on color and border, a 1px press-down on active, and 50% opacity when disabled. Focus uses the global 2px amber outline at a 2px offset.
+- **States:** a 150ms transition on color and border, a 1px press-down on active (icon toggles also scale to 95%), the lamp pulse while `aria-busy`, and 50% opacity when disabled. Focus uses the global 2px amber outline at a 2px offset.
 
 ### Chips
 - **Style:** fully round with a hairline border and bone text. Mood chips are 36px tall and onboarding taste chips are 40px, both with 16px horizontal padding and 14px text.
 - **Layout:** on the pick screen, mood chips sit in one horizontally scrolling row that runs to the screen edges on phones, and wrap from 1024px. Onboarding chips always wrap.
-- **State:** a selected or active chip is solid amber with booth-black text at weight 500. Hover on an unselected chip adds a 6% bone wash. Use `aria-pressed` for toggled chips.
+- **State:** a selected or active chip is solid amber with booth-black text at weight 500. Hover on an unselected chip adds a 6% bone wash; press scales to 97%; a chip whose pick is still loading breathes (`data-working`). Use `aria-pressed` for toggled chips.
 
 ### Segmented Control
 - **Style:** a hairline-bordered 8px container with 4px padding. Segments are 28px tall, 6px radius and 12px text.
@@ -256,7 +256,7 @@ Buttons are solid, low and confident, and there are only four kinds.
 ### Cards / Containers
 - **Poster tile:** a 2:3 image with 8px corners, a hairline border and a booth-surface well. On hover the border goes to 40% bone. Below it sits a two-line 14px title and, optionally, a 12px mono rating. No shadow and no overlay text.
 - **Panels:** the refine panel, search suggestions and player frame use 8px corners and a hairline border, with transparent, booth-surface or booth-black fills. Internal padding is 16px.
-- **Skeletons:** blocks of 10% bone that match the final geometry.
+- **Skeletons:** blocks of 10% bone that match the final geometry, with a slow light pass (`.skeleton`).
 
 ### Inputs / Fields
 - **Text input:** 48px tall, 8px corners, hairline border, transparent fill, 16px padding, dim-bone placeholder, amber caret.
@@ -272,7 +272,7 @@ Buttons are solid, low and confident, and there are only four kinds.
 A 2px hairline track with a bone fill that animates its width. Progress is information, so it never uses amber.
 
 ### Pick Block (signature)
-The scrim-backed pick: a display title, a mono meta line with an optional underlined "Trailer" link, a body-lead reason (max 520px), a Play + Not tonight row, then a row of icon toggles. The poster column swaps in with `.reel-swap`, and the text with `.reel-swap-late`. While the next pick loads, the current content dims to 50-60% opacity and is not cleared.
+The scrim-backed pick: a display title, a mono meta line with an optional underlined "Trailer" link, a body-lead reason (max 520px), a Play + Not tonight row, then a row of icon toggles. The backdrop lights up with `.lights-up`, the poster rises with `.reel-swap`, and the text with `.reel-swap-late`. While the next pick loads, the room dims (backdrop 35%, content 50%) and nothing is cleared; the previous backdrop stays underneath so the swap is a cross-fade.
 
 ## Do's and Don'ts
 
@@ -282,7 +282,7 @@ The scrim-backed pick: a display title, a mono meta line with an optional underl
 - **Do** set titles in Bricolage Grotesque at weight 600 with -0.02em tracking, and metadata in Geist Mono with tabular numerals.
 - **Do** separate things with the 14% bone hairline, and save `shadow-poster` for the one featured poster.
 - **Do** use 8px corners on controls and posters, 6px on small inputs and segments, and full radius on chips and icon toggles.
-- **Do** bring new picks in with `.reel-swap` / `.reel-swap-late`, and keep the reduced-motion override.
+- **Do** dim the room while a pick loads and bring the new one in with `.lights-up` / `.reel-swap` / `.reel-swap-late`; keep the reduced-motion override.
 - **Do** draw icons as 16px line glyphs at 1.5 stroke.
 
 ### Don't:

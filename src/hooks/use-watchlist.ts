@@ -68,7 +68,7 @@ export function useWatchlist() {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['watchlist'] });
       queryClient.invalidateQueries({ queryKey: ['watchlistStats'] });
-      toast.success(`"${variables.title}" saved to watchlist! 🔖`);
+      toast.success(`"${variables.title}" saved to watchlist.`);
     },
     onError: () => {
       toast.error('Failed to save to watchlist');

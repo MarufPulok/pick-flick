@@ -87,7 +87,7 @@ export function CurrentlyWatchingBanner() {
   if (!watchingState || streamActive) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-surface">
+    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-surface transition-[opacity,translate] duration-300 ease-expo starting:translate-y-4 starting:opacity-0">
       <div className="mx-auto flex max-w-330 items-center gap-3 px-4 py-3 sm:px-6 lg:px-15">
         {watchingState.posterUrl && (
           <div className="relative h-12 w-8 shrink-0 overflow-hidden rounded-sm border border-border bg-surface">

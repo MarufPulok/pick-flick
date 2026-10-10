@@ -40,6 +40,10 @@
   --radius-xl: 12px;
 
   --shadow-poster: 0 30px 60px oklch(0 0 0 / 0.55);
+
+  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-lamp: lamp 900ms ease-in-out infinite;
+  --animate-stamp: stamp 260ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 :root {
@@ -63,6 +67,25 @@
 
   html {
     color-scheme: dark;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button,
+  a,
+  input,
+  select,
+  [role='button'] {
+    touch-action: manipulation;
+  }
+
+  /* Every pressable thing moves 1px under the finger. */
+  button:not(:disabled) {
+    transition-property: background-color, border-color, color, opacity, transform;
+    transition-duration: 150ms;
+  }
+
+  button:not(:disabled):active {
+    transform: translateY(1px);
   }
 
   body {
@@ -138,12 +161,47 @@
     }
   }
 
+  /*
+    Motion: one gesture. While the next pick is found the room goes dark
+    (opacity transitions on the backdrop and text wrappers), then the new
+    backdrop lights up from 40% brightness and the poster and text rise in.
+  */
+  .lights-up {
+    animation: lights-up 480ms var(--ease-expo) both;
+  }
+
   .reel-swap {
-    animation: reel-in 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: rise 480ms var(--ease-expo) both;
   }
 
   .reel-swap-late {
-    animation: reel-in 480ms 120ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: rise 480ms 120ms var(--ease-expo) both;
+  }
+
+  /* Lists that arrive as lists: children rise in sequence, capped at 8 steps. */
+  .stagger > * {
+    animation: rise 400ms var(--ease-expo) both;
+    animation-delay: 320ms;
+  }
+  .stagger > :nth-child(1) { animation-delay: 0ms; }
+  .stagger > :nth-child(2) { animation-delay: 40ms; }
+  .stagger > :nth-child(3) { animation-delay: 80ms; }
+  .stagger > :nth-child(4) { animation-delay: 120ms; }
+  .stagger > :nth-child(5) { animation-delay: 160ms; }
+  .stagger > :nth-child(6) { animation-delay: 200ms; }
+  .stagger > :nth-child(7) { animation-delay: 240ms; }
+  .stagger > :nth-child(8) { animation-delay: 280ms; }
+
+  /* Skeletons: 10% bone with a slow light pass, so waiting reads as alive. */
+  .skeleton {
+    background: linear-gradient(
+        90deg,
+        oklch(0.92 0.016 85 / 0.1) 0%,
+        oklch(0.92 0.016 85 / 0.17) 50%,
+        oklch(0.92 0.016 85 / 0.1) 100%
+      )
+      200% 0 / 200% 100%;
+    animation: shimmer 1.6s linear infinite;
   }
 
   /* Poster tiles: the bone skeleton is the surface, the image fades over it once decoded. */
@@ -168,22 +226,64 @@
   }
 }
 
-@keyframes reel-in {
+@keyframes lights-up {
   from {
     opacity: 0;
-    filter: blur(6px);
+    filter: brightness(0.4);
+  }
+  to {
+    opacity: 1;
+    filter: brightness(1);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
     transform: translateY(8px);
   }
   to {
     opacity: 1;
-    filter: blur(0);
     transform: translateY(0);
   }
 }
 
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/* A control that is working: the amber breathes. */
+@keyframes lamp {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* A glyph acknowledging a press. */
+@keyframes stamp {
+  40% {
+    transform: scale(1.3);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .lights-up,
   .reel-swap,
-  .reel-swap-late {
+  .reel-swap-late,
+  .stagger > * {
+    animation: fade-in 200ms ease-out both;
+  }
+
+  .skeleton,
+  .animate-stamp {
     animation: none;
   }
 

@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { LinkBody } from '@/components/ui/link-body';
 import { cn } from '@/lib/utils';
 import { signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
@@ -48,7 +49,7 @@ export function GlobalNav() {
               href={l.href}
               className={cn('transition-opacity hover:opacity-100', pathname === l.href ? 'opacity-100' : 'opacity-75')}
             >
-              {l.label}
+              <LinkBody>{l.label}</LinkBody>
             </Link>
           ))}
 

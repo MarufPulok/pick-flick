@@ -29,7 +29,7 @@ export function GenreStep({ contentTypes, selected, onToggle }: GenreStepProps) 
         {selected.length >= 3 ? `${selected.length} chosen.` : `Choose at least 3. ${3 - selected.length} to go.`}
       </p>
 
-      <div className="mt-8 flex flex-wrap gap-2">
+      <div className="stagger mt-8 flex flex-wrap gap-2">
         {relevantGenres.map((genre) => {
           const on = selected.includes(String(genre.id));
           return (
@@ -39,7 +39,7 @@ export function GenreStep({ contentTypes, selected, onToggle }: GenreStepProps) 
               aria-pressed={on}
               onClick={() => onToggle(String(genre.id))}
               className={cn(
-                'h-10 cursor-pointer rounded-full border px-4 text-sm transition-colors',
+                'h-10 cursor-pointer rounded-full border px-4 text-sm transition-[background-color,border-color,color,transform] duration-150 active:scale-[0.97]',
                 on ? 'border-accent bg-accent font-medium text-accent-foreground' : 'border-border hover:bg-foreground/[0.06]'
               )}
             >
