@@ -35,11 +35,42 @@ const ANIME_TAG_KEYWORD: Record<string, string> = {
 
 export type Weights = Record<string, number>;
 const NEUTRAL = 50;
+/** Learned weights never count for less than a quarter of neutral, so nothing is locked out for good. */
+const WEIGHT_FLOOR = 0.25;
+/** X diversity decay: mult = (1 - floor) * decay^k + floor; each repeat halves the boost, floor 0.25. */
+const DIVERSITY_DECAY = 0.5;
+const DIVERSITY_FLOOR = 0.25;
+/** Hero softmax temperature over min-max normalized scores (top = 1, 20th = 0). */
+const SOFTMAX_T = 0.3;
+const EPS = 1e-6;
+/** Usable survivors per seed, in TMDB order, so one dense seed can't flood the pool. */
+const SEED_BUDGET = 8;
+/** Wall-clock budget per source (one discover type incl. retries, or one seed). */
+const SOURCE_BUDGET_MS = 3000;
+/** Unseen candidates a discover source needs before it stops digging. */
+const THIN = 5;
+const PAGE_SIZE = 20;
+/** Deeper pages tried before relaxing genres when the first page is mostly seen. */
+const DEEP_PAGES = [4, 5, 6];
+/** TMDB-side floor, low so new and small-language titles reach the projected-vote check. */
+const DISCOVER_VOTE_GTE = 15;
+/** Projected votes required; also the strength of the rating prior. */
+const VOTE_FLOOR = 50;
+const PRIOR_RATING = 6.5;
+// X popular_posts age normalization: v·(1−e^{−λW}) / (1−e^{−λ·age}) projects a young title's
+// votes to a full window. Votes accrue with a ~180-day half-life over a 2-year window.
+const VOTE_LAMBDA = Math.LN2 / 180;
+const VOTE_WINDOW_DAYS = 730;
+/** Caps the projection at ~8.6x so a week-old title with a handful of votes does not pass. */
+const VOTE_MIN_AGE_DAYS = 30;
+const DAY_MS = 86_400_000;
 
 export interface Seed {
   tmdbId: number;
   contentType: ContentType;
   title: string;
+  strength?: 'LIKED' | 'WATCHED' | 'PLAYED';
+  at?: Date;
 }
 
 export interface Candidate {
@@ -55,7 +86,10 @@ export interface Candidate {
   genreIds: number[];
   originalLanguage: string;
   popularity: number;
+  /** Primary seed; equals seeds[0]. */
   seed?: Seed;
+  /** Every seed that surfaced this candidate, primary first. */
+  seeds?: Seed[];
 }
 
 export interface Pick extends Candidate {
@@ -81,8 +115,10 @@ interface SmartRequest {
   excluded?: Set<string>;
   weights?: { genres?: Weights; contentTypes?: Weights; languages?: Weights };
   seeds?: Seed[];
-  /** Content types of the last few picks; they get a diversity penalty. */
+  /** Content types of recent hero picks, newest first (up to 5); they get a diversity penalty. */
   recentTypes?: string[];
+  /** Primary genres of recent hero picks, newest first (up to 10). */
+  recentGenres?: string[];
   /** Explicit mood genres: replace profile genres and skip seeds. */
   moodGenres?: string[];
   /** Explicit mood languages (a "Korean night" chip): replace profile languages. */
@@ -113,9 +149,9 @@ function genresFor(contentType: ContentType, genres: string[]): string[] {
   return toTvGenres(numeric).filter((g) => contentType !== 'ANIME' || g !== '16');
 }
 
-/** Weighted sample of k distinct genres. Weight 50 is neutral, 100 double, 0 almost never. */
+/** Weighted sample of k distinct genres. Weight 50 is neutral, 100 double, floored at 12.5 (WEIGHT_FLOOR). */
 function pickGenres(genres: string[], k: number, weights: Weights = {}): string[] {
-  const pool = genres.map((g) => ({ g, w: Math.max(1, weights[g] ?? NEUTRAL) }));
+  const pool = genres.map((g) => ({ g, w: Math.max(12.5, weights[g] ?? NEUTRAL) }));
   const out: string[] = [];
   while (pool.length && out.length < k) {
     let r = Math.random() * pool.reduce((s, p) => s + p.w, 0);
@@ -131,9 +167,38 @@ interface Scored {
   matched: string[];
 }
 
-/** Learned weight as a multiplier: 50 → 1, 100 → 2, 0 → 0. */
+/** Learned weight as a multiplier: 50 → 1, 100 → 2, floored at 0.25 so it never zeroes out a type, genre or language. */
 function neutral(map: Weights | undefined, key: string): number {
-  return (map?.[key] ?? NEUTRAL) / NEUTRAL;
+  return Math.max(WEIGHT_FLOOR, (map?.[key] ?? NEUTRAL) / NEUTRAL);
+}
+
+function diversityMult(k: number): number {
+  return (1 - DIVERSITY_FLOOR) * DIVERSITY_DECAY ** k + DIVERSITY_FLOOR;
+}
+
+function countOf(xs: string[], x: string | undefined): number {
+  return x === undefined ? 0 : xs.filter((y) => y === x).length;
+}
+
+function primaryGenre(c: Candidate): string | undefined {
+  return c.genreIds.length > 0 ? String(c.genreIds[0]) : undefined;
+}
+
+/** Age-normalized vote count. Missing/invalid dates and titles past the window count plain votes. */
+function projectedVotes(c: Candidate): number {
+  const released = Date.parse(c.releaseDate);
+  if (!Number.isFinite(released)) return c.voteCount;
+  const age = Math.min(VOTE_WINDOW_DAYS, Math.max(VOTE_MIN_AGE_DAYS, (Date.now() - released) / DAY_MS));
+  return (c.voteCount * (1 - Math.exp(-VOTE_LAMBDA * VOTE_WINDOW_DAYS))) / (1 - Math.exp(-VOTE_LAMBDA * age));
+}
+
+/** Resolve to `fallback()` if `work` has not settled within `ms`. */
+function withBudget<T>(work: Promise<T>, ms: number, fallback: () => T): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<T>((resolve) => {
+    timer = setTimeout(() => resolve(fallback()), ms);
+  });
+  return Promise.race([work, timeout]).finally(() => clearTimeout(timer));
 }
 
 function toPick({ c, matched }: Scored): Pick {
@@ -470,11 +535,13 @@ export class RecommendationService {
     // equal share of nights, bent only by learning and a diversity penalty.
     // Scoring across types would let TV's higher TMDB ratings bury movies.
     const weights = request.weights ?? {};
-    const recent = (request.recentTypes ?? []).slice(0, 2);
+    const recentTypes = (request.recentTypes ?? []).slice(0, 5);
     const typePool = types.filter((t) => scored.some((s) => s.c.contentType === t));
-    const typeWeights = typePool.map((t) => neutral(weights.contentTypes, t) * (recent.includes(t) ? 0.6 : 1));
+    const typeMults = typePool.map((t) => diversityMult(countOf(recentTypes, t)));
+    const typeWeights = typePool.map((t, i) => neutral(weights.contentTypes, t) * typeMults[i]);
     let rt = Math.random() * typeWeights.reduce((a, b) => a + b, 0);
-    const type = typePool.find((_, i) => (rt -= typeWeights[i]) < 0) ?? typePool[0];
+    const typeIdx = Math.max(0, typePool.findIndex((_, i) => (rt -= typeWeights[i]) < 0));
+    const type = typePool[typeIdx];
     const ofType = scored.filter((s) => s.c.contentType === type);
 
     // Seed recommendations are dense and well-rated, so left in one pool they
@@ -485,15 +552,29 @@ export class RecommendationService {
     const useSeeds = seeded.length >= 5 && (discovered.length === 0 || Math.random() < 0.4);
     const pool = useSeeds ? seeded : discovered.length > 0 ? discovered : seeded;
 
-    // 4. Sample from the top with a softmax so the same pick does not repeat.
+    // 4. Softmax over the top 20, scores min-max normalized so the spread (and
+    // so the randomness) does not drift with weights or the mood ×2. Genre
+    // diversity multiplies probabilities, not scores, since scores can be negative.
     const top = pool.slice(0, 20);
-    const temperature = 1;
-    const max = top[0].score;
-    const probs = top.map((s) => Math.exp((s.score - max) / temperature));
+    const hi = top[0].score;
+    const range = hi - top[top.length - 1].score + EPS;
+    const recentGenres = (request.recentGenres ?? []).slice(0, 10);
+    const genreMults = top.map((s) => diversityMult(countOf(recentGenres, primaryGenre(s.c))));
+    const probs = top.map((s, i) => Math.exp((s.score - hi) / range / SOFTMAX_T) * genreMults[i]);
     let r = Math.random() * probs.reduce((a, b) => a + b, 0);
-    const chosen = top.find((_, i) => (r -= probs[i]) < 0) ?? top[0];
+    const idx = Math.max(0, top.findIndex((_, i) => (r -= probs[i]) < 0));
+    const chosen = top[idx];
 
     log.debug('Smart pick', { candidates: scored.length, type, pool: useSeeds ? 'seeds' : 'discover', score: chosen.score, mood: !!mood });
+    log.debug('Smart pick multipliers', {
+      type,
+      typeWeight: neutral(weights.contentTypes, type),
+      typeMult: typeMults[typeIdx],
+      genre: primaryGenre(chosen.c),
+      genreMult: genreMults[idx],
+      normScore: 1 + (chosen.score - hi) / range,
+      prob: probs[idx] / probs.reduce((a, b) => a + b, 0),
+    });
     return toPick(chosen);
   }
 
@@ -503,15 +584,35 @@ export class RecommendationService {
    */
   static async generateSmartFeed(request: SmartRequest, limit = 12): Promise<Pick[]> {
     const { scored, types } = await this.rankCandidates(request);
+    const seedOf = (s: Scored) => (s.c.seed ? seenKey(s.c.seed.tmdbId, s.c.seed.contentType) : undefined);
     const lanes = types
       .map((t) => {
         const ofType = scored.filter((s) => s.c.contentType === t);
+        if (ofType.length === 0) return [];
+        const hi = ofType[0].score;
+        const range = hi - ofType[ofType.length - 1].score + EPS;
         const seeded = ofType.filter((s) => s.c.seed);
         const discovered = ofType.filter((s) => !s.c.seed);
         const lane: Scored[] = [];
+        const perSeed = new Map<string, number>();
+        // Greedy: normalized score × count decay over lane items already sharing
+        // its primary genre or seed, so one genre or one seed can't fill the lane.
+        const value = (s: Scored) => {
+          const g = primaryGenre(s.c);
+          const seed = seedOf(s);
+          const k = lane.filter((p) => (g !== undefined && primaryGenre(p.c) === g) || (seed !== undefined && seedOf(p) === seed)).length;
+          return (1 + (s.score - hi) / range) * diversityMult(k);
+        };
         while (lane.length < limit && (seeded.length || discovered.length)) {
-          const wantSeed = seeded.length > 0 && (discovered.length === 0 || lane.filter((s) => s.c.seed).length < 0.4 * (lane.length + 1));
-          lane.push((wantSeed ? seeded : discovered).shift()!);
+          const wantSeed = seeded.length > 0 && (discovered.length === 0 || lane.filter((s) => s.c.seed).length + 1 <= 0.4 * (lane.length + 1));
+          const from = wantSeed ? seeded : discovered;
+          // Round-robin by seed: only seeds with the fewest picks in this lane are eligible.
+          const fewest = wantSeed ? Math.min(...seeded.map((s) => perSeed.get(seedOf(s)!) ?? 0)) : 0;
+          const eligible = wantSeed ? seeded.filter((s) => (perSeed.get(seedOf(s)!) ?? 0) === fewest) : discovered;
+          const best = eligible.reduce((a, b) => (value(b) > value(a) ? b : a));
+          from.splice(from.indexOf(best), 1);
+          lane.push(best);
+          if (wantSeed) perSeed.set(seedOf(best)!, fewest + 1);
         }
         return lane;
       })
@@ -534,30 +635,52 @@ export class RecommendationService {
     const weights = request.weights ?? {};
     const types = request.contentTypes;
 
-    // 1. Source: one discover query per content type (equal budget) + seeds.
-    const seeds = mood ? [] : (request.seeds ?? []).slice(0, 3);
+    // 2. Filter (also used by discover to judge thinness): already seen, wrong
+    // type, quality floor, language. Seed-sourced candidates may be in any
+    // language: the seed proves the user watches it.
+    const allowedLang = new Set(languages);
+    const keep = (c: Candidate) =>
+      !request.excluded?.has(seenKey(c.tmdbId, c.contentType)) &&
+      types.includes(c.contentType) &&
+      c.rating >= minRating - 0.5 &&
+      projectedVotes(c) >= VOTE_FLOOR &&
+      (c.contentType === 'ANIME' || !!c.seed || allowedLang.has(c.originalLanguage));
+
+    // 1. Source: one discover query per content type (equal budget) + every seed.
+    // Any mood chip (genre or language) skips seeds: seed candidates bypass the
+    // language filter, so "Korean night" would otherwise serve English seed recs.
+    const seeds = mood || request.moodLanguages?.length ? [] : request.seeds ?? [];
     const pool = (
       await Promise.all([
-        ...types.map((t) => this.discoverCandidates(t, genres, languages, minRating, weights.genres)),
+        ...types.map((t) => this.discoverCandidates(t, genres, languages, minRating, keep, weights.genres)),
         ...seeds.map((s) => this.seedCandidates(s)),
       ])
     ).flat();
 
-    // 2. Filter: already seen, wrong type, quality floor, language.
-    // Seed-sourced candidates may be in any language: the seed proves the user
-    // watches it.
-    const seen = new Set<string>();
-    const allowedLang = new Set(languages);
-    const candidates = pool.filter((c) => {
+    // Dedup by seenKey, merging sources: a candidate keeps every seed that
+    // surfaced it (any seed makes it seeded). No multi-seed score boost.
+    const byKey = new Map<string, Candidate>();
+    const perSeed = new Map<string, number>();
+    for (const c of pool) {
+      if (!keep(c)) continue;
+      if (c.seed) {
+        const sk = seenKey(c.seed.tmdbId, c.seed.contentType);
+        const n = perSeed.get(sk) ?? 0;
+        if (n >= SEED_BUDGET) continue;
+        perSeed.set(sk, n + 1);
+      }
       const key = seenKey(c.tmdbId, c.contentType);
-      if (seen.has(key) || request.excluded?.has(key)) return false;
-      seen.add(key);
-      if (!types.includes(c.contentType)) return false;
-      if (c.voteCount < 50 || c.rating < minRating - 0.5) return false;
-      return c.contentType === 'ANIME' || !!c.seed || allowedLang.has(c.originalLanguage);
-    });
+      const prev = byKey.get(key);
+      if (!prev) byKey.set(key, c.seed ? { ...c, seeds: [c.seed] } : c);
+      else if (c.seed && !prev.seeds?.some((s) => s.tmdbId === c.seed!.tmdbId && s.contentType === c.seed!.contentType)) {
+        prev.seeds = [...(prev.seeds ?? []), c.seed];
+        prev.seed = prev.seeds[0];
+      }
+    }
+    const candidates = [...byKey.values()];
 
     // Score within type: profile genre match + learned genre weights, language weight, rating.
+    // Rating is shrunk toward 6.5 by vote count so a 9.0 on 20 votes doesn't outrank a 7.8 on 5k.
     const numeric = genres.filter((g) => !isNaN(Number(g)));
     const liked = new Set([...numeric, ...toTvGenres(numeric)]);
     const scored: Scored[] = candidates
@@ -567,79 +690,129 @@ export class RecommendationService {
           ids.reduce((s, g) => s + (liked.has(g) ? 1 : 0) + (neutral(weights.genres, g) - 1), 0) /
           Math.max(1, Math.min(3, ids.length));
         const langScore = neutral(weights.languages, c.originalLanguage);
-        const ratingScore = (c.rating - 6) / 2;
+        const rating = (c.voteCount * c.rating + VOTE_FLOOR * PRIOR_RATING) / (c.voteCount + VOTE_FLOOR);
+        const ratingScore = (rating - 6) / 2;
         const score = genreScore * (mood ? 2 : 1) + langScore * 0.4 + ratingScore * 0.6;
         return { c, score, matched: ids.filter((g) => liked.has(g)) };
       })
       .sort((a, b) => b.score - a.score);
 
+    const perType = Object.fromEntries(
+      types.map((t) => {
+        const ofType = scored.filter((s) => s.c.contentType === t);
+        return [t, { total: ofType.length, seeded: ofType.filter((s) => s.c.seed).length }];
+      })
+    );
+    log.debug('Smart candidates per type', { perType, raw: pool.length, seeds: seeds.length });
     if (scored.length === 0) log.debug('Smart pipeline produced no candidates', { types, genres, languages });
     return { scored, types, mood };
   }
 
-  /** One popularity-sorted discover page for a content type. Relaxes to no genres when thin. */
+  /**
+   * Popularity-sorted discover for a content type. When fewer than THIN results
+   * survive `keep` (exclusions, vote floor), digs deeper pages, then drops
+   * genres, then tries other profile languages, all inside SOURCE_BUDGET_MS.
+   */
   private static async discoverCandidates(
     contentType: ContentType,
     genres: string[],
     languages: string[],
     minRating: number,
+    keep: (c: Candidate) => boolean,
     genreWeights?: Weights
   ): Promise<Candidate[]> {
-    const usable = genresFor(contentType, genres);
-    const picked = pickGenres(usable, usable.length >= 2 && Math.random() > 0.5 ? 2 : 1, genreWeights);
-    const base: TMDBDiscoverParams = {
-      sort_by: 'popularity.desc',
-      page: 1 + Math.floor(Math.random() * 3),
-      'vote_average.gte': Math.max(0, minRating - 0.5),
-      'vote_count.gte': 50,
-    };
+    const deadline = Date.now() + SOURCE_BUDGET_MS;
+    const results: Candidate[] = [];
+    const enough = () => new Set(results.filter(keep).map((c) => seenKey(c.tmdbId, c.contentType))).size >= THIN;
 
-    const params: TMDBDiscoverParams = { ...base };
-    if (contentType === 'ANIME') {
-      params.with_original_language = 'ja';
-      params.with_genres = '16';
-      const keyword = Math.random() > 0.5 ? await this.animeKeyword(genres) : null;
-      if (keyword) params.with_keywords = String(keyword);
-      else if (picked[0]) params.with_genres = `16,${picked[0]}`;
-    } else {
-      // Rotate through the user's languages so every preference gets a turn.
-      params.with_original_language = languages[Math.floor(Math.random() * languages.length)];
-      if (picked.length) params.with_genres = picked.join('|');
-    }
-
-    const fetch = async (p: TMDBDiscoverParams): Promise<Candidate[]> => {
+    const fetch = async (p: TMDBDiscoverParams): Promise<Candidate[] | null> => {
+      if (Date.now() >= deadline) return null;
       try {
-        if (contentType === 'MOVIE') {
-          return (await tmdbClient.discoverMovies(p)).results.map((m) => toCandidate(m, 'MOVIE'));
-        }
-        return (await tmdbClient.discoverTV(p)).results.map((s) =>
-          toCandidate(s, contentType === 'ANIME' || isAnime(s) ? 'ANIME' : 'SERIES')
-        );
+        const got =
+          contentType === 'MOVIE'
+            ? (await tmdbClient.discoverMovies(p)).results.map((m) => toCandidate(m, 'MOVIE'))
+            : (await tmdbClient.discoverTV(p)).results.map((s) =>
+                toCandidate(s, contentType === 'ANIME' || isAnime(s) ? 'ANIME' : 'SERIES')
+              );
+        results.push(...got);
+        return got;
       } catch (error) {
         console.error('[Recommendation] discover failed', error);
         return [];
       }
     };
 
-    const results = await fetch(params);
-    if (results.length >= 5) return results;
-    const relaxed: TMDBDiscoverParams = { ...base, with_original_language: params.with_original_language };
-    if (contentType === 'ANIME') relaxed.with_genres = '16';
-    return [...results, ...(await fetch(relaxed))];
+    const run = async (): Promise<Candidate[]> => {
+      const usable = genresFor(contentType, genres);
+      const picked = pickGenres(usable, usable.length >= 2 && Math.random() > 0.5 ? 2 : 1, genreWeights);
+      const base: TMDBDiscoverParams = {
+        sort_by: 'popularity.desc',
+        page: 1 + Math.floor(Math.random() * 3),
+        'vote_average.gte': Math.max(0, minRating - 0.5),
+        'vote_count.gte': DISCOVER_VOTE_GTE,
+      };
+
+      const params: TMDBDiscoverParams = { ...base };
+      if (contentType === 'ANIME') {
+        params.with_original_language = 'ja';
+        params.with_genres = '16';
+        const keyword = Math.random() > 0.5 ? await this.animeKeyword(genres) : null;
+        if (keyword) params.with_keywords = String(keyword);
+        else if (picked[0]) params.with_genres = `16,${picked[0]}`;
+      } else {
+        // Rotate through the user's languages so every preference gets a turn.
+        params.with_original_language = languages[Math.floor(Math.random() * languages.length)];
+        if (picked.length) params.with_genres = picked.join('|');
+      }
+
+      // A type that sources nothing drops out of tonight's lottery, which quietly
+      // hands its share to the types that never run dry (ANIME is always ja+16).
+      // Some languages have no TV at the vote floor at all (ta/te/ml = 0), so when
+      // a roll comes back thin, retry the same query in another profile language,
+      // English first. ANIME is fixed to ja and gets one pass.
+      const first = params.with_original_language!;
+      const retries = contentType === 'ANIME' ? [] : languages.filter((l) => l !== first).sort((a, b) => (a === 'en' ? -1 : b === 'en' ? 1 : 0)).slice(0, 2);
+      for (const lang of [first, ...retries]) {
+        // Japanese TV is ~95% anime and that lane belongs to ANIME; keep SERIES live-action.
+        const p: TMDBDiscoverParams = { ...params, with_original_language: lang };
+        if (contentType === 'SERIES' && lang === 'ja') p.without_genres = '16';
+        let got = await fetch(p);
+        if (enough()) break;
+        // Mostly-seen first page: go deeper on the same query before relaxing it.
+        // A short page means there is nothing deeper.
+        for (const page of DEEP_PAGES) {
+          if (!got || got.length < PAGE_SIZE) break;
+          got = await fetch({ ...p, page });
+          if (enough()) return results;
+        }
+        const relaxed: TMDBDiscoverParams = { ...base, with_original_language: lang };
+        if (p.without_genres) relaxed.without_genres = p.without_genres;
+        if (contentType === 'ANIME') relaxed.with_genres = '16';
+        await fetch(relaxed);
+        if (enough() || Date.now() >= deadline) break;
+      }
+      return results;
+    };
+
+    // The client timeout is 10s per call; never let one slow type stall the pick.
+    return withBudget(run(), SOURCE_BUDGET_MS, () => [...results]);
   }
 
   /** TMDB "recommendations" for something the user watched: collaborative filtering for free. */
   private static async seedCandidates(seed: Seed): Promise<Candidate[]> {
-    try {
-      if (seed.contentType === 'MOVIE') {
-        const r = await tmdbClient.getMovieRecommendations(seed.tmdbId);
-        return r.results.map((m) => toCandidate(m, 'MOVIE', seed));
+    const work = (async () => {
+      try {
+        if (seed.contentType === 'MOVIE') {
+          const r = await tmdbClient.getMovieRecommendations(seed.tmdbId);
+          return r.results.map((m) => toCandidate(m, 'MOVIE', seed));
+        }
+        const r = await tmdbClient.getTVRecommendations(seed.tmdbId);
+        return r.results.map((s) => toCandidate(s, isAnime(s) ? 'ANIME' : 'SERIES', seed));
+      } catch (error) {
+        console.error('[Recommendation] seed recommendations failed', seed, error);
+        return [];
       }
-      const r = await tmdbClient.getTVRecommendations(seed.tmdbId);
-      return r.results.map((s) => toCandidate(s, isAnime(s) ? 'ANIME' : 'SERIES', seed));
-    } catch (error) {
-      console.error('[Recommendation] seed recommendations failed', seed, error);
-      return [];
-    }
+    })();
+    return withBudget(work, SOURCE_BUDGET_MS, () => []);
   }
 }

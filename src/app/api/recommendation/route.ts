@@ -12,7 +12,9 @@ import { UserModel } from "@/infrastructure/db/models";
 import { tmdbClient } from "@/infrastructure/external/tmdb.client";
 import { auth } from "@/lib/auth";
 import { CACHE_TTL, detailsCache } from "@/lib/cache";
+import { recordHero } from "@/lib/diversity-stats";
 import { loggers } from "@/lib/logger";
+import { ImpressionService } from "@/services/impression.service";
 import { HistoryService, seenKey } from "@/services/history.service";
 import { PreferenceWeightsService } from "@/services/preference-weights.service";
 import { RecommendationService } from "@/services/recommendation.service";
@@ -44,7 +46,7 @@ export async function POST(req: NextRequest) {
     let profileComplete = true;
 
     const userId = user._id.toString();
-    let served = new Set<string>();
+    let served = new Map<string, { at: number; type: string; genre?: string }>();
 
     if (validated.mode === "SMART") {
       const ctx = await loadSmartContext(userId);
@@ -76,7 +78,21 @@ export async function POST(req: NextRequest) {
     }
 
     const { tmdbId, contentType } = recommendation;
-    markServed(userId, served, seenKey(tmdbId, contentType));
+    if (validated.mode === "SMART") {
+      // FILTERED never loads served, so marking from it would overwrite the
+      // map with one entry and wipe the 6h no-repeat list and diversity state.
+      markServed(userId, served, seenKey(tmdbId, contentType), {
+        type: contentType,
+        genre: recommendation.genreIds?.length ? String(recommendation.genreIds[0]) : undefined,
+      });
+      // A prefetch is only an impression once the client shows it (sent back as `shown`).
+      const impressions = [
+        ...(validated.prefetch ? [] : [recommendation]),
+        ...(validated.shown ? [validated.shown] : []),
+      ];
+      if (impressions.length) void ImpressionService.record(userId, 'hero', impressions);
+      impressions.forEach((p) => recordHero(userId, p));
+    }
     const isMovie = contentType === 'MOVIE';
     const detailsKey = `${contentType}:${tmdbId}`;
 
@@ -123,10 +139,14 @@ export async function POST(req: NextRequest) {
 
     // Build "Why This Pick?" explanation. Strategy copy speaks of "your taste",
     // which is false until onboarding is done.
+    const seedTitles = recommendation.seeds?.map((s) => s.title) ?? [];
     const explanation = recommendation.seed
       ? {
           title: 'Because you watched',
-          description: `People who watched ${recommendation.seed.title} also watched this.`,
+          description:
+            seedTitles.length >= 2
+              ? `People who watched ${seedTitles[0]} and ${seedTitles[1]} also watched this.`
+              : `People who watched ${recommendation.seed.title} also watched this.`,
         }
       : !profileComplete
       ? {

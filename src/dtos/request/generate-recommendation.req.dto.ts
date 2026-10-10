@@ -56,6 +56,23 @@ export const GenerateRecommendationReqSchema = z.object({
    * - SMART: Uses user profile + history to auto-generate
    */
   mode: RecommendationModeSchema.default('FILTERED'),
+
+  /**
+   * SMART only: background prefetch for "Not tonight". Not an impression until shown.
+   */
+  prefetch: z.boolean().optional(),
+
+  /**
+   * SMART only: a prefetched pick the client has now displayed; recorded as an impression.
+   */
+  shown: z
+    .object({
+      tmdbId: z.number().int().positive(),
+      contentType: ContentTypeSchema,
+      genreIds: z.array(z.number().int()).max(20).default([]),
+      originalLanguage: z.string().max(5).default(''),
+    })
+    .optional(),
 });
 
 export type GenerateRecommendationReqDto = z.infer<typeof GenerateRecommendationReqSchema>;

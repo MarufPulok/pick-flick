@@ -137,6 +137,7 @@ export interface TMDBWatchProvidersResponse {
  */
 export interface TMDBDiscoverParams {
   with_genres?: string;
+  without_genres?: string;
   with_original_language?: string;
   with_keywords?: string;
   'vote_average.gte'?: number;

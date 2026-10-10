@@ -9,7 +9,8 @@ import { connectToDatabase } from '@/infrastructure/db';
 import { UserModel } from '@/infrastructure/db/models';
 import { auth } from '@/lib/auth';
 import { PreferenceWeightsService } from '@/services/preference-weights.service';
-import { ViewingProgressService } from '@/services/viewing-progress.service';
+import { tmdbClient } from '@/infrastructure/external/tmdb.client';
+import { isQualifiedPlay, ViewingProgressService } from '@/services/viewing-progress.service';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
@@ -23,6 +24,38 @@ const RecordViewingSchema = z.object({
   positionSeconds: z.number().min(0).optional(),
   durationSeconds: z.number().min(0).optional(),
 });
+
+/**
+ * Learn from watching, not opening (X weighs video_open ~0.07 against like 0.5):
+ * the first open of a title is +1, and +4 lands once, when a progress ping
+ * crosses the qualified-play bar. Also backfills the poster when the link that
+ * opened the player had none.
+ */
+async function learnFromViewing(userId: string, v: z.infer<typeof RecordViewingSchema>, created: boolean) {
+  const isOpen = v.positionSeconds === undefined;
+  let action: 'PLAYED' | 'WATCHED' | null = null;
+  if (
+    !isOpen &&
+    isQualifiedPlay(v.positionSeconds!, v.durationSeconds ?? 0) &&
+    (await ViewingProgressService.claimLearned(userId, v.tmdbId, v.contentType))
+  ) {
+    action = 'WATCHED';
+  } else if (created) {
+    // First record for this title, whether from the open call or a ping that won the race.
+    action = 'PLAYED';
+  }
+
+  const needPoster = isOpen && !v.posterPath;
+  if (!action && !needPoster) return;
+  const details = action
+    ? await PreferenceWeightsService.learnFromPlay(userId, v.tmdbId, v.contentType, action)
+    : v.contentType === 'MOVIE'
+      ? await tmdbClient.getMovieDetails(v.tmdbId)
+      : await tmdbClient.getTVDetails(v.tmdbId);
+  if (!v.posterPath && details.poster_path) {
+    await ViewingProgressService.setPoster(userId, v.tmdbId, v.contentType, details.poster_path);
+  }
+}
 
 const RemoveViewingSchema = z.object({
   tmdbId: z.number(),
@@ -100,27 +133,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const result = await ViewingProgressService.recordViewing({
-      userId: user._id.toString(),
-      ...validated,
-    });
+    const userId = user._id.toString();
+    const { item, created } = await ViewingProgressService.recordViewing({ userId, ...validated });
 
-    // A play from any screen (search, trending, pick) teaches the recommender,
-    // and backfills the poster when the link that opened the player had none.
-    // Progress pings carry positionSeconds; only the "player opened" call does this.
-    if (validated.positionSeconds === undefined) {
-      PreferenceWeightsService.learnFromPlay(user._id.toString(), validated.tmdbId, validated.contentType)
-        .then((details) =>
-          !validated.posterPath && details.poster_path
-            ? ViewingProgressService.setPoster(user._id.toString(), validated.tmdbId, validated.contentType, details.poster_path)
-            : undefined
-        )
-        .catch((err) => console.error('Failed to learn from play:', err));
-    }
+    learnFromViewing(userId, validated, created).catch((err) => console.error('Failed to learn from play:', err));
 
     return NextResponse.json({
       success: true,
-      id: result._id,
+      id: item._id,
     });
   } catch (error) {
     console.error('Continue watching POST error:', error);

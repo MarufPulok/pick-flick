@@ -115,12 +115,16 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
       try {
         const ready = next.current;
         next.current = null;
-        const data =
-          ready && ready.body === body && ready.data.tmdbId !== pick?.tmdbId ? ready.data : await fetchPick(body);
+        const fromPrefetch = !!ready && ready.body === body && ready.data.tmdbId !== pick?.tmdbId;
+        const data = fromPrefetch ? ready.data : await fetchPick(body);
         if (id !== requestId.current) return;
         setPick(data);
         onPick?.(data);
-        fetchPick(body)
+        // The prefetch isn't an impression until shown; report it with the next prefetch.
+        const shown = fromPrefetch
+          ? { tmdbId: data.tmdbId, contentType: data.contentType, genreIds: data.genreIds ?? [], originalLanguage: data.originalLanguage ?? '' }
+          : undefined;
+        fetchPick(useFilters ? body : JSON.stringify({ ...JSON.parse(body), prefetch: true, shown }))
           .then((d) => {
             if (d.tmdbId !== data.tmdbId) next.current = { body, data: d };
           })

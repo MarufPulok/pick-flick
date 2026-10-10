@@ -6,6 +6,7 @@
 import { ContentType } from '@/config/app.config';
 import { RecommendationHistoryModel, WatchlistModel } from '@/infrastructure/db/models';
 import { ViewingProgressModel } from '@/infrastructure/db/models/viewing-progress.model';
+import { QUALIFIED_PLAY_FRACTION, QUALIFIED_PLAY_SECONDS } from '@/services/viewing-progress.service';
 
 /**
  * Identity of a title for "already seen" checks. TMDB movie and TV ids share
@@ -20,7 +21,18 @@ export interface Seed {
   tmdbId: number;
   contentType: ContentType;
   title: string;
+  strength?: 'LIKED' | 'WATCHED' | 'PLAYED';
+  at?: Date;
 }
+
+/** X MAX_SEED_AGE: older engagement says little about tonight. */
+const SEED_MAX_AGE_DAYS = 90;
+/** Seed mix per call, strongest signal first; short buckets are filled from the rest. */
+const SEED_QUOTA = [
+  ['LIKED', 2],
+  ['WATCHED', 1],
+  ['PLAYED', 2],
+] as const;
 
 interface RecordActionRequest {
   userId: string;
@@ -155,38 +167,73 @@ export class HistoryService {
   }
 
   /**
-   * Most recent titles the user liked, marked watched, or played (any screen:
-   * pick, search, trending). Seeds for TMDB's recommendation graph.
+   * Seeds for TMDB's recommendation graph: recent liked, marked-watched and
+   * properly played titles (any screen), up to SEED_QUOTA per kind, never a
+   * title the user disliked or blacklisted. Newest first.
    */
-  static async getSeeds(userId: string, limit = 3): Promise<Seed[]> {
-    const [history, played] = await Promise.all([
-      RecommendationHistoryModel.find({ userId, action: { $in: ['LIKED', 'WATCHED'] } })
+  static async getSeeds(userId: string, limit = 5): Promise<Seed[]> {
+    const since = new Date(Date.now() - SEED_MAX_AGE_DAYS * 24 * 60 * 60 * 1000);
+    const recent = (action: string) =>
+      RecommendationHistoryModel.find({ userId, action, updatedAt: { $gte: since } })
         .sort({ updatedAt: -1 })
         .limit(limit)
         .select('tmdbId contentType title updatedAt')
+        .lean();
+
+    const [negative, liked, watched, played] = await Promise.all([
+      RecommendationHistoryModel.find({ userId, action: { $in: ['DISLIKED', 'BLACKLISTED'] } })
+        .select('tmdbId contentType')
         .lean(),
-      ViewingProgressModel.find({ userId })
+      recent('LIKED'),
+      recent('WATCHED'),
+      // Plays count once they qualified; legacy rows (pre-`learned`) by position.
+      ViewingProgressModel.find({
+        userId,
+        lastWatchedAt: { $gte: since },
+        $or: [
+          { learned: true },
+          { positionSeconds: { $gte: QUALIFIED_PLAY_SECONDS } },
+          {
+            $expr: {
+              $and: [
+                { $gt: ['$durationSeconds', 0] },
+                { $gte: ['$positionSeconds', { $multiply: ['$durationSeconds', QUALIFIED_PLAY_FRACTION] }] },
+              ],
+            },
+          },
+        ],
+      })
         .sort({ lastWatchedAt: -1 })
         .limit(limit)
         .select('tmdbId contentType title lastWatchedAt')
         .lean(),
     ]);
 
-    const all = [
-      ...history.map((h) => ({ ...h, at: new Date(h.updatedAt as Date) })),
-      ...played.map((p) => ({ ...p, at: new Date(p.lastWatchedAt as Date) })),
-    ].sort((a, b) => b.at.getTime() - a.at.getTime());
+    // Each title lands in its strongest bucket only; negatives never seed.
+    const used = new Set(negative.map((n) => seenKey(n.tmdbId as number, n.contentType as string)));
+    const bucket = (rows: Record<string, unknown>[], strength: Seed['strength'], atField: string): Seed[] =>
+      rows.flatMap((r) => {
+        const key = seenKey(r.tmdbId as number, r.contentType as string);
+        if (used.has(key)) return [];
+        used.add(key);
+        return [{
+          tmdbId: r.tmdbId as number,
+          contentType: r.contentType as ContentType,
+          title: r.title as string,
+          strength,
+          at: new Date(r[atField] as Date),
+        }];
+      });
+    const buckets = {
+      LIKED: bucket(liked, 'LIKED', 'updatedAt'),
+      WATCHED: bucket(watched, 'WATCHED', 'updatedAt'),
+      PLAYED: bucket(played, 'PLAYED', 'lastWatchedAt'),
+    };
 
-    const seen = new Set<string>();
-    const seeds: Seed[] = [];
-    for (const s of all) {
-      const key = seenKey(s.tmdbId as number, s.contentType as string);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      seeds.push({ tmdbId: s.tmdbId as number, contentType: s.contentType as ContentType, title: s.title as string });
-      if (seeds.length >= limit) break;
-    }
-    return seeds;
+    const chosen = SEED_QUOTA.flatMap(([kind, n]) => buckets[kind].splice(0, n)).slice(0, limit);
+    const rest = Object.values(buckets).flat().sort((a, b) => b.at!.getTime() - a.at!.getTime());
+    chosen.push(...rest.slice(0, limit - chosen.length));
+    return chosen.sort((a, b) => b.at!.getTime() - a.at!.getTime());
   }
 
   /**

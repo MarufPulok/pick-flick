@@ -74,7 +74,7 @@ export default function DashboardPage() {
 
       <div className="mx-auto max-w-330 space-y-14 px-4 pb-24 sm:px-6 lg:px-15">
         <ContinueWatchingSection />
-        <ForYouSection />
+        <ForYouSection excludeId={current ? `${current.contentType}:${current.tmdbId}` : undefined} />
         <TrendingSection limit={12} />
         {current && <SimilarContentSection tmdbId={current.tmdbId} contentType={current.contentType} currentTitle={current.title} />}
       </div>

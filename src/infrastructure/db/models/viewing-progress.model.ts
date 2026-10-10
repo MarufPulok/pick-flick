@@ -18,6 +18,7 @@ export interface IViewingProgress extends Document {
   durationSeconds: number;
   lastWatchedAt: Date;
   watchCount: number;
+  learned: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -60,6 +61,8 @@ const ViewingProgressSchema = new Schema<IViewingProgress>(
       type: Number,
       default: 1,
     },
+    /** Set once when a play crosses the "really watched" bar; the +4 learn fires only on that flip. */
+    learned: { type: Boolean, default: false },
   },
   {
     timestamps: true,

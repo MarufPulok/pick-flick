@@ -8,6 +8,8 @@ import { getTMDBImageUrl } from '@/config/url.config';
 import { connectToDatabase } from '@/infrastructure/db';
 import { UserModel } from '@/infrastructure/db/models';
 import { auth } from '@/lib/auth';
+import { recordFeed } from '@/lib/diversity-stats';
+import { ImpressionService } from '@/services/impression.service';
 import { RecommendationService } from '@/services/recommendation.service';
 import { loadSmartContext } from '@/services/smart-context.service';
 import { NextResponse } from 'next/server';
@@ -25,8 +27,11 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const ctx = await loadSmartContext(user._id.toString());
+    const userId = user._id.toString();
+    const ctx = await loadSmartContext(userId);
     const picks = await RecommendationService.generateSmartFeed(ctx.request, 12);
+    void ImpressionService.record(userId, 'feed', picks);
+    recordFeed(userId, picks);
 
     return NextResponse.json({
       profileComplete: ctx.profileComplete,
@@ -39,7 +44,7 @@ export async function GET() {
         rating: p.rating,
         releaseDate: p.releaseDate,
         why: p.seed
-          ? `Because you watched ${p.seed.title}`
+          ? `Because you watched ${p.seed.title}${p.seeds && p.seeds.length >= 2 ? ` and ${p.seeds[1].title}` : ''}`
           : [getGenreNames(p.strategyGenres).slice(0, 2).join(' · '), getLanguageName(p.originalLanguage)]
               .filter(Boolean)
               .join(' · '),

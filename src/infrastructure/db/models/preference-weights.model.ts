@@ -64,6 +64,14 @@ const preferenceWeightsSchema = new Schema(
       type: Number,
       default: 0,
     },
+
+    /**
+     * When the stored weights were last decayed toward 50. Missing on old
+     * docs; readers fall back to updatedAt.
+     */
+    decayedAt: {
+      type: Date,
+    },
   },
   {
     timestamps: true,

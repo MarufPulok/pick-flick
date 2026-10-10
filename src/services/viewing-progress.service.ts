@@ -6,6 +6,16 @@
 import { ContentType } from '@/dtos/common.dto';
 import { ViewingProgressModel } from '@/infrastructure/db/models/viewing-progress.model';
 
+/**
+ * A play counts as really watched past 10 minutes or 20% of the runtime.
+ * X drops video views under 10s; we want a sit-down, not a peek.
+ */
+export const QUALIFIED_PLAY_SECONDS = 600;
+export const QUALIFIED_PLAY_FRACTION = 0.2;
+export const isQualifiedPlay = (positionSeconds: number, durationSeconds: number) =>
+  positionSeconds >= QUALIFIED_PLAY_SECONDS ||
+  (durationSeconds > 0 && positionSeconds >= QUALIFIED_PLAY_FRACTION * durationSeconds);
+
 interface RecordViewingRequest {
   userId: string;
   tmdbId: number;
@@ -65,8 +75,9 @@ export class ViewingProgressService {
    * Record or update a viewing session.
    * A call without positionSeconds is "player opened" and bumps watchCount;
    * calls with it are progress pings and only move the position.
+   * `created` is true when this call inserted the record (first play of the title).
    */
-  static async recordViewing(request: RecordViewingRequest): Promise<ContinueWatchingItem> {
+  static async recordViewing(request: RecordViewingRequest): Promise<{ item: ContinueWatchingItem; created: boolean }> {
     const { userId, tmdbId, contentType, title, posterPath, season, episode, positionSeconds, durationSeconds } = request;
     const isProgressPing = positionSeconds !== undefined;
 
@@ -78,17 +89,29 @@ export class ViewingProgressService {
       if (durationSeconds) set.durationSeconds = durationSeconds;
     }
 
-    const progress = await ViewingProgressModel.findOneAndUpdate(
+    const res = await ViewingProgressModel.findOneAndUpdate(
       { userId, tmdbId, contentType },
       {
         $set: set,
         $setOnInsert: { userId, tmdbId, contentType },
         ...(isProgressPing ? {} : { $inc: { watchCount: 1 } }),
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true, includeResultMetadata: true }
     );
 
-    return toItem(progress);
+    return { item: toItem(res.value), created: !res.lastErrorObject?.updatedExisting };
+  }
+
+  /**
+   * Flip learned false -> true once per title. The filter makes it atomic, so
+   * concurrent progress pings can't both win. $ne covers rows from before the field.
+   */
+  static async claimLearned(userId: string, tmdbId: number, contentType: ContentType): Promise<boolean> {
+    const res = await ViewingProgressModel.updateOne(
+      { userId, tmdbId, contentType, learned: { $ne: true } },
+      { $set: { learned: true } }
+    );
+    return res.modifiedCount === 1;
   }
 
   /** Backfill a poster for a record created from a link that carried none. */

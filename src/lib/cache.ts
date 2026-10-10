@@ -247,8 +247,8 @@ export const similarCache = new TTLCache<unknown>({ maxSize: 300, name: 'similar
 export const searchCache = new TTLCache<unknown>({ maxSize: 200, name: 'search' });
 export const trendingCache = new TTLCache<unknown>({ maxSize: 50, name: 'trending' });
 export const recommendationsCache = new TTLCache<unknown>({ maxSize: 300, name: 'recommendations' });
-/** Per-user keys of picks served in the last few hours, so the hero rotates even without an action. */
-export const servedCache = new TTLCache<Set<string>>({ maxSize: 1000, name: 'served' });
+/** Per-user picks served recently (key -> when/type/primary genre), so the hero rotates and diversity can decay. */
+export const servedCache = new TTLCache<Map<string, { at: number; type: string; genre?: string }>>({ maxSize: 1000, name: 'served' });
 
 /**
  * Get aggregated stats from all cache instances

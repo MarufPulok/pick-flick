@@ -4,9 +4,10 @@ import { Poster } from '@/components/ui/poster';
 import { useFeed } from '@/hooks/use-feed';
 import Link from 'next/link';
 
-export function ForYouSection() {
+/** excludeId: `${contentType}:${tmdbId}` of the current hero, so it isn't repeated in the rail. */
+export function ForYouSection({ excludeId }: { excludeId?: string }) {
   const { data, isLoading, error } = useFeed();
-  const items = data?.items ?? [];
+  const items = (data?.items ?? []).filter((i) => `${i.contentType}:${i.tmdbId}` !== excludeId);
 
   if (error || (!isLoading && items.length === 0)) return null;
 

@@ -34,7 +34,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const weights = await PreferenceWeightsService.getWeights(user._id.toString());
+    // Decayed additive weights, no impression blend: a chip means "you said so a few times".
+    const weights = await PreferenceWeightsService.getWeights(user._id.toString(), { empirical: false });
     const chips = buildMoodChips({
       ...parsed.data,
       genreWeights: weights?.genreWeights,
