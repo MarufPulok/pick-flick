@@ -13,7 +13,7 @@ export class ImpressionService {
   static async record(
     userId: string,
     surface: 'hero' | 'feed',
-    items: Array<{ tmdbId: number; contentType: ContentType; genreIds: number[]; originalLanguage: string }>
+    items: Array<{ tmdbId: number; contentType: ContentType; genreIds: number[]; originalLanguage: string; seed?: unknown; seeded?: boolean }>
   ): Promise<void> {
     if (items.length === 0) return;
     try {
@@ -25,6 +25,8 @@ export class ImpressionService {
           contentType: i.contentType,
           genreIds: i.genreIds.map(String),
           originalLanguage: i.originalLanguage,
+          // Served picks carry `seed`; a `shown` echo carries `seeded` (absent = unknown).
+          seeded: 'seeded' in i ? i.seeded : !!i.seed,
         })),
         { ordered: false }
       );

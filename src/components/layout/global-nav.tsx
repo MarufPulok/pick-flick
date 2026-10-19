@@ -25,7 +25,7 @@ export function GlobalNav() {
   const { data: session, status } = useSession();
   const pathname = usePathname();
 
-  if (status === 'loading' || pathname === '/watch') return null;
+  if (status === 'loading' || pathname === '/watch' || pathname.startsWith('/admin')) return null;
 
   const authed = status === 'authenticated';
   const initials = (session?.user?.name ?? 'U')

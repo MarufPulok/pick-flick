@@ -1,4 +1,5 @@
 import { GlobalNav } from '@/components/layout/global-nav';
+import { PageViewTracker } from '@/components/analytics/page-view-tracker';
 import { ToastProvider } from '@/components/providers/toast-provider';
 import { QueryProvider, SessionProvider, ThemeProvider } from '@/providers';
 import type { Metadata } from 'next';
@@ -54,6 +55,7 @@ export default function RootLayout({
       >
         <ToastProvider />
         <SessionProvider>
+          <PageViewTracker />
           <ThemeProvider defaultTheme="dark">
             <QueryProvider>
               <GlobalNav />

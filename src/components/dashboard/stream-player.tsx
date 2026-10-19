@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { postViewingProgress, useRecordViewing } from '@/hooks/use-continue-watching';
 import { DEFAULT_EMBED_PROVIDER, EMBED_PROVIDERS, type RankedProvider, getEmbedProvider, rankProviders } from '@/lib/embed-providers';
 import { getFreeStreamingOptions } from '@/lib/free-streaming';
+import { track } from '@/lib/track';
 import { setStreamOpen } from '@/lib/watching-state';
 import { ExternalLink, Maximize2, Minimize2, X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -18,6 +19,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 const PROGRESS_PING_MS = 15_000;
+const FRAME_TIMEOUT_MS = 15_000;
 
 interface StreamPlayerProps {
   tmdbId: number;
@@ -175,7 +177,10 @@ export function StreamPlayer({
                 <button
                   key={p.id}
                   type="button"
-                  onClick={() => setProviderId(p.id)}
+                  onClick={() => {
+                    if (p.id !== providerId) track({ type: 'player', provider: providerId, status: 'switched' });
+                    setProviderId(p.id);
+                  }}
                   aria-pressed={providerId === p.id}
                   title={ms === null ? (ranked ? 'Unreachable' : 'Checking…') : `${ms} ms`}
                   className={`h-7 shrink-0 cursor-pointer rounded-sm px-3 text-xs transition-colors ${
@@ -212,7 +217,7 @@ export function StreamPlayer({
             Finding fastest source…
           </div>
         ) : (
-          <Frame key={`${providerId}-${tmdbId}`} src={streamUrl} title={`Stream ${title}`} providerName={provider.name} />
+          <Frame key={`${providerId}-${tmdbId}`} src={streamUrl} title={`Stream ${title}`} providerId={provider.id} providerName={provider.name} />
         )}
       </div>
 
@@ -238,8 +243,27 @@ export function StreamPlayer({
 }
 
 /** The embed, with a "Loading <source>…" state until the frame reports load. Keyed by provider so a switch starts clean. */
-function Frame({ src, title, providerName }: { src: string; title: string; providerName: string }) {
+function Frame({ src, title, providerId, providerName }: { src: string; title: string; providerId: string; providerName: string }) {
   const [loaded, setLoaded] = useState(false);
+  const mountedAt = useRef(0);
+  const isLoaded = useRef(false);
+
+  // Frames only mount once ranking is done, so the pre-ranking default never reports.
+  useEffect(() => {
+    mountedAt.current = Date.now();
+    track({ type: 'player', provider: providerId, status: 'attempt' });
+    const t = setTimeout(() => {
+      if (!isLoaded.current) track({ type: 'player', provider: providerId, status: 'timeout' });
+    }, FRAME_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, [providerId]);
+
+  const onLoad = () => {
+    setLoaded(true);
+    if (isLoaded.current) return;
+    isLoaded.current = true;
+    track({ type: 'player', provider: providerId, status: 'loaded', ms: Math.min(Date.now() - mountedAt.current, 120000) });
+  };
   return (
     <div className="relative h-full w-full">
       {!loaded && (
@@ -250,7 +274,7 @@ function Frame({ src, title, providerName }: { src: string; title: string; provi
       <iframe
         src={src}
         title={title}
-        onLoad={() => setLoaded(true)}
+        onLoad={onLoad}
         className={`h-full w-full border-0 transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
         allowFullScreen
         allow="autoplay; fullscreen; picture-in-picture"

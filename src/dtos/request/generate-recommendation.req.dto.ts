@@ -71,6 +71,7 @@ export const GenerateRecommendationReqSchema = z.object({
       contentType: ContentTypeSchema,
       genreIds: z.array(z.number().int()).max(20).default([]),
       originalLanguage: z.string().max(5).default(''),
+      seeded: z.boolean().optional(),
     })
     .optional(),
 });

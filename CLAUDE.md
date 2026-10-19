@@ -75,7 +75,7 @@ In-memory `TTLCache` instances (not Redis). Global singletons: `discoverCache`, 
 
 NextAuth v5 beta with Google OAuth + `MongoDBAdapter`. Sessions stored in DB (30-day expiry). After OAuth callback, redirects to `/onboarding` if `TasteProfile` is missing or `complete: false`.
 
-There is **no middleware**. Protection is per-route: user-scoped API routes (`history`, `profile`, `recommendation`, `stats`, `watchlist`) call `await auth()` and 401 on no session; `search`, `trending`, `similar`, `mood-analyze` are public. Pages gate client-side with `useSession()`. `/search` and `/watch` work for anonymous users.
+There is **no middleware**. Protection is per-route: user-scoped API routes (`history`, `profile`, `recommendation`, `stats`, `watchlist`) call `await auth()` and 401 on no session; `search`, `trending`, `similar`, `mood-analyze` are public. Pages gate client-side with `useSession()`. `/search` and `/watch` work for anonymous users. `/admin/*` is gated server-side in `src/app/admin/layout.tsx` via `getAdminSession()` (`src/lib/admin.ts`, emails hardcoded in `src/config/admin.config.ts`); non-admins get a 404. `/api/cache-stats` uses the same check. `POST /api/events` is public (anonymous beacons).
 
 ### MongoDB Models (`src/infrastructure/db/models/`)
 
@@ -87,6 +87,7 @@ There is **no middleware**. Protection is per-route: user-scoped API routes (`hi
 - `WatchlistModel` — saved content
 - `BlacklistModel` — explicitly excluded content
 - `ViewingProgressModel` — per-user viewing records; backs "Continue Watching" (`/api/continue-watching`), exclusions and seeds; `learned` marks a qualified play
+- `EventModel` — usage beacons (`view`, `player` source outcome, `chip` tap) keyed by a random browser `anonId` (localStorage `pf_anon_id`), optional userId, device class; no IP or raw UA; 120-day TTL. Sent by `track()` (`src/lib/track.ts`) from `PageViewTracker` (root layout), `StreamPlayer` and the mood chips
 
 ### Streaming
 
@@ -106,6 +107,10 @@ Browser-only, not persisted to MongoDB: `storage.ts` (localStorage wrapper with 
 ### Visual system
 
 Design tokens live in `src/app/globals.css` and are documented in `DESIGN.md` (dark-only "Projection Booth" world; amber is reserved for pressable things). Product truth is in `PRODUCT.md`. The dashboard is one surface, `src/components/dashboard/pick-screen.tsx`: mood input, chips, one pick lit by its own backdrop, Play. Mood chips and free-text keywords map to TMDB genre ids in `src/lib/mood-chips.ts`.
+
+### Admin dashboard (`/admin`)
+
+Server components call `src/services/admin/*.service.ts` directly (no API layer); shapes live in `src/services/admin/types.ts`. Screens: Overview (pick to play, median time to play, active on 2+ days, DAU, funnel, weekday×hour heatmap in Asia/Dhaka, live feed), Users (list + per-user dossier: said vs did, timeline, progress, watchlist), Taste, Picks, Traffic (events), System (in-memory caches and diversity). Pick to play joins impressions to a `ViewingProgress` first-open within 6h. `Impression.seeded` tags seed-pool picks (absent on older rows). Charts are inline SVG/CSS in `src/components/admin/`, no chart library. Mockups: `docs/mockups/admin-dashboard.excalidraw`.
 
 ### API Docs
 

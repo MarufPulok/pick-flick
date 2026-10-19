@@ -2,6 +2,7 @@
  * DTO Request Barrel Export
  */
 
+export * from './event.req.dto';
 export * from './feedback.req.dto';
 export * from './generate-recommendation.req.dto';
 export * from './onboarding.req.dto';

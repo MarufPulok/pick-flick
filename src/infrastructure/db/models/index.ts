@@ -3,6 +3,7 @@
  * Centralized export for all Mongoose models
  */
 
+export * from './event.model';
 export * from './impression.model';
 export * from './preference-weights.model';
 export * from './recommendation-history.model';

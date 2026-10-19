@@ -15,6 +15,8 @@ const impressionSchema = new Schema(
     genreIds: { type: [String], default: [] },
     originalLanguage: { type: String },
     surface: { type: String, enum: ['hero', 'feed'], required: true },
+    /** Came from the "because you watched" seed pool. Absent on rows recorded before this field. */
+    seeded: { type: Boolean },
     createdAt: { type: Date, default: Date.now },
   },
   { collection: 'impressions', versionKey: false }

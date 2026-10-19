@@ -7,6 +7,7 @@ import { Poster } from '@/components/ui/poster';
 import { useMoodChips } from '@/hooks/use-feed';
 import { useHistoryActions } from '@/hooks/use-history-actions';
 import { useIsInWatchlist, useWatchlist } from '@/hooks/use-watchlist';
+import { track } from '@/lib/track';
 import { BASE_CHIPS, SURPRISE_CHIP, type MoodChip } from '@/lib/mood-chips';
 import { cn } from '@/lib/utils';
 import { markAsWatching } from '@/lib/watching-state';
@@ -127,7 +128,7 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
         onPick?.(data);
         // The prefetch isn't an impression until shown; report it with the next prefetch.
         const shown = fromPrefetch
-          ? { tmdbId: data.tmdbId, contentType: data.contentType, genreIds: data.genreIds ?? [], originalLanguage: data.originalLanguage ?? '' }
+          ? { tmdbId: data.tmdbId, contentType: data.contentType, genreIds: data.genreIds ?? [], originalLanguage: data.originalLanguage ?? '', seeded: data.explanation ? data.explanation.title === 'Because you watched' : undefined }
           : undefined;
         fetchPick(useFilters ? body : JSON.stringify({ ...JSON.parse(body), prefetch: true, shown }))
           .then((d) => {
@@ -158,6 +159,7 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
   };
 
   const pickFromChip = (chip: MoodChip, el: HTMLElement) => {
+    track({ type: 'chip', label: chip.label });
     setActiveChip(chip.id);
     setMode('SMART');
     el.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
