@@ -21,9 +21,7 @@
 - **🎬 Trailer Preview** - Watch trailers directly in the app via modal player
 - **💡 "Why This Pick?"** - See explanations for why each recommendation matches you
 - **📺 Streaming Availability** - See where to watch (Netflix, Hulu, Disney+, etc.)
-- **🆓 Universal Free Streaming** - Direct links to MovieBox, Cineb, SyncPlay for free streaming
-- **▶️ In-App Streaming** - Watch movies, TV shows, and anime directly without leaving the page
-- **✨ More Like This** - Discover similar content with inline streaming buttons
+- **✨ More Like This** - Discover similar titles
 
 ### Content Exploration
 - **🔥 Trending Now** - See what's popular globally and in your region
@@ -71,22 +69,6 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 # AI Features (Optional - enables mood analysis)
 BYTEZ_API_KEY=your-bytez-api-key
-
-# Universal Free Streaming
-NEXT_PUBLIC_ENABLE_FREE_STREAMING=true
-NEXT_PUBLIC_MAX_FREE_SERVICES=4
-
-# Movie & TV Series Platforms
-NEXT_PUBLIC_ENABLE_MOVIEBOX=true
-NEXT_PUBLIC_MOVIEBOX_BASE_URL=https://moviebox.ph
-NEXT_PUBLIC_ENABLE_CINEB=true
-NEXT_PUBLIC_CINEB_BASE_URL=https://cineb.gg
-NEXT_PUBLIC_ENABLE_SYNCPLAY=true
-NEXT_PUBLIC_SYNCPLAY_BASE_URL=https://syncplay.vercel.app
-
-# Anime Platforms
-NEXT_PUBLIC_ENABLE_HIANIME=true
-NEXT_PUBLIC_HIANIME_BASE_URL=https://hianime.to
 
 # Auth (BetterAuth)
 BETTER_AUTH_SECRET=your-random-secret-here
