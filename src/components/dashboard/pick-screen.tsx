@@ -310,8 +310,8 @@ export function PickScreen({ onPick }: { onPick?: (pick: Recommendation) => void
                     </>
                   )}
                 </p>
-                <p className="mt-3 max-w-130 text-pretty text-base leading-relaxed text-foreground/85 sm:text-xl lg:mt-5">
-                  {pick.explanation?.description || pick.overview}
+                <p className="mt-3 max-w-130 line-clamp-3 text-pretty text-base leading-relaxed text-foreground/85 sm:text-xl lg:mt-5" title={pick.overview || undefined}>
+                  {pick.overview || pick.explanation?.description}
                 </p>
                 {pick.profileComplete === false && (
                   <p className="mt-3 text-sm text-muted-foreground">
