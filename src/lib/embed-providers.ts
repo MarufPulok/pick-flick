@@ -1,5 +1,3 @@
-'use client';
-
 import { ContentType } from '@/dtos/common.dto';
 
 export interface EmbedPlayback {
